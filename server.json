@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.yourusername/netlicensing-mcp",
+  "title": "NetLicensing MCP Server",
+  "description": "MCP server for the Labs64 NetLicensing license management REST API. Manage products, modules, license templates, licensees, licenses, and shop tokens — plus five built-in audit prompt templates.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/yourusername/netlicensing-mcp",
+  "license": "Apache-2.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "netlicensing-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "NETLICENSING_API_KEY",
+          "description": "Your NetLicensing API key (leave empty to use demo credentials)",
+          "required": false
+        },
+        {
+          "name": "NETLICENSING_BASE_URL",
+          "description": "Override the NetLicensing API base URL",
+          "required": false,
+          "default": "https://go.netlicensing.io/core/v2/rest"
+        }
+      ]
+    }
+  ]
+}

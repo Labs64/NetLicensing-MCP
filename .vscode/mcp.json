@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "netlicensing": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "netlicensing_mcp.server"],
+      "env": {
+        "NETLICENSING_API_KEY": "${env:NETLICENSING_API_KEY}",
+        "NETLICENSING_BASE_URL": "https://go.netlicensing.io/core/v2/rest"
+      }
+    }
+  }
+}
