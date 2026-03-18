@@ -2,10 +2,13 @@ name: NetLicensing MCP - Release
 
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"          # 1.2.3
+      - "[0-9]+.[0-9]+.[0-9]+-*"        # 1.2.3-rc.1, 1.2.3-beta.2
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -58,7 +61,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install build tools
-        run: pip install hatch==1.14.0
+        run: pip install hatch
 
       - name: Build package
         run: hatch build
@@ -102,7 +105,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
+          cache-to: type=inline
+    
   # ── 4. Publish to MCP Registry ──────────────────────────────────────────────
   publish-mcp-registry:
     name: Publish to MCP Registry
@@ -123,8 +128,6 @@ jobs:
 
       - name: Publish to MCP Registry
         run: mcp-publisher publish
-        env:
-          MCP_PUBLISHER_TOKEN: ${{ secrets.MCP_PUBLISHER_TOKEN }}
 
   # ── 5. Create GitHub Release ────────────────────────────────────────────────
   create-release:
