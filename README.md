@@ -1,6 +1,6 @@
 # NetLicensing MCP Server
  
-<!-- mcp-name: io.github.labs64/netlicensing-mcp -->
+<!-- mcp-name: io.github.Labs64/netlicensing-mcp -->
  
 [![CI](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml/badge.svg)](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/netlicensing-mcp)](https://pypi.org/project/netlicensing-mcp/)

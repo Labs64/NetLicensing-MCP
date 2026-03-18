@@ -14,7 +14,8 @@ RUN pip install --no-cache-dir "mcp[cli]>=1.7.0" httpx python-dotenv
 
 # 2. Copy source and install package (non-editable for production)
 COPY src/ ./src/
-RUN pip install --no-cache-dir --no-deps .
+COPY dist/*.whl ./
+RUN pip install --no-cache-dir --no-deps *.whl
 
 # 3. Runtime config — inject via -e at docker run, no defaults baked in
 #    NETLICENSING_API_KEY   — required, no default
