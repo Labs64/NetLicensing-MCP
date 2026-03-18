@@ -3,7 +3,9 @@
 <!-- mcp-name: io.github.Labs64/netlicensing-mcp -->
  
 [![CI](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml/badge.svg)](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/netlicensing-mcp)](https://pypi.org/project/netlicensing-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/netlicensing_mcp)](https://pypi.org/project/netlicensing-mcp/)
+[![GHCR](https://img.shields.io/github/v/release/Labs64/NetLicensing-MCP?label=ghcr.io%2Flabs64%2Fnetlicensing-mcp&logo=docker&logoColor=white&style=flat-square)](https://github.com/Labs64/NetLicensing-MCP/pkgs/container/netlicensing-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-netlicensing--mcp-blue?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMSAxN3YtNkg5bDMtNCAzIDRoLTJ2NmgtMnoiLz48L3N2Zz4=&style=flat-square)](https://registry.modelcontextprotocol.io/?q=netlicensing-mcp)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 
@@ -92,7 +94,7 @@ docker run -i --rm \
  
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `NETLICENSING_API_KEY` | No* | *(demo mode)* | NetLicensing API key. Leave empty to use sandbox demo credentials. |
+| `NETLICENSING_API_KEY` | No | *(demo mode)* | NetLicensing API key. Leave empty to use sandbox demo credentials. |
 | `NETLICENSING_BASE_URL` | No | `https://go.netlicensing.io/core/v2/rest` | Override the NetLicensing REST API base URL (e.g. for on-prem deployments). |
 
 ---
@@ -229,9 +231,13 @@ ngrok http 8000
 Contributions are welcome! Please open an issue or pull request on [GitHub](https://github.com/Labs64/NetLicensing-MCP).
  
 For significant changes, open an issue first to discuss the approach.
- 
+
 ---
  
 ## License
  
-Apache 2.0 — see [LICENSE](LICENSE).
+Apache 2.0 — see [LICENSE](LICENSE)
+
+---
+
+[![NetLicensing-MCP MCP server](https://glama.ai/mcp/servers/Labs64/NetLicensing-MCP/badges/card.svg)](https://glama.ai/mcp/servers/Labs64/NetLicensing-MCP)
