@@ -1,6 +1,6 @@
 # netlicensing-mcp
 
-<!-- mcp-name: io.github.yourusername/netlicensing-mcp -->
+<!-- mcp-name: io.github.labs64/netlicensing-mcp -->
 
 [![NetLicensing MCP - CI](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml/badge.svg)](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/netlicensing-mcp)](https://pypi.org/project/netlicensing-mcp/)
@@ -21,8 +21,13 @@ Lets Claude, GitHub Copilot, and any MCP-compatible AI agent manage your softwar
 | **License Templates** | list, get, create, update, delete |
 | **Licensees** | list, get, create, update, delete, validate, transfer |
 | **Licenses** | list, get, create, update (activate/deactivate), delete |
-| **Tokens** | list, create shop URL, create API token, revoke |
+| **Bundles** | list, get, create, update, delete, obtain |
+| **Tokens** | list, get, create shop URL, create API token, revoke |
+| **Transactions** | list, get, create, update |
+| **Payment Methods** | list, get, update |
+| **Utilities** | list licensing models, list license types |
 | **Audit Prompts** | full account, single customer, expiry sweep, cleanup, anomaly detection |
+| **Delete Safety** | `force_cascade` option on all delete tools |
 
 ---
 
@@ -46,7 +51,7 @@ NETLICENSING_API_KEY=your_key netlicensing-mcp
 ```bash
 docker run -i --rm \
   -e NETLICENSING_API_KEY=your_key \
-  ghcr.io/yourusername/netlicensing-mcp:latest
+  ghcr.io/labs64/netlicensing-mcp:latest
 ```
 
 > **No API key?** Leave `NETLICENSING_API_KEY` empty to use NetLicensing's built-in demo
@@ -91,8 +96,8 @@ same JSON block as the Claude Desktop config above.
 ## Development
 
 ```bash
-git clone https://github.com/yourusername/netlicensing-mcp
-cd netlicensing-mcp
+git clone https://github.com/Labs64/NetLicensing-MCP
+cd NetLicensing-MCP
 
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate

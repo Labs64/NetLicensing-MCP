@@ -30,19 +30,19 @@ for NetLicensing product **{product_number}**.
 Follow these steps in order — call each tool and wait for results before continuing.
 
 ## Step 1 — Product Overview
-Call `tool_get_product` with product_number="{product_number}".
+Call `netlicensing_get_product` with product_number="{product_number}".
 Summarise: product name, description, version, active status.
 
 ## Step 2 — Module Inventory
-Call `tool_list_product_modules` with product_number="{product_number}".
+Call `netlicensing_list_product_modules` with product_number="{product_number}".
 List each module: number, name, licensing model, active state.
 
 ## Step 3 — Customer Roster
-Call `tool_list_licensees` with product_number="{product_number}".
+Call `netlicensing_list_licensees` with product_number="{product_number}".
 Report: total customer count, list each licensee number and name.
 
 ## Step 4 — License Validation (per customer)
-For EACH licensee found in Step 3, call `tool_validate_licensee`.
+For EACH licensee found in Step 3, call `netlicensing_validate_licensee`.
 For each result extract:
 - Licensee number
 - Module name(s) and their valid (true/false)
@@ -52,7 +52,7 @@ For each result extract:
 - Warning level: OK / AT_RISK / EXPIRED
 
 ## Step 5 — License Inventory (per customer)
-For each licensee, call `tool_list_licenses`.
+For each licensee, call `netlicensing_list_licenses`.
 Record: license number, active status, template used, creation date.
 
 ## Step 6 — Audit Report
@@ -105,16 +105,16 @@ You are a software licensing auditor. Perform a detailed audit
 for licensee **{licensee_number}**.
 
 ## Step 1 — Customer Profile
-Call `tool_get_licensee` with licensee_number="{licensee_number}".
+Call `netlicensing_get_licensee` with licensee_number="{licensee_number}".
 Extract: name, associated product, creation date, active status, custom properties.
 
 ## Step 2 — Validate All Modules
-Call `tool_validate_licensee` with licensee_number="{licensee_number}".
+Call `netlicensing_validate_licensee` with licensee_number="{licensee_number}".
 For each module record:
 - Module name | Valid | License type | Expiry | Used/Total | Warning level
 
 ## Step 3 — License Inventory
-Call `tool_list_licenses` with licensee_number="{licensee_number}".
+Call `netlicensing_list_licenses` with licensee_number="{licensee_number}".
 For each license: number, template, active, creation date, custom properties.
 
 ## Step 4 — Customer Report
@@ -138,7 +138,7 @@ Numbered list of any problems discovered.
 2. Near-term (at-risk / expiring within 30 days)
 3. Optional improvements
 
-If any license is expired or invalid, call `tool_create_shop_token`
+If any license is expired or invalid, call `netlicensing_create_shop_token`
 with licensee_number="{licensee_number}" and include the renewal URL in the report.
 """,
                 ),
@@ -170,10 +170,10 @@ Target product: **{product_number}**
 Flag threshold: licenses expiring within **{days_threshold} days** from today.
 
 ## Step 1 — Enumerate Customers
-Call `tool_list_licensees` with product_number="{product_number}".
+Call `netlicensing_list_licensees` with product_number="{product_number}".
 
 ## Step 2 — Validate Each Customer
-For each licensee call `tool_validate_licensee`.
+For each licensee call `netlicensing_validate_licensee`.
 Parse every module response for expirationTime, startDate/endDate,
 timeVolume fields, or any currently invalid module.
 
@@ -191,7 +191,7 @@ timeVolume fields, or any currently invalid module.
 Total count only — do not list individually.
 
 ## Step 4 — Renewal URLs
-For every expired or at-risk customer, call `tool_create_shop_token`.
+For every expired or at-risk customer, call `netlicensing_create_shop_token`.
 Present as:
 | Customer # | Name | Expiry | Shop Renewal URL |
 |---|---|---|---|
@@ -229,12 +229,12 @@ for product **{product_number}**.
 Goal: identify inactive licenses, zero-quota licensees, and orphaned records.
 
 ## Step 1 — Enumerate Customers
-Call `tool_list_licensees` with product_number="{product_number}".
+Call `netlicensing_list_licensees` with product_number="{product_number}".
 
 ## Step 2 — Inspect Each Customer
 For each licensee:
-a) Call `tool_list_licenses` — flag any where active=false
-b) Call `tool_validate_licensee` — flag any where ALL modules are invalid
+a) Call `netlicensing_list_licenses` — flag any where active=false
+b) Call `netlicensing_validate_licensee` — flag any where ALL modules are invalid
 
 ## Step 3 — Cleanup Report
 
@@ -254,11 +254,11 @@ Floating or quantity-based licenses with 0 remaining.
 
 ## Step 4 — Cleanup Recommendations
 For each category:
-1. Whether to deactivate via `tool_update_license`
-2. Whether to delete via `tool_delete_licensee`
+1. Whether to deactivate via `netlicensing_update_license`
+2. Whether to delete via `netlicensing_delete_licensee`
 3. Whether a renewal / upsell is more appropriate
 
-⚠️ Do NOT call any destructive tool (`tool_delete_*`, `tool_update_license` with active=false)
+⚠️ Do NOT call any destructive tool (`netlicensing_delete_*`, `netlicensing_update_license` with active=false)
 without explicit confirmation from the user after they review this report.
 """,
                 ),
@@ -284,8 +284,8 @@ You are a software licensing analyst performing an anomaly detection audit
 for product **{product_number}**.
 
 ## Step 1 — Full Data Collection
-Call `tool_list_licensees` with product_number="{product_number}".
-For each licensee call `tool_validate_licensee` and `tool_list_licenses`.
+Call `netlicensing_list_licensees` with product_number="{product_number}".
+For each licensee call `netlicensing_validate_licensee` and `netlicensing_list_licenses`.
 
 ## Step 2 — Anomaly Analysis
 Examine the collected data for:

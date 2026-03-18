@@ -36,9 +36,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/netlicensing-mcp"
-Repository = "https://github.com/yourusername/netlicensing-mcp"
-Issues = "https://github.com/yourusername/netlicensing-mcp/issues"
+Homepage = "https://github.com/Labs64/NetLicensing-MCP"
+Repository = "https://github.com/Labs64/NetLicensing-MCP"
+Issues = "https://github.com/Labs64/NetLicensing-MCP/issues"
 
 [project.scripts]
 netlicensing-mcp = "netlicensing_mcp.server:main"
@@ -57,4 +57,4 @@ omit = ["tests/*"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"

@@ -1,18 +1,24 @@
 """
 NetLicensing REST API async client.
-All methods raise httpx.HTTPStatusError on non-2xx responses.
+
+Uses a shared ``httpx.AsyncClient`` for connection reuse.
+All public helpers raise ``NetLicensingError`` on non-2xx responses,
+wrapping the upstream JSON error body when available.
 """
 
 from __future__ import annotations
 
 import base64
+import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 BASE_URL: str = os.getenv(
     "NETLICENSING_BASE_URL",
@@ -21,15 +27,42 @@ BASE_URL: str = os.getenv(
 API_KEY: str = os.getenv("NETLICENSING_API_KEY", "")
 
 
+# ── Error wrapper ────────────────────────────────────────────────────────────
+
+
+class NetLicensingError(Exception):
+    """Raised when the NetLicensing API returns a non-2xx status."""
+
+    def __init__(self, status_code: int, detail: str) -> None:
+        self.status_code = status_code
+        self.detail = detail
+        super().__init__(f"HTTP {status_code}: {detail}")
+
+
+def _raise_on_error(response: httpx.Response) -> None:
+    """Raise *NetLicensingError* with the API error body if available."""
+    if response.is_success:
+        return
+    try:
+        body = response.json()
+        infos = body.get("infos", {}).get("info", [])
+        detail = "; ".join(i.get("value", "") for i in infos) or response.text
+    except Exception:
+        detail = response.text
+    raise NetLicensingError(response.status_code, detail)
+
+
+# ── Auth header ──────────────────────────────────────────────────────────────
+
+
 def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
     if API_KEY:
-        # Use API key auth: username 'apiKey', password is the API key
         auth_str = f"apiKey:{API_KEY}"
     else:
-        # Use demo credentials
+        logger.warning("NETLICENSING_API_KEY not set — falling back to demo credentials")
         auth_str = "demo:demo"
     token = base64.b64encode(auth_str.encode()).decode()
-    h = {
+    h: dict[str, str] = {
         "Authorization": f"Basic {token}",
         "Accept": "application/json",
     }
@@ -38,38 +71,62 @@ def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
     return h
 
 
-async def nl_get(path: str, params: Optional[dict[str, str]] = None) -> dict[str, Any]:
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.get(f"{BASE_URL}{path}", headers=_headers(), params=params or {})
-        r.raise_for_status()
-        return r.json()
+# ── Shared HTTP client ──────────────────────────────────────────────────────
+
+_client: httpx.AsyncClient | None = None
 
 
-async def nl_post(path: str, data: Optional[dict[str, str]] = None) -> dict[str, Any]:
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.post(
-            f"{BASE_URL}{path}",
-            headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
-            data=data or {},
-        )
-        r.raise_for_status()
-        return r.json()
+def _get_client() -> httpx.AsyncClient:
+    """Return (and lazily create) the module-level ``AsyncClient``."""
+    global _client  # noqa: PLW0603
+    if _client is None or _client.is_closed:
+        _client = httpx.AsyncClient(timeout=30)
+    return _client
+
+
+async def close_client() -> None:
+    """Shut down the shared HTTP client (call on server shutdown)."""
+    global _client  # noqa: PLW0603
+    if _client is not None and not _client.is_closed:
+        await _client.aclose()
+        _client = None
+
+
+# ── Public helpers ───────────────────────────────────────────────────────────
+
+
+async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
+    client = _get_client()
+    r = await client.get(f"{BASE_URL}{path}", headers=_headers(), params=params or {})
+    _raise_on_error(r)
+    return r.json()
+
+
+async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
+    client = _get_client()
+    r = await client.post(
+        f"{BASE_URL}{path}",
+        headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
+        data=data or {},
+    )
+    _raise_on_error(r)
+    return r.json()
 
 
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.put(
-            f"{BASE_URL}{path}",
-            headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
-            data=data,
-        )
-        r.raise_for_status()
-        return r.json()
+    client = _get_client()
+    r = await client.put(
+        f"{BASE_URL}{path}",
+        headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
+        data=data,
+    )
+    _raise_on_error(r)
+    return r.json()
 
 
-async def nl_delete(path: str) -> int:
-    """Returns HTTP status code (200 or 204)."""
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.delete(f"{BASE_URL}{path}", headers=_headers())
-        r.raise_for_status()
-        return r.status_code
+async def nl_delete(path: str, params: dict[str, str] | None = None) -> int:
+    """Delete a resource. Returns HTTP status code (200 or 204)."""
+    client = _get_client()
+    r = await client.delete(f"{BASE_URL}{path}", headers=_headers(), params=params or {})
+    _raise_on_error(r)
+    return r.status_code

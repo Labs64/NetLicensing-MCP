@@ -5,9 +5,15 @@ from __future__ import annotations
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post, nl_put
 
 
-async def list_products() -> dict:
-    """List all products in the account."""
-    return await nl_get("/product")
+async def list_products(filter_str: str | None = None) -> dict:
+    """List all products in the account.
+
+    filter_str: optional server-side filter expression (e.g. 'active=true').
+    """
+    params: dict[str, str] = {}
+    if filter_str:
+        params["filter"] = filter_str
+    return await nl_get("/product", params or None)
 
 
 async def get_product(product_number: str) -> dict:
@@ -22,8 +28,17 @@ async def create_product(
     version: str = "1.0",
     description: str = "",
     licensing_info: str = "",
+    licensee_auto_create: bool | None = None,
+    vat_mode: str | None = None,
+    licensee_secret_mode: str | None = None,
 ) -> dict:
-    """Create a new product."""
+    """
+    Create a new product.
+
+    vat_mode: GROSS | NET
+    licensee_auto_create: if true, non-existing licensees are created on first validation.
+    licensee_secret_mode: DISABLED | PREDEFINED | CLIENT
+    """
     data: dict[str, str] = {
         "number": number,
         "name": name,
@@ -34,6 +49,12 @@ async def create_product(
         data["description"] = description
     if licensing_info:
         data["licensingInfo"] = licensing_info
+    if licensee_auto_create is not None:
+        data["licenseeAutoCreate"] = str(licensee_auto_create).lower()
+    if vat_mode:
+        data["vatMode"] = vat_mode
+    if licensee_secret_mode:
+        data["licenseeSecretMode"] = licensee_secret_mode
     return await nl_post("/product", data)
 
 
@@ -43,8 +64,15 @@ async def update_product(
     active: bool | None = None,
     version: str | None = None,
     description: str | None = None,
+    licensing_info: str | None = None,
+    licensee_auto_create: bool | None = None,
+    vat_mode: str | None = None,
+    licensee_secret_mode: str | None = None,
 ) -> dict:
-    """Update fields of an existing product."""
+    """Update fields of an existing product.
+
+    licensee_secret_mode: DISABLED | PREDEFINED | CLIENT
+    """
     data: dict[str, str] = {}
     if name is not None:
         data["name"] = name
@@ -54,10 +82,21 @@ async def update_product(
         data["version"] = version
     if description is not None:
         data["description"] = description
+    if licensing_info is not None:
+        data["licensingInfo"] = licensing_info
+    if licensee_auto_create is not None:
+        data["licenseeAutoCreate"] = str(licensee_auto_create).lower()
+    if vat_mode is not None:
+        data["vatMode"] = vat_mode
+    if licensee_secret_mode is not None:
+        data["licenseeSecretMode"] = licensee_secret_mode
     return await nl_put(f"/product/{product_number}", data)
 
 
-async def delete_product(product_number: str) -> str:
+async def delete_product(product_number: str, force_cascade: bool = False) -> str:
     """Delete a product. Returns confirmation message."""
-    status = await nl_delete(f"/product/{product_number}")
+    params: dict[str, str] = {}
+    if force_cascade:
+        params["forceCascade"] = "true"
+    status = await nl_delete(f"/product/{product_number}", params or None)
     return f"Product {product_number} deleted (HTTP {status})."

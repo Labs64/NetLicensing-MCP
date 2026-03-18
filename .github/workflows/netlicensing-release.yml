@@ -2,23 +2,44 @@ name: NetLicensing MCP - Release
 
 on:
   push:
-    tags: ["v*"]   # trigger on v1.0.0, v1.2.3, etc.
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  # ── 1. Run tests before publishing ─────────────────────────────────────────
+  # ── 1. Run full checks before publishing ───────────────────────────────────
   test:
-    name: Pre-publish tests
+    name: Pre-publish checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
           cache: pip
-      - run: pip install -e ".[dev]"
-      - run: pytest tests/ -v
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Format check (ruff)
+        run: ruff format --check .
+
+      - name: Type check (mypy)
+        run: mypy src/
+
+      - name: Run tests
+        run: pytest tests/ -v
 
   # ── 2. Publish Python package to PyPI ──────────────────────────────────────
   publish-pypi:
@@ -26,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     permissions:
-      id-token: write    # OIDC trusted publishing — no API token needed
+      id-token: write
       contents: read
 
     steps:
@@ -36,15 +57,14 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install Hatch
-        run: pip install hatch
+      - name: Install build tools
+        run: pip install hatch==1.14.0
 
       - name: Build package
         run: hatch build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        # Requires trusted publishing configured at pypi.org for this repo
 
   # ── 3. Build & push Docker image to GitHub Container Registry ──────────────
   publish-docker:
@@ -76,7 +96,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -96,8 +116,8 @@ jobs:
 
       - name: Download mcp-publisher CLI
         run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/\
-          mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
           chmod +x mcp-publisher
           sudo mv mcp-publisher /usr/local/bin/
 
@@ -110,7 +130,7 @@ jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [publish-pypi, publish-docker]
+    needs: [publish-pypi, publish-docker, publish-mcp-registry]
     permissions:
       contents: write
 
@@ -118,6 +138,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Derive version from tag
+        id: version
+        run: echo "number=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -128,7 +152,7 @@ jobs:
 
             ```bash
             # pip
-            pip install netlicensing-mcp==${{ github.ref_name }}
+            pip install netlicensing-mcp==${{ steps.version.outputs.number }}
 
             # uvx (no install needed)
             uvx netlicensing-mcp
@@ -136,5 +160,5 @@ jobs:
             # Docker
             docker run -i --rm \
               -e NETLICENSING_API_KEY=your_key \
-              ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+              ghcr.io/${{ github.repository }}:${{ steps.version.outputs.number }}
             ```

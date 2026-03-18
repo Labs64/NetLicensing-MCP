@@ -1,10 +1,10 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
-  "name": "io.github.yourusername/netlicensing-mcp",
+  "name": "io.github.labs64/netlicensing-mcp",
   "title": "NetLicensing MCP Server",
   "description": "MCP server for the Labs64 NetLicensing license management REST API. Manage products, modules, license templates, licensees, licenses, and shop tokens — plus five built-in audit prompt templates.",
   "version": "1.0.0",
-  "homepage": "https://github.com/yourusername/netlicensing-mcp",
+  "homepage": "https://github.com/Labs64/NetLicensing-MCP",
   "license": "Apache-2.0",
   "packages": [
     {
