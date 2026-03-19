@@ -1,0 +1,52 @@
+# ── MCP / API ──────────────────────────────────────────────────────────────
+mcp:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**/tools/**"
+          - "src/**/prompts/**"
+          - "src/**/server.py"
+
+api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**/client.py"
+          - "src/**/api/**"
+
+# ── CI / Infrastructure ────────────────────────────────────────────────────
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "Dockerfile"
+          - "docker-compose*.yml"
+          - "server.json"
+
+# ── Dependencies ───────────────────────────────────────────────────────────
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "pyproject.toml"
+          - "requirements*.txt"
+
+# ── Documentation ──────────────────────────────────────────────────────────
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.md"
+          - "docs/**"
+
+# ── Testing ────────────────────────────────────────────────────────────────
+testing:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+
+# ── Branch name rules ──────────────────────────────────────────────────────
+enhancement:
+  - head-branch: ["^feat/", "^feature/"]
+
+bug:
+  - head-branch: ["^fix/", "^bugfix/", "^hotfix/"]
+
+chore:
+  - head-branch: ["^chore/", "^refactor/"]

@@ -1,0 +1,33 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - dependabot
+  categories:
+    - title: "🚀 New Features"
+      labels:
+        - enhancement
+        - feature
+    - title: "🐛 Bug Fixes"
+      labels:
+        - bug
+        - fix
+    - title: "🔧 MCP Tools & API"
+      labels:
+        - mcp
+        - api
+    - title: "📦 Dependencies"
+      labels:
+        - dependencies
+    - title: "🏗️ CI / Infrastructure"
+      labels:
+        - ci
+        - docker
+        - infrastructure
+    - title: "📖 Documentation"
+      labels:
+        - documentation
+    - title: "🧹 Other Changes"
+      labels:
+        - "*"
