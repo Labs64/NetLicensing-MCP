@@ -36,8 +36,8 @@ from netlicensing_mcp.tools import (
 # Configure logging to output to stdout
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
 
@@ -1352,7 +1352,7 @@ register_audit_prompts(mcp)
 def main() -> None:
     transport = sys.argv[1] if len(sys.argv) > 1 else "stdio"
     if transport == "http":
-        mcp.run(transport="streamable-http")  # host/port set on constructor
+        mcp.run(transport="streamable-http")
     else:
         mcp.run()
 

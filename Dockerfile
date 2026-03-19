@@ -22,6 +22,6 @@ RUN pip install --no-cache-dir --no-deps *.whl
 #    NETLICENSING_BASE_URL  — optional override
 ENV NETLICENSING_BASE_URL="https://go.netlicensing.io/core/v2/rest"
 
-# HTTP mode by default for container use; override CMD for stdio
+# stdio mode by default for container use; override CMD for http server if needed
 EXPOSE 8000
-CMD ["netlicensing-mcp", "http"]
+CMD ["netlicensing-mcp"]

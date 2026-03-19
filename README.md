@@ -76,16 +76,24 @@ NETLICENSING_API_KEY=your_key netlicensing-mcp
 ```
  
 ### Option C — Docker
- 
+
+#### stdio (default) — for Claude Desktop / VS Code
 ```bash
 docker run -i --rm \
   -e NETLICENSING_API_KEY=your_key \
   ghcr.io/labs64/netlicensing-mcp:latest
 ```
- 
+
+#### HTTP mode — for remote/shared deployments
+```bash
+docker run -d -p 8000:8000 \
+  -e NETLICENSING_API_KEY=your_key \
+  ghcr.io/labs64/netlicensing-mcp:latest http
+```
+
 > **No API key?** Leave `NETLICENSING_API_KEY` empty to run against NetLicensing's built-in
 > sandbox with demo credentials — no account required.
- 
+
 ---
  
 ## Configuration
@@ -96,6 +104,8 @@ docker run -i --rm \
 |---|---|---|---|
 | `NETLICENSING_API_KEY` | No | *(demo mode)* | NetLicensing API key. Leave empty to use sandbox demo credentials. |
 | `NETLICENSING_BASE_URL` | No | `https://go.netlicensing.io/core/v2/rest` | Override the NetLicensing REST API base URL (e.g. for on-prem deployments). |
+| `MCP_HOST` | No | `127.0.0.1` | Host address to bind the HTTP server (HTTP mode only). |
+| `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
 
 ---
  
@@ -119,7 +129,8 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 ```
  
 Or use the official Docker image:
- 
+
+#### stdio (default) — for Claude Desktop / VS Code
 ```json
 {
   "mcpServers": {
@@ -134,7 +145,25 @@ Or use the official Docker image:
   }
 }
 ```
- 
+
+#### HTTP mode — for remote/shared deployments
+```json
+{
+  "mcpServers": {
+    "netlicensing": {
+      "command": "docker",
+      "args": [
+        "run", "-d",
+        "-p", "8000:8000",
+        "-e", "NETLICENSING_API_KEY=your_key_here",
+        "ghcr.io/labs64/netlicensing-mcp:latest",
+        "http"
+      ]
+    }
+  }
+}
+```
+
 ### VS Code / GitHub Copilot
  
 The repo ships a `.vscode/mcp.json` that auto-configures Copilot Agent mode.
@@ -211,12 +240,12 @@ pytest tests/ -v
 ```
  
 ### HTTP mode (for remote / shared deployments)
- 
+
 ```bash
 python -m netlicensing_mcp.server http
-# Server listens on 0.0.0.0:8000
+# Server listens on MCP_HOST:MCP_PORT (default: 127.0.0.1:8000)
 ```
- 
+
 Use `ngrok` or a reverse proxy to expose the HTTP endpoint to remote MCP clients:
  
 ```bash
