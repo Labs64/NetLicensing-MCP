@@ -25,6 +25,18 @@
           "description": "Override the NetLicensing API base URL",
           "required": false,
           "default": "https://go.netlicensing.io/core/v2/rest"
+        },
+        {
+          "name": "MCP_TRANSPORT",
+          "description": "Transport mode: stdio (default) or http",
+          "required": false,
+          "default": "stdio"
+        },
+        {
+          "name": "MCP_VERBOSE",
+          "description": "Enable verbose debug logging (true/false)",
+          "required": false,
+          "default": "false"
         }
       ]
     }

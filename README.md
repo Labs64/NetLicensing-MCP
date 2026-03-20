@@ -92,6 +92,20 @@ docker run -d -p 8000:8000 \
   ghcr.io/labs64/netlicensing-mcp:latest http
 ```
 
+#### Verbose logging (any mode)
+```bash
+# CLI flag
+docker run -i --rm \
+  -e NETLICENSING_API_KEY=your_key \
+  ghcr.io/labs64/netlicensing-mcp:latest -v
+
+# Or via env var
+docker run -i --rm \
+  -e NETLICENSING_API_KEY=your_key \
+  -e MCP_VERBOSE=true \
+  ghcr.io/labs64/netlicensing-mcp:latest
+```
+
 > **No API key?** Leave `NETLICENSING_API_KEY` empty to run against NetLicensing's built-in
 > sandbox with demo credentials — no account required.
 
@@ -105,8 +119,10 @@ docker run -d -p 8000:8000 \
 |---|---|---|---|
 | `NETLICENSING_API_KEY` | No | *(demo mode)* | NetLicensing API key. Leave empty to use sandbox demo credentials. |
 | `NETLICENSING_BASE_URL` | No | `https://go.netlicensing.io/core/v2/rest` | Override the NetLicensing REST API base URL (e.g. for on-prem deployments). |
+| `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` (default) or `http`. Can also be passed as a CLI argument. |
 | `MCP_HOST` | No | `127.0.0.1` | Host address to bind the HTTP server (HTTP mode only). |
 | `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
+| `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs raw API requests/responses. Can also be set via `-v` CLI flag. |
 
 ---
  

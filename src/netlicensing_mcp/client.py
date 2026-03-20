@@ -97,29 +97,38 @@ async def close_client() -> None:
 
 async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
-    r = await client.get(f"{BASE_URL}{path}", headers=_headers(), params=params or {})
+    url = f"{BASE_URL}{path}"
+    logger.debug(f"GET {url} params={params}")
+    r = await client.get(url, headers=_headers(), params=params or {})
+    logger.debug(f"Response {r.status_code}: {r.text}")
     _raise_on_error(r)
     return r.json()
 
 
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
+    url = f"{BASE_URL}{path}"
+    logger.debug(f"POST {url} data={data}")
     r = await client.post(
-        f"{BASE_URL}{path}",
+        url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
         data=data or {},
     )
+    logger.debug(f"Response {r.status_code}: {r.text}")
     _raise_on_error(r)
     return r.json()
 
 
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
     client = _get_client()
+    url = f"{BASE_URL}{path}"
+    logger.debug(f"PUT {url} data={data}")
     r = await client.put(
-        f"{BASE_URL}{path}",
+        url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
         data=data,
     )
+    logger.debug(f"Response {r.status_code}: {r.text}")
     _raise_on_error(r)
     return r.json()
 
@@ -127,6 +136,9 @@ async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
 async def nl_delete(path: str, params: dict[str, str] | None = None) -> int:
     """Delete a resource. Returns HTTP status code (200 or 204)."""
     client = _get_client()
-    r = await client.delete(f"{BASE_URL}{path}", headers=_headers(), params=params or {})
+    url = f"{BASE_URL}{path}"
+    logger.debug(f"DELETE {url} params={params}")
+    r = await client.delete(url, headers=_headers(), params=params or {})
+    logger.debug(f"Response {r.status_code}: {r.text}")
     _raise_on_error(r)
     return r.status_code

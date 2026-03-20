@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import sys
+import argparse
 
 from mcp.server.fastmcp import FastMCP
 
@@ -1350,7 +1351,37 @@ register_audit_prompts(mcp)
 
 
 def main() -> None:
-    transport = sys.argv[1] if len(sys.argv) > 1 else "stdio"
+    parser = argparse.ArgumentParser(description="NetLicensing MCP Server")
+    parser.add_argument(
+        "transport",
+        nargs="?",
+        choices=["http", "stdio"],
+        default=None,
+        help="Transport mode: 'stdio' (default) or 'http'. "
+        "Can also be set via MCP_TRANSPORT env var.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=None,
+        help="Enable verbose debug logging (request/response details). "
+        "Can also be set via MCP_VERBOSE=true env var.",
+    )
+    args = parser.parse_args()
+
+    # Resolve transport: CLI arg → env var → default
+    transport = args.transport or os.getenv("MCP_TRANSPORT", "stdio").lower()
+
+    # Resolve verbose: CLI flag → env var → default
+    verbose = args.verbose or os.getenv("MCP_VERBOSE", "").lower() in ("1", "true", "yes")
+
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug("Verbose logging enabled — API requests/responses will be logged")
+
+    logger.info("Starting NetLicensing MCP server (transport=%s, verbose=%s)", transport, verbose)
+
     if transport == "http":
         mcp.run(transport="streamable-http")
     else:
