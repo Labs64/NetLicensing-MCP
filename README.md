@@ -269,9 +269,9 @@ rm -rf dist/
 hatch build --target wheel
 
 # Build the Docker image locally
-docker build -t ghcr.io/labs64/netlicensing-mcp:latest 
+docker build -t ghcr.io/labs64/netlicensing-mcp:latest .
 ```
- 
+
 ### HTTP mode (for remote / shared deployments)
 
 ```bash
@@ -280,7 +280,7 @@ python -m netlicensing_mcp.server http
 ```
 
 Use `ngrok` or a reverse proxy to expose the HTTP endpoint to remote MCP clients:
- 
+
 ```bash
 ngrok http 8000
 # Then point your client at the generated HTTPS URL

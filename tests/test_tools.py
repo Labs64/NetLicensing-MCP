@@ -282,7 +282,7 @@ async def test_create_product_all_fields(product_response):
 @pytest.mark.asyncio
 async def test_update_product(product_response):
     with patch(
-        "netlicensing_mcp.tools.products.nl_put", new=AsyncMock(return_value=product_response)
+        "netlicensing_mcp.tools.products.nl_post", new=AsyncMock(return_value=product_response)
     ):
         from netlicensing_mcp.tools.products import update_product
 
@@ -293,7 +293,7 @@ async def test_update_product(product_response):
 @pytest.mark.asyncio
 async def test_update_product_all_fields(product_response):
     mock_put = AsyncMock(return_value=product_response)
-    with patch("netlicensing_mcp.tools.products.nl_put", new=mock_put):
+    with patch("netlicensing_mcp.tools.products.nl_post", new=mock_put):
         from netlicensing_mcp.tools.products import update_product
 
         result = await update_product(
@@ -381,7 +381,7 @@ async def test_create_bundle(bundle_response):
 @pytest.mark.asyncio
 async def test_update_bundle(bundle_response):
     with patch(
-        "netlicensing_mcp.tools.bundles.nl_put", new=AsyncMock(return_value=bundle_response)
+        "netlicensing_mcp.tools.bundles.nl_post", new=AsyncMock(return_value=bundle_response)
     ):
         from netlicensing_mcp.tools.bundles import update_bundle
 
@@ -509,7 +509,7 @@ async def test_create_product_module_all_fields(module_response):
 @pytest.mark.asyncio
 async def test_update_product_module(module_response):
     with patch(
-        "netlicensing_mcp.tools.product_modules.nl_put",
+        "netlicensing_mcp.tools.product_modules.nl_post",
         new=AsyncMock(return_value=module_response),
     ):
         from netlicensing_mcp.tools.product_modules import update_product_module
@@ -521,7 +521,7 @@ async def test_update_product_module(module_response):
 @pytest.mark.asyncio
 async def test_update_product_module_all_fields(module_response):
     mock_put = AsyncMock(return_value=module_response)
-    with patch("netlicensing_mcp.tools.product_modules.nl_put", new=mock_put):
+    with patch("netlicensing_mcp.tools.product_modules.nl_post", new=mock_put):
         from netlicensing_mcp.tools.product_modules import update_product_module
 
         result = await update_product_module(
@@ -662,7 +662,7 @@ async def test_create_license_template_all_fields(template_response):
 @pytest.mark.asyncio
 async def test_update_license_template(template_response):
     with patch(
-        "netlicensing_mcp.tools.license_templates.nl_put",
+        "netlicensing_mcp.tools.license_templates.nl_post",
         new=AsyncMock(return_value=template_response),
     ):
         from netlicensing_mcp.tools.license_templates import update_license_template
@@ -674,7 +674,7 @@ async def test_update_license_template(template_response):
 @pytest.mark.asyncio
 async def test_update_license_template_all_fields(template_response):
     mock_put = AsyncMock(return_value=template_response)
-    with patch("netlicensing_mcp.tools.license_templates.nl_put", new=mock_put):
+    with patch("netlicensing_mcp.tools.license_templates.nl_post", new=mock_put):
         from netlicensing_mcp.tools.license_templates import update_license_template
 
         result = await update_license_template(
@@ -849,7 +849,7 @@ async def test_create_licensee_all_fields(licensee_response):
 @pytest.mark.asyncio
 async def test_update_licensee(licensee_response):
     with patch(
-        "netlicensing_mcp.tools.licensees.nl_put", new=AsyncMock(return_value=licensee_response)
+        "netlicensing_mcp.tools.licensees.nl_post", new=AsyncMock(return_value=licensee_response)
     ):
         from netlicensing_mcp.tools.licensees import update_licensee
 
@@ -860,7 +860,7 @@ async def test_update_licensee(licensee_response):
 @pytest.mark.asyncio
 async def test_update_licensee_all_fields(licensee_response):
     mock_put = AsyncMock(return_value=licensee_response)
-    with patch("netlicensing_mcp.tools.licensees.nl_put", new=mock_put):
+    with patch("netlicensing_mcp.tools.licensees.nl_post", new=mock_put):
         from netlicensing_mcp.tools.licensees import update_licensee
 
         result = await update_licensee(
@@ -1007,7 +1007,7 @@ async def test_create_license_all_fields(license_response):
 async def test_update_license_deactivate(license_response):
     deactivated = dict(license_response)
     deactivated["items"]["item"][0]["property"][1]["value"] = "false"
-    with patch("netlicensing_mcp.tools.licenses.nl_put", new=AsyncMock(return_value=deactivated)):
+    with patch("netlicensing_mcp.tools.licenses.nl_post", new=AsyncMock(return_value=deactivated)):
         from netlicensing_mcp.tools.licenses import update_license
 
         result = await update_license("L001", active=False)
@@ -1018,7 +1018,7 @@ async def test_update_license_deactivate(license_response):
 @pytest.mark.asyncio
 async def test_update_license_all_fields(license_response):
     mock_put = AsyncMock(return_value=license_response)
-    with patch("netlicensing_mcp.tools.licenses.nl_put", new=mock_put):
+    with patch("netlicensing_mcp.tools.licenses.nl_post", new=mock_put):
         from netlicensing_mcp.tools.licenses import update_license
 
         result = await update_license(

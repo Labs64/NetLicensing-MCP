@@ -128,7 +128,7 @@ async def update_license_template(
         data["quantity"] = str(quantity)
     if grace_period is not None:
         data["gracePeriod"] = str(grace_period).lower()
-    return await nl_put(f"/licensetemplate/{template_number}", data)
+    return await nl_post(f"/licensetemplate/{template_number}", data)
 
 
 async def delete_license_template(template_number: str, force_cascade: bool = False) -> str:

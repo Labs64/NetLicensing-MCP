@@ -70,7 +70,7 @@ async def update_bundle(
         data["currency"] = currency
     if description is not None:
         data["description"] = description
-    return await nl_put(f"/bundle/{bundle_number}", data)
+    return await nl_post(f"/bundle/{bundle_number}", data)
 
 
 async def delete_bundle(bundle_number: str, force_cascade: bool = False) -> str:

@@ -131,7 +131,7 @@ async def update_license(
         data["parentfeature"] = parent_feature
     if hidden is not None:
         data["hidden"] = str(hidden).lower()
-    return await nl_put(f"/license/{license_number}", data)
+    return await nl_post(f"/license/{license_number}", data)
 
 
 async def delete_license(license_number: str, force_cascade: bool = False) -> str:

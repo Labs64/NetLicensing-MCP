@@ -75,7 +75,7 @@ async def update_licensee(
         data["markedForTransfer"] = str(marked_for_transfer).lower()
     if licensee_secret is not None:
         data["licenseeSecret"] = licensee_secret
-    return await nl_put(f"/licensee/{licensee_number}", data)
+    return await nl_post(f"/licensee/{licensee_number}", data)
 
 
 async def delete_licensee(licensee_number: str, force_cascade: bool = False) -> str:

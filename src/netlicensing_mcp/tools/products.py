@@ -90,7 +90,7 @@ async def update_product(
         data["vatMode"] = vat_mode
     if licensee_secret_mode is not None:
         data["licenseeSecretMode"] = licensee_secret_mode
-    return await nl_put(f"/product/{product_number}", data)
+    return await nl_post(f"/product/{product_number}", data)
 
 
 async def delete_product(product_number: str, force_cascade: bool = False) -> str:

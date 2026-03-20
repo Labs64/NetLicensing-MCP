@@ -96,7 +96,7 @@ async def update_product_module(
         data["redThreshold"] = str(red_threshold)
     if node_secret_mode is not None:
         data["nodeSecretMode"] = node_secret_mode
-    return await nl_put(f"/productmodule/{module_number}", data)
+    return await nl_post(f"/productmodule/{module_number}", data)
 
 
 async def delete_product_module(module_number: str, force_cascade: bool = False) -> str:
