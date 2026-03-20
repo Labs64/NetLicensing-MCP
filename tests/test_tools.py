@@ -1504,7 +1504,7 @@ def test_audit_full_prompt_content():
     class CaptureMCP(FastMCP):
         def prompt(self):
             def decorator(fn):
-                if fn.__name__ == "license_audit_full":
+                if fn.__name__ == "audit_full":
                     msgs = fn("P001")
                     captured["text"] = msgs[0].content.text
                 return fn

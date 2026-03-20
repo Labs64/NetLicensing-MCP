@@ -12,7 +12,7 @@ def register_audit_prompts(mcp: FastMCP) -> None:
     # ── 1. Full account audit ────────────────────────────────────────────────
 
     @mcp.prompt()
-    def license_audit_full(product_number: str) -> list[PromptMessage]:
+    def audit_full(product_number: str) -> list[PromptMessage]:
         """Run a comprehensive license audit across all customers of a product.
 
         Args:
@@ -89,7 +89,7 @@ Numbered list for the account owner, most urgent first.
     # ── 2. Single-customer deep-dive ─────────────────────────────────────────
 
     @mcp.prompt()
-    def license_audit_customer(licensee_number: str) -> list[PromptMessage]:
+    def audit_customer(licensee_number: str) -> list[PromptMessage]:
         """Deep-dive audit for a single customer's license health.
 
         Args:
@@ -148,7 +148,7 @@ with licensee_number="{licensee_number}" and include the renewal URL in the repo
     # ── 3. Expiry sweep ──────────────────────────────────────────────────────
 
     @mcp.prompt()
-    def license_audit_expiry(
+    def audit_expiry(
         product_number: str,
         days_threshold: int = 30,
     ) -> list[PromptMessage]:
@@ -211,7 +211,7 @@ Present as:
     # ── 4. Cleanup audit ─────────────────────────────────────────────────────
 
     @mcp.prompt()
-    def license_audit_cleanup(product_number: str) -> list[PromptMessage]:
+    def audit_cleanup(product_number: str) -> list[PromptMessage]:
         """Identify inactive, unused, or orphaned licenses for cleanup.
 
         Args:
@@ -268,7 +268,7 @@ without explicit confirmation from the user after they review this report.
     # ── 5. Anomaly detection ─────────────────────────────────────────────────
 
     @mcp.prompt()
-    def license_audit_anomaly(product_number: str) -> list[PromptMessage]:
+    def audit_anomaly(product_number: str) -> list[PromptMessage]:
         """Detect anomalous usage patterns across all customers.
 
         Args:

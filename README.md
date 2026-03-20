@@ -202,11 +202,11 @@ Five built-in prompts accessible in Copilot Agent and Claude Desktop:
  
 | Prompt | Purpose |
 |---|---|
-| `license_audit_full` | End-to-end account audit for a product |
-| `license_audit_customer` | Deep-dive on a single licensee |
-| `license_audit_expiry` | Find licenses expiring within N days and generate renewal URLs |
-| `license_audit_cleanup` | Identify inactive / orphaned licenses for cleanup |
-| `license_audit_anomaly` | Detect unusual usage patterns across all customers |
+| `audit_full` | End-to-end account audit for a product |
+| `audit_customer` | Deep-dive on a single licensee |
+| `audit_expiry` | Find licenses expiring within N days and generate renewal URLs |
+| `audit_cleanup` | Identify inactive / orphaned licenses for cleanup |
+| `audit_anomaly` | Detect unusual usage patterns across all customers |
  
 ---
  
