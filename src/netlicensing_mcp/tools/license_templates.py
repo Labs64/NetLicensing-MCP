@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from netlicensing_mcp.client import nl_delete, nl_get, nl_post, nl_put
+from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 
 
 async def list_license_templates(
