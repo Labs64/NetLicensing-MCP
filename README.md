@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/Labs64/NetLicensing-MCP/refs/heads/master/netlicensing-mcp-banner.jpg"></p>
+
 # NetLicensing MCP Server
  
 <!-- mcp-name: io.github.Labs64/netlicensing-mcp -->
@@ -19,7 +21,7 @@ Works with Claude Desktop, GitHub Copilot (Agent mode), VS Code, JetBrains / Int
 ## Why use this?
  
 - **Natural Language Licensing** — Ask your AI assistant to create products, issue licenses, validate entitlements, and generate shop URLs without touching the NetLicensing UI or writing API calls.
-- **Full API coverage** — Various tools spanning the entire NetLicensing REST API: products, modules, templates, licensees, licenses, bundles, tokens, transactions, and payment methods.
+- **Full API coverage** — Various tools spanning the entire NetLicensing [REST API](https://netlicensing.io/wiki/restful-api): products, modules, templates, licensees, licenses, bundles, tokens, transactions, and payment methods.
 - **Built-in audit prompts** — Five ready-to-run prompt templates for account audits, expiry sweeps, anomaly detection, and cleanup workflows.
 - **Safe by default** — All delete operations expose a `force_cascade` option; nothing is silently cascaded.
 - **Zero-dependency quick start** — Run with `uvx` or Docker without a local Python install.
@@ -31,7 +33,7 @@ Works with Claude Desktop, GitHub Copilot (Agent mode), VS Code, JetBrains / Int
 Once connected, you can talk to NetLicensing in plain language:
  
 - *"List all products in my NetLicensing account."*
-- *"Create a new licensee for customer@example.com under product PTEST."*
+- *"Create a new licensee for `customer@example.com` under product PTEST."*
 - *"Validate the license for licensee L001 — does it pass?"*
 - *"Generate a shop URL for licensee L001 so they can self-serve their renewal."*
 - *"Which licenses are expiring in the next 30 days?"*
@@ -242,18 +244,32 @@ mcp dev src/netlicensing_mcp/server.py
 ```bash
 git clone https://github.com/Labs64/NetLicensing-MCP
 cd NetLicensing-MCP
- 
+
+# Create a virtual environment
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
- 
+
+# ... and install dependencies
 pip install -e ".[dev]"
-cp .env.example .env            # add your API key
+pip install hatch hatch-vcs
+
+# Add your API key to a .env file (or export it in your shell)
+cp .env.example .env
  
 # Run the MCP Inspector
 mcp dev src/netlicensing_mcp/server.py
  
 # Run tests
 pytest tests/ -v
+
+# Clean previous builds
+rm -rf dist/
+
+# Build a wheel for local testing
+hatch build --target wheel
+
+# Build the Docker image locally
+docker build -t ghcr.io/labs64/netlicensing-mcp:latest 
 ```
  
 ### HTTP mode (for remote / shared deployments)
