@@ -51,8 +51,11 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
+      # CVE-2026-4539: ReDoS vulnerability in pygments AdlLexer with no available fix
+      # This is a transitive dependency via rich, which is needed for better CLI output
+      # See: https://github.com/pygments/pygments/issues/2681
       - name: pip-audit
-        run: pip-audit
+        run: pip-audit --ignore-vuln CVE-2026-4539
 
   test:
     name: Test (Python ${{ matrix.python-version }})
