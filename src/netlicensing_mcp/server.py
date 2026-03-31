@@ -46,7 +46,7 @@ mcp = FastMCP(
     "netlicensing-mcp",
     instructions="""
 You are connected to the Labs64 NetLicensing REST API — a cloud-based
-license-management service for software vendors.
+online license and entitlements management system for software vendors.
 
 ## Entity hierarchy (create in this order, delete in reverse)
 
@@ -63,12 +63,12 @@ license-management service for software vendors.
   (Subscription, TryAndBuy, Floating, PayPerUse, Quota, NodeLocked, etc.).
   Model-specific settings: `maxCheckoutValidity` (Floating),
   `yellowThreshold`/`redThreshold` (Rental), `nodeSecretMode` (NodeLocked).
-- A **LicenseTemplate** defines what a purchasable license looks like
+- A **LicenseTemplate** defines what a purchasable entitlement looks like
   (type, price, currency, auto-assign behaviour).
   License types: FEATURE, TIMEVOLUME, FLOATING, QUANTITY.
 - A **Licensee** is a customer / end-user of the product.
   Supports `markedForTransfer` for license migration workflows.
-- A **License** is a concrete entitlement assigned to a licensee from a template.
+- A **License** is a concrete entitlement assignment for a licensee from a template.
   Type-specific fields: `startDate`/`timeVolume`/`timeVolumePeriod` (TIMEVOLUME),
   `quantity`/`usedQuantity` (PayPerUse), `parentfeature` (Rental).
 - A **Bundle** groups one or more license templates for convenient one-step

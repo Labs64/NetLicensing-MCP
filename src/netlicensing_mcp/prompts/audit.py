@@ -1,4 +1,4 @@
-"""Prompt templates for license audits."""
+"""Prompt templates for NetLicensing license and entitlements audits."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from mcp.types import PromptMessage, TextContent
 
 
 def register_audit_prompts(mcp: FastMCP) -> None:
-    """Register all license audit prompt templates on the MCP server."""
+    """Register NetLicensing license and entitlement audit prompts on the MCP server."""
 
     # ── 1. Full account audit ────────────────────────────────────────────────
 
@@ -24,12 +24,13 @@ def register_audit_prompts(mcp: FastMCP) -> None:
                 content=TextContent(
                     type="text",
                     text=f"""
-You are a software licensing auditor. Perform a full license audit
-for NetLicensing product **{product_number}**.
+You are a Labs64 NetLicensing analyst for an online license and
+entitlements management system. Perform a full entitlement health audit
+for product **{product_number}**.
 
 Follow these steps in order — call each tool and wait for results before continuing.
 
-## Step 1 — Product Overview
+## Step 1 — Product Entitlement Context
 Call `netlicensing_get_product` with product_number="{product_number}".
 Summarise: product name, description, version, active status.
 
@@ -37,11 +38,11 @@ Summarise: product name, description, version, active status.
 Call `netlicensing_list_product_modules` with product_number="{product_number}".
 List each module: number, name, licensing model, active state.
 
-## Step 3 — Customer Roster
+## Step 3 — Customer and Entitlement Subjects
 Call `netlicensing_list_licensees` with product_number="{product_number}".
 Report: total customer count, list each licensee number and name.
 
-## Step 4 — License Validation (per customer)
+## Step 4 — Entitlement Validation (per customer)
 For EACH licensee found in Step 3, call `netlicensing_validate_licensee`.
 For each result extract:
 - Licensee number
@@ -51,21 +52,21 @@ For each result extract:
 - Quantity used / total (if present)
 - Warning level: OK / AT_RISK / EXPIRED
 
-## Step 5 — License Inventory (per customer)
+## Step 5 — Assigned Entitlement Inventory (per customer)
 For each licensee, call `netlicensing_list_licenses`.
 Record: license number, active status, template used, creation date.
 
 ## Step 6 — Audit Report
 
-### 🟢 Compliant Customers
-Licensees where ALL modules validate as true with no anomalies.
+### 🟢 Entitlement-Compliant Customers
+Licensees where all purchased/assigned module entitlements validate as true with no anomalies.
 
-### 🔴 Non-Compliant Customers
+### 🔴 Entitlement Failures
 | Licensee # | Name | Failing Module | Cause | Recommended Action |
 |---|---|---|---|---|
 
-### 🟡 At-Risk Customers
-Licensees with licenses expiring within 30 days or quota below 10% remaining.
+### 🟡 At-Risk Entitlements
+Licensees with entitlements expiring within 30 days or quota below 10% remaining.
 | Licensee # | Module | Expiry / Remaining | Days Left |
 |---|---|---|---|
 
@@ -79,8 +80,8 @@ Licensees with licenses expiring within 30 days or quota below 10% remaining.
 | Total active licenses | |
 | Total inactive licenses | |
 
-### 🔧 Prioritised Recommended Actions
-Numbered list for the account owner, most urgent first.
+### 🔧 Prioritized Recommended Actions
+Numbered list for the account owner, ordered by entitlement risk and customer impact.
 """,
                 ),
             )
@@ -101,19 +102,20 @@ Numbered list for the account owner, most urgent first.
                 content=TextContent(
                     type="text",
                     text=f"""
-You are a software licensing auditor. Perform a detailed audit
+You are a Labs64 NetLicensing analyst for an online license and
+entitlements management system. Perform a detailed entitlement audit
 for licensee **{licensee_number}**.
 
 ## Step 1 — Customer Profile
 Call `netlicensing_get_licensee` with licensee_number="{licensee_number}".
 Extract: name, associated product, creation date, active status, custom properties.
 
-## Step 2 — Validate All Modules
+## Step 2 — Validate All Module Entitlements
 Call `netlicensing_validate_licensee` with licensee_number="{licensee_number}".
 For each module record:
 - Module name | Valid | License type | Expiry | Used/Total | Warning level
 
-## Step 3 — License Inventory
+## Step 3 — License and Entitlement Inventory
 Call `netlicensing_list_licenses` with licensee_number="{licensee_number}".
 For each license: number, template, active, creation date, custom properties.
 
@@ -138,7 +140,7 @@ Numbered list of any problems discovered.
 2. Near-term (at-risk / expiring within 30 days)
 3. Optional improvements
 
-If any license is expired or invalid, call `netlicensing_create_shop_token`
+If any entitlement is expired or invalid, call `netlicensing_create_shop_token`
 with licensee_number="{licensee_number}" and include the renewal URL in the report.
 """,
                 ),
@@ -164,10 +166,11 @@ with licensee_number="{licensee_number}" and include the renewal URL in the repo
                 content=TextContent(
                     type="text",
                     text=f"""
-You are a software licensing auditor running an expiry sweep.
+You are a Labs64 NetLicensing analyst running an entitlement expiry sweep
+in an online license and entitlements management system.
 
 Target product: **{product_number}**
-Flag threshold: licenses expiring within **{days_threshold} days** from today.
+Flag threshold: entitlements expiring within **{days_threshold} days** from today.
 
 ## Step 1 — Enumerate Customers
 Call `netlicensing_list_licensees` with product_number="{product_number}".
@@ -177,7 +180,7 @@ For each licensee call `netlicensing_validate_licensee`.
 Parse every module response for expirationTime, startDate/endDate,
 timeVolume fields, or any currently invalid module.
 
-## Step 3 — Expiry Report
+## Step 3 — Entitlement Expiry Report
 
 ### 🔴 Already Expired
 | Customer # | Name | Module | Expired On | Days Overdue |
@@ -223,10 +226,10 @@ Present as:
                 content=TextContent(
                     type="text",
                     text=f"""
-You are a software licensing auditor performing a cleanup audit
-for product **{product_number}**.
+You are a Labs64 NetLicensing analyst performing an entitlement cleanup audit
+for product **{product_number}** in an online license management context.
 
-Goal: identify inactive licenses, zero-quota licensees, and orphaned records.
+Goal: identify inactive entitlements, zero-quota licensees, and orphaned records.
 
 ## Step 1 — Enumerate Customers
 Call `netlicensing_list_licensees` with product_number="{product_number}".
@@ -280,8 +283,8 @@ without explicit confirmation from the user after they review this report.
                 content=TextContent(
                     type="text",
                     text=f"""
-You are a software licensing analyst performing an anomaly detection audit
-for product **{product_number}**.
+You are a Labs64 NetLicensing analyst performing an entitlement anomaly audit
+for product **{product_number}** in an online license and entitlements management system.
 
 ## Step 1 — Full Data Collection
 Call `netlicensing_list_licensees` with product_number="{product_number}".
@@ -290,17 +293,17 @@ For each licensee call `netlicensing_validate_licensee` and `netlicensing_list_l
 ## Step 2 — Anomaly Analysis
 Examine the collected data for:
 
-**Usage anomalies**
+**Entitlement usage anomalies**
 - Licensees with unusually high quantity consumption vs peers
 - Floating license seats maxed out consistently
 - Sudden jumps in usage (infer from quota remaining vs total)
 
-**Configuration anomalies**
+**Entitlement configuration anomalies**
 - Licensees with licenses from templates no longer active
 - Duplicate licenses from the same template on one licensee
 - Licensees with licenses across more modules than their product tier suggests
 
-**Compliance anomalies**
+**Entitlement compliance anomalies**
 - Licensees where validation fails but active licenses exist
   (mismatch between license records and validation outcome)
 - Licensees with no licenses but marked active

@@ -1517,3 +1517,12 @@ def test_audit_full_prompt_content():
     if captured:
         assert "P001" in captured["text"]
         assert "Step 1" in captured["text"]
+        assert "online license and" in captured["text"]
+        assert "entitlements management system" in captured["text"]
+
+
+def test_server_instructions_positioning():
+    from netlicensing_mcp.server import mcp
+
+    assert "online license and entitlements management system" in (mcp.instructions or "")
+
