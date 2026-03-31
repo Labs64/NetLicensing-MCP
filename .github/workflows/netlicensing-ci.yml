@@ -80,14 +80,16 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results-py${{ matrix.python-version }}
           path: junit-results.xml
+          retention-days: 2
 
       - name: Upload coverage report
         if: matrix.python-version == '3.14'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-report
           path: coverage.xml
+          retention-days: 2
