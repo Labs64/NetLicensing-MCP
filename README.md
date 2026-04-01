@@ -126,6 +126,8 @@ docker run -i --rm \
 | `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
 | `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs raw API requests/responses. Can also be set via `-v` CLI flag. |
 
+> **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header, or `?apikey=<key>` query parameter.
+
 ---
  
 ### Claude Desktop
@@ -285,6 +287,51 @@ Use `ngrok` or a reverse proxy to expose the HTTP endpoint to remote MCP clients
 ngrok http 8000
 # Then point your client at the generated HTTPS URL
 ```
+
+### Cloud Deployment (AWS)
+
+Deploy the MCP server to AWS for a **public HTTPS endpoint** that remote AI agents can connect to:
+
+| Option | Best for | Scale-to-zero | Setup |
+|---|---|---|---|
+| **ECS Fargate** | Production, consistent traffic | No | ALB + Fargate |
+| **App Runner** | Low-traffic, development | ✅ Yes | Auto-provisioned HTTPS |
+
+#### Quick deploy with the helper script
+
+```bash
+cd deploy/aws
+
+# Option A — ECS Fargate
+# Deploy (with optional HTTPS via ACM certificate)
+./deploy.sh fargate \
+    --certificate-arn arn:aws:acm:us-east-1:123456789:certificate/your-cert-id
+
+# Option B — App Runner (mirror image to ECR first)
+./deploy.sh mirror --ecr-repo 123456789.dkr.ecr.us-east-1.amazonaws.com/netlicensing-mcp
+./deploy.sh apprunner \
+    --ecr-image 123456789.dkr.ecr.us-east-1.amazonaws.com/netlicensing-mcp:latest
+```
+
+#### Connect MCP clients to the public URL
+
+To use a shared, remote deployment, do not bake the `NETLICENSING_API_KEY` into the remote server settings. Instead, pass the API key from the client side using query parameters or HTTP headers.
+
+For example, using the URL configuration in your MCP client with a query parameter:
+
+```json
+{
+  "mcpServers": {
+    "netlicensing": {
+      "url": "https://your-endpoint.us-east-1.elb.amazonaws.com/mcp?apikey=YOUR_API_KEY"
+    }
+  }
+}
+```
+
+If you use a client or tool that supports passing HTTP headers directly, you can alternatively provide the key via `X-NetLicensing-API-Key: YOUR_API_KEY` or `Authorization: Bearer YOUR_API_KEY`.
+
+📖 Full instructions, architecture diagrams, and cost estimates: **[deploy/aws/README.md](deploy/aws/README.md)**
 
 ---
  

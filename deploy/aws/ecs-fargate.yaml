@@ -1,0 +1,371 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  NetLicensing MCP Server — ECS Fargate deployment with ALB (HTTPS).
+  Creates a publicly accessible MCP endpoint for remote AI agents.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PARAMETERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Parameters:
+  ImageUri:
+    Type: String
+    Default: ghcr.io/labs64/netlicensing-mcp:latest
+    Description: Container image URI (GHCR, ECR, or Docker Hub)
+
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: >
+      ARN of an ACM certificate for HTTPS on the ALB.
+      Leave empty to create an HTTP-only listener (not recommended for production).
+
+  DesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 0
+    MaxValue: 10
+    Description: Number of Fargate tasks to run
+
+  Cpu:
+    Type: String
+    Default: "256"
+    AllowedValues: ["256", "512", "1024"]
+    Description: Fargate task CPU (256 = 0.25 vCPU)
+
+  Memory:
+    Type: String
+    Default: "512"
+    AllowedValues: ["512", "1024", "2048"]
+    Description: Fargate task memory (MiB)
+
+  UseSpot:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Use Fargate Spot capacity (up to 70 % cheaper)
+
+  McpVerbose:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable verbose debug logging
+
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
+  EnableSpot: !Equals [!Ref UseSpot, "true"]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESOURCES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Resources:
+
+  # ── VPC ──────────────────────────────────────────────────────────────────
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-vpc"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-a"
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-public-b"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  SubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  # ── Security Groups ────────────────────────────────────────────────────
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ALB — allow HTTP/HTTPS from the internet
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Fargate tasks — allow traffic from ALB only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  # ── Application Load Balancer ──────────────────────────────────────────
+
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${AWS::StackName}-alb"
+      Scheme: internet-facing
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      LoadBalancerAttributes:
+        # Long timeout for SSE / streamable-http connections
+        - Key: idle_timeout.timeout_seconds
+          Value: "3600"
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg"
+      VpcId: !Ref Vpc
+      Protocol: HTTP
+      Port: 8000
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200"
+
+  # HTTPS listener (when certificate is provided)
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasCertificate
+    Properties:
+      LoadBalancerArn: !Ref Alb
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # HTTP listener — redirects to HTTPS when certificate exists, or forwards directly
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Alb
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - !If
+          - HasCertificate
+          - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: "443"
+              StatusCode: HTTP_301
+          - Type: forward
+            TargetGroupArn: !Ref TargetGroup
+
+  # ── ECS Cluster ────────────────────────────────────────────────────────
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${AWS::StackName}-cluster"
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - !If
+          - EnableSpot
+          - CapacityProvider: FARGATE_SPOT
+            Weight: 1
+          - CapacityProvider: FARGATE
+            Weight: 1
+
+  # ── IAM Roles ──────────────────────────────────────────────────────────
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+
+  # ── Log Group ──────────────────────────────────────────────────────────
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${AWS::StackName}"
+      RetentionInDays: 30
+
+  # ── Task Definition ────────────────────────────────────────────────────
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${AWS::StackName}-task"
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref Cpu
+      Memory: !Ref Memory
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: netlicensing-mcp
+          Image: !Ref ImageUri
+          Essential: true
+          # Start in HTTP mode
+          Command: ["http"]
+          PortMappings:
+            - ContainerPort: 8000
+              Protocol: tcp
+          Environment:
+            - Name: MCP_TRANSPORT
+              Value: http
+            - Name: MCP_HOST
+              Value: "0.0.0.0"
+            - Name: MCP_PORT
+              Value: "8000"
+            - Name: MCP_VERBOSE
+              Value: !Ref McpVerbose
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: mcp
+
+  # ── ECS Service ────────────────────────────────────────────────────────
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - HttpListener
+    Properties:
+      Cluster: !Ref Cluster
+      ServiceName: !Sub "${AWS::StackName}-service"
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref PublicSubnetA
+            - !Ref PublicSubnetB
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+      LoadBalancers:
+        - ContainerName: netlicensing-mcp
+          ContainerPort: 8000
+          TargetGroupArn: !Ref TargetGroup
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OUTPUTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Outputs:
+  AlbDnsName:
+    Description: ALB public DNS name
+    Value: !GetAtt Alb.DNSName
+
+  McpEndpointHttp:
+    Description: MCP endpoint URL (HTTP)
+    Value: !Sub "http://${Alb.DNSName}/mcp"
+
+  McpEndpointHttps:
+    Condition: HasCertificate
+    Description: MCP endpoint URL (HTTPS)
+    Value: !Sub "https://${Alb.DNSName}/mcp"
+
+  HealthCheckUrl:
+    Description: Health check URL
+    Value: !Sub "http://${Alb.DNSName}/health"
+
+  ClusterName:
+    Description: ECS Cluster name
+    Value: !Ref Cluster
+
+  ServiceName:
+    Description: ECS Service name
+    Value: !GetAtt Service.Name
+

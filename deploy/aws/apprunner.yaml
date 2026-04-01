@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  NetLicensing MCP Server — AWS App Runner deployment.
+  Simplest option: auto-provisions HTTPS, scales to zero, no VPC required.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PARAMETERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Parameters:
+  ImageUri:
+    Type: String
+    Default: ghcr.io/labs64/netlicensing-mcp:latest
+    Description: >
+      Container image URI. For GHCR images you must first push to ECR
+      (App Runner only supports ECR and ECR Public natively).
+
+
+  Cpu:
+    Type: String
+    Default: "0.25 vCPU"
+    AllowedValues: ["0.25 vCPU", "0.5 vCPU", "1 vCPU"]
+    Description: Instance CPU
+
+  Memory:
+    Type: String
+    Default: "0.5 GB"
+    AllowedValues: ["0.5 GB", "1 GB", "2 GB"]
+    Description: Instance memory
+
+  MinSize:
+    Type: Number
+    Default: 0
+    Description: >
+      Minimum number of instances. Set to 0 for scale-to-zero
+      (first request has ~5 s cold start).
+
+  MaxSize:
+    Type: Number
+    Default: 2
+    Description: Maximum number of instances
+
+  McpVerbose:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable verbose debug logging
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESOURCES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Resources:
+
+  # ── ECR Access Role (required for pulling from ECR / ECR Public) ───────
+
+  AccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: build.apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+
+  # ── App Runner Service ─────────────────────────────────────────────────
+
+  McpService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: netlicensing-mcp
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn: !GetAtt AccessRole.Arn
+        AutoDeploymentsEnabled: false
+        ImageRepository:
+          ImageIdentifier: !Ref ImageUri
+          ImageRepositoryType: ECR
+          ImageConfiguration:
+            Port: "8000"
+            StartCommand: "http"
+            RuntimeEnvironmentVariables:
+              - Name: MCP_TRANSPORT
+                Value: http
+              - Name: MCP_HOST
+                Value: "0.0.0.0"
+              - Name: MCP_PORT
+                Value: "8000"
+              - Name: MCP_VERBOSE
+                Value: !Ref McpVerbose
+      InstanceConfiguration:
+        Cpu: !Ref Cpu
+        Memory: !Ref Memory
+      AutoScalingConfigurationArn: !GetAtt AutoScaling.AutoScalingConfigurationArn
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: /health
+        Interval: 20
+        Timeout: 5
+        HealthyThreshold: 1
+        UnhealthyThreshold: 3
+
+  # ── Auto-Scaling (supports scale-to-zero) ──────────────────────────────
+
+  AutoScaling:
+    Type: AWS::AppRunner::AutoScalingConfiguration
+    Properties:
+      AutoScalingConfigurationName: !Sub "${AWS::StackName}-scaling"
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      MaxConcurrency: 50
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OUTPUTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+Outputs:
+  ServiceUrl:
+    Description: Public HTTPS URL (auto-provisioned by App Runner)
+    Value: !Sub "https://${McpService.ServiceUrl}"
+
+  McpEndpoint:
+    Description: MCP streamable-http endpoint
+    Value: !Sub "https://${McpService.ServiceUrl}/mcp"
+
+  HealthCheckUrl:
+    Description: Health check URL
+    Value: !Sub "https://${McpService.ServiceUrl}/health"
+
+  ServiceArn:
+    Description: App Runner service ARN
+    Value: !GetAtt McpService.ServiceArn
+

@@ -16,6 +16,8 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 
+import contextvars
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -24,8 +26,9 @@ BASE_URL: str = os.getenv(
     "NETLICENSING_BASE_URL",
     "https://go.netlicensing.io/core/v2/rest",
 )
-API_KEY: str = os.getenv("NETLICENSING_API_KEY", "")
-
+api_key_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "api_key", default=os.getenv("NETLICENSING_API_KEY", "")
+)
 
 # ── Error wrapper ────────────────────────────────────────────────────────────
 
@@ -56,8 +59,9 @@ def _raise_on_error(response: httpx.Response) -> None:
 
 
 def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
-    if API_KEY:
-        auth_str = f"apiKey:{API_KEY}"
+    api_key = api_key_ctx.get()
+    if api_key:
+        auth_str = f"apiKey:{api_key}"
     else:
         logger.warning("NETLICENSING_API_KEY not set — falling back to demo credentials")
         auth_str = "demo:demo"

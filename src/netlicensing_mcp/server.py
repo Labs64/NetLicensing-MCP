@@ -19,6 +19,9 @@ import argparse
 
 from mcp.server.fastmcp import FastMCP
 
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
 from netlicensing_mcp.client import NetLicensingError
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
@@ -119,6 +122,17 @@ online license and entitlements management system for software vendors.
     host=os.getenv("MCP_HOST", "127.0.0.1"),
     port=int(os.getenv("MCP_PORT", "8000")),
 )
+
+
+# ── Health check (for load balancers & container orchestrators) ──────────────
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> JSONResponse:
+    """Lightweight liveness probe — returns 200 with server metadata."""
+    return JSONResponse(
+        {"status": "ok", "server": "netlicensing-mcp"},
+    )
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -1382,10 +1396,52 @@ def main() -> None:
 
     logger.info("Starting NetLicensing MCP server (transport=%s, verbose=%s)", transport, verbose)
 
-    if transport == "http":
-        mcp.run(transport="streamable-http")
+    if transport == "stdio":
+        register_audit_prompts(mcp)
+        mcp.run(transport="stdio")
+    elif transport == "http":
+        print(f"Starting MCP server on http://{mcp.settings.host}:{mcp.settings.port}")
+
+        import anyio
+        import uvicorn
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from netlicensing_mcp.client import api_key_ctx
+
+        class ApiKeyMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next):
+                key = request.headers.get("x-netlicensing-api-key")
+                if not key:
+                    auth = request.headers.get("authorization")
+                    if auth and auth.lower().startswith("bearer "):
+                        key = auth[7:]
+
+                if not key:
+                    key = request.query_params.get("apikey")
+
+                if key:
+                    token = api_key_ctx.set(key)
+                    try:
+                        return await call_next(request)
+                    finally:
+                        api_key_ctx.reset(token)
+                return await call_next(request)
+
+        async def run_server() -> None:
+            app = mcp.streamable_http_app()
+            app.add_middleware(ApiKeyMiddleware)
+            config = uvicorn.Config(
+                app,
+                host=mcp.settings.host,
+                port=mcp.settings.port,
+                log_level="info",
+            )
+            server = uvicorn.Server(config)
+            await server.serve()
+
+        anyio.run(run_server)
     else:
-        mcp.run()
+        print(f"Unknown transport: {transport}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

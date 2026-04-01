@@ -1525,4 +1525,3 @@ def test_server_instructions_positioning():
     from netlicensing_mcp.server import mcp
 
     assert "online license and entitlements management system" in (mcp.instructions or "")
-
