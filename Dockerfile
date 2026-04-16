@@ -23,6 +23,10 @@ RUN pip install --no-cache-dir --no-deps \
 #    NETLICENSING_BASE_URL  — optional override
 ENV NETLICENSING_BASE_URL="https://go.netlicensing.io/core/v2/rest"
 
+# 4. Drop root privileges — run as a non-root user for security
+RUN useradd --no-create-home --shell /bin/false appuser
+USER appuser
+
 # stdio mode by default; pass args via docker run for http / verbose:
 #   docker run ... image              → stdio (default)
 #   docker run ... image http         → HTTP mode

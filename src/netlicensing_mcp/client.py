@@ -84,7 +84,10 @@ def _get_client() -> httpx.AsyncClient:
     """Return (and lazily create) the module-level ``AsyncClient``."""
     global _client  # noqa: PLW0603
     if _client is None or _client.is_closed:
-        _client = httpx.AsyncClient(timeout=30)
+        _client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
     return _client
 
 
@@ -102,9 +105,9 @@ async def close_client() -> None:
 async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug(f"GET {url} params={params}")
+    logger.debug("GET %s params=%s", url, params)
     r = await client.get(url, headers=_headers(), params=params or {})
-    logger.debug(f"Response {r.status_code}: {r.text}")
+    logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
     return r.json()
 
@@ -112,13 +115,13 @@ async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, A
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug(f"POST {url} data={data}")
+    logger.debug("POST %s", url)
     r = await client.post(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
         data=data or {},
     )
-    logger.debug(f"Response {r.status_code}: {r.text}")
+    logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
     return r.json()
 
@@ -126,13 +129,13 @@ async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, An
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug(f"PUT {url} data={data}")
+    logger.debug("PUT %s", url)
     r = await client.put(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
         data=data,
     )
-    logger.debug(f"Response {r.status_code}: {r.text}")
+    logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
     return r.json()
 
@@ -141,8 +144,8 @@ async def nl_delete(path: str, params: dict[str, str] | None = None) -> int:
     """Delete a resource. Returns HTTP status code (200 or 204)."""
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug(f"DELETE {url} params={params}")
+    logger.debug("DELETE %s params=%s", url, params)
     r = await client.delete(url, headers=_headers(), params=params or {})
-    logger.debug(f"Response {r.status_code}: {r.text}")
+    logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
     return r.status_code
