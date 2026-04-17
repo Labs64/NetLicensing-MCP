@@ -22,6 +22,7 @@ from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from netlicensing_mcp import validation as v
 from netlicensing_mcp.client import NetLicensingError
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
@@ -36,6 +37,7 @@ from netlicensing_mcp.tools import (
     transactions,
     utilities,
 )
+from netlicensing_mcp.validation import ValidationError
 
 # Configure logging to output to stdout
 logging.basicConfig(
@@ -147,6 +149,14 @@ def _error(exc: NetLicensingError) -> str:
     return json.dumps({"error": True, "status": exc.status_code, "detail": exc.detail}, indent=2)
 
 
+def _validation_error(exc: ValidationError) -> str:
+    """Return a user-friendly JSON error for a client-side validation failure."""
+    return json.dumps(
+        {"error": True, "validation": True, "field": exc.field, "detail": exc.message},
+        indent=2,
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PRODUCTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -173,7 +183,10 @@ async def netlicensing_get_product(product_number: str) -> str:
         product_number: Product identifier (e.g. 'P001')
     """
     try:
+        product_number = v.identifier(product_number, "product_number")
         return _json(await products.get_product(product_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -204,6 +217,11 @@ async def netlicensing_create_product(
         licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty for default)
     """
     try:
+        number = v.identifier(number, "number")
+        if vat_mode:
+            vat_mode = v.vat_mode(vat_mode)
+        if licensee_secret_mode:
+            licensee_secret_mode = v.licensee_secret_mode(licensee_secret_mode)
         return _json(
             await products.create_product(
                 number,
@@ -217,6 +235,8 @@ async def netlicensing_create_product(
                 licensee_secret_mode=licensee_secret_mode or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -247,6 +267,11 @@ async def netlicensing_update_product(
         licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty to keep current)
     """
     try:
+        product_number = v.identifier(product_number, "product_number")
+        if vat_mode:
+            vat_mode = v.vat_mode(vat_mode)
+        if licensee_secret_mode:
+            licensee_secret_mode = v.licensee_secret_mode(licensee_secret_mode)
         return _json(
             await products.update_product(
                 product_number,
@@ -260,6 +285,8 @@ async def netlicensing_update_product(
                 licensee_secret_mode=licensee_secret_mode or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -273,7 +300,10 @@ async def netlicensing_delete_product(product_number: str, force_cascade: bool =
         force_cascade: Also delete all dependent modules, templates, licensees, and licenses
     """
     try:
+        product_number = v.identifier(product_number, "product_number")
         return await products.delete_product(product_number, force_cascade)
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -300,7 +330,10 @@ async def netlicensing_get_bundle(bundle_number: str) -> str:
         bundle_number: Bundle identifier (e.g. 'B001')
     """
     try:
+        bundle_number = v.identifier(bundle_number, "bundle_number")
         return _json(await bundles.get_bundle(bundle_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -327,6 +360,13 @@ async def netlicensing_create_bundle(
         description: Optional bundle description
     """
     try:
+        number = v.identifier(number, "number")
+        license_template_numbers = [
+            v.identifier(t, "license_template_numbers[]") for t in license_template_numbers
+        ]
+        if price is not None:
+            v.non_negative_number(price, "price")
+        normalized_currency = v.currency(currency) if currency else None
         return _json(
             await bundles.create_bundle(
                 number,
@@ -334,10 +374,12 @@ async def netlicensing_create_bundle(
                 license_template_numbers,
                 active,
                 price=price,
-                currency=currency or None,
+                currency=normalized_currency,
                 description=description,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -364,6 +406,14 @@ async def netlicensing_update_bundle(
         description: New description (leave empty to keep current)
     """
     try:
+        bundle_number = v.identifier(bundle_number, "bundle_number")
+        if license_template_numbers is not None:
+            license_template_numbers = [
+                v.identifier(t, "license_template_numbers[]") for t in license_template_numbers
+            ]
+        if price is not None:
+            v.non_negative_number(price, "price")
+        normalized_currency = v.currency(currency) if currency else None
         return _json(
             await bundles.update_bundle(
                 bundle_number,
@@ -371,10 +421,12 @@ async def netlicensing_update_bundle(
                 active,
                 license_template_numbers,
                 price,
-                currency or None,
+                normalized_currency,
                 description or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -388,7 +440,10 @@ async def netlicensing_delete_bundle(bundle_number: str, force_cascade: bool = F
         force_cascade: Force deletion even if dependencies exist
     """
     try:
+        bundle_number = v.identifier(bundle_number, "bundle_number")
         return await bundles.delete_bundle(bundle_number, force_cascade)
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -406,7 +461,11 @@ async def netlicensing_obtain_bundle(
         licensee_number: Customer (licensee) who receives the licenses
     """
     try:
+        bundle_number = v.identifier(bundle_number, "bundle_number")
+        licensee_number = v.identifier(licensee_number, "licensee_number")
         return _json(await bundles.obtain_bundle(bundle_number, licensee_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -425,12 +484,15 @@ async def netlicensing_list_product_modules(product_number: str, filter: str = "
         filter: Optional server-side filter expression (e.g. 'active=true')
     """
     try:
+        product_number = v.identifier(product_number, "product_number")
         return _json(
             await product_modules.list_product_modules(
                 product_number,
                 filter_str=filter or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -443,7 +505,10 @@ async def netlicensing_get_product_module(module_number: str) -> str:
         module_number: Module identifier
     """
     try:
+        module_number = v.identifier(module_number, "module_number")
         return _json(await product_modules.get_product_module(module_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -475,6 +540,18 @@ async def netlicensing_create_product_module(
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model)
     """
     try:
+        product_number = v.identifier(product_number, "product_number")
+        number = v.identifier(number, "number")
+        licensing_model = v.licensing_model(licensing_model)
+        if max_checkout_validity is not None:
+            v.positive_int(max_checkout_validity, "max_checkout_validity")
+        if yellow_threshold is not None:
+            v.positive_int(yellow_threshold, "yellow_threshold", allow_zero=True)
+        if red_threshold is not None:
+            v.positive_int(red_threshold, "red_threshold", allow_zero=True)
+        normalized_node_secret_mode = (
+            v.node_secret_mode(node_secret_mode) if node_secret_mode else None
+        )
         return _json(
             await product_modules.create_product_module(
                 product_number,
@@ -485,9 +562,11 @@ async def netlicensing_create_product_module(
                 max_checkout_validity=max_checkout_validity,
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
-                node_secret_mode=node_secret_mode or None,
+                node_secret_mode=normalized_node_secret_mode,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -514,6 +593,16 @@ async def netlicensing_update_product_module(
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model, leave empty to keep current)
     """
     try:
+        module_number = v.identifier(module_number, "module_number")
+        if max_checkout_validity is not None:
+            v.positive_int(max_checkout_validity, "max_checkout_validity")
+        if yellow_threshold is not None:
+            v.positive_int(yellow_threshold, "yellow_threshold", allow_zero=True)
+        if red_threshold is not None:
+            v.positive_int(red_threshold, "red_threshold", allow_zero=True)
+        normalized_node_secret_mode = (
+            v.node_secret_mode(node_secret_mode) if node_secret_mode else None
+        )
         return _json(
             await product_modules.update_product_module(
                 module_number,
@@ -522,9 +611,11 @@ async def netlicensing_update_product_module(
                 max_checkout_validity=max_checkout_validity,
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
-                node_secret_mode=node_secret_mode or None,
+                node_secret_mode=normalized_node_secret_mode,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -540,7 +631,10 @@ async def netlicensing_delete_product_module(
         force_cascade: Also delete all dependent license templates and licenses
     """
     try:
+        module_number = v.identifier(module_number, "module_number")
         return await product_modules.delete_product_module(module_number, force_cascade)
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -559,12 +653,15 @@ async def netlicensing_list_license_templates(module_number: str, filter: str = 
         filter: Optional server-side filter expression (e.g. 'active=true')
     """
     try:
+        module_number = v.identifier(module_number, "module_number")
         return _json(
             await license_templates.list_license_templates(
                 module_number,
                 filter_str=filter or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -577,7 +674,10 @@ async def netlicensing_get_license_template(template_number: str) -> str:
         template_number: Template identifier
     """
     try:
+        template_number = v.identifier(template_number, "template_number")
         return _json(await license_templates.get_license_template(template_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -620,6 +720,18 @@ async def netlicensing_create_license_template(
         grace_period: Allow grace period after expiry (Subscription model)
     """
     try:
+        module_number = v.identifier(module_number, "module_number")
+        number = v.identifier(number, "number")
+        license_type = v.license_type(license_type)
+        currency = v.currency(currency)
+        v.non_negative_number(price, "price")
+        if time_volume is not None:
+            v.positive_int(time_volume, "time_volume")
+        normalized_period = v.time_volume_period(time_volume_period) if time_volume_period else None
+        if max_sessions is not None:
+            v.positive_int(max_sessions, "max_sessions")
+        if quantity is not None:
+            v.positive_int(quantity, "quantity")
         return _json(
             await license_templates.create_license_template(
                 module_number,
@@ -633,12 +745,14 @@ async def netlicensing_create_license_template(
                 hidden=hidden,
                 hide_licenses=hide_licenses,
                 time_volume=time_volume,
-                time_volume_period=time_volume_period or None,
+                time_volume_period=normalized_period,
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -677,23 +791,36 @@ async def netlicensing_update_license_template(
         grace_period: Grace period after expiry — Subscription model (omit to keep current)
     """
     try:
+        template_number = v.identifier(template_number, "template_number")
+        normalized_currency = v.currency(currency) if currency else None
+        if price is not None:
+            v.non_negative_number(price, "price")
+        if time_volume is not None:
+            v.positive_int(time_volume, "time_volume")
+        normalized_period = v.time_volume_period(time_volume_period) if time_volume_period else None
+        if max_sessions is not None:
+            v.positive_int(max_sessions, "max_sessions")
+        if quantity is not None:
+            v.positive_int(quantity, "quantity")
         return _json(
             await license_templates.update_license_template(
                 template_number,
                 name or None,
                 active,
                 price,
-                currency=currency or None,
+                currency=normalized_currency,
                 automatic=automatic,
                 hidden=hidden,
                 hide_licenses=hide_licenses,
                 time_volume=time_volume,
-                time_volume_period=time_volume_period or None,
+                time_volume_period=normalized_period,
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -709,7 +836,10 @@ async def netlicensing_delete_license_template(
         force_cascade: Also delete all dependent licenses
     """
     try:
+        template_number = v.identifier(template_number, "template_number")
         return await license_templates.delete_license_template(template_number, force_cascade)
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -728,12 +858,15 @@ async def netlicensing_list_licensees(product_number: str, filter: str = "") -> 
         filter: Optional server-side filter expression (e.g. 'active=true')
     """
     try:
+        product_number = v.identifier(product_number, "product_number")
         return _json(
             await licensees.list_licensees(
                 product_number,
                 filter_str=filter or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -746,7 +879,10 @@ async def netlicensing_get_licensee(licensee_number: str) -> str:
         licensee_number: Licensee identifier (e.g. 'I001')
     """
     try:
+        licensee_number = v.identifier(licensee_number, "licensee_number")
         return _json(await licensees.get_licensee(licensee_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -771,6 +907,9 @@ async def netlicensing_create_licensee(
         licensee_secret: Secret for licensee identification (when product licenseeSecretMode is PREDEFINED)
     """
     try:
+        product_number = v.identifier(product_number, "product_number")
+        if number:
+            number = v.identifier(number, "number")
         return _json(
             await licensees.create_licensee(
                 product_number,
@@ -781,6 +920,8 @@ async def netlicensing_create_licensee(
                 licensee_secret=licensee_secret or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -803,6 +944,7 @@ async def netlicensing_update_licensee(
         licensee_secret: Secret for licensee identification (leave empty to keep current)
     """
     try:
+        licensee_number = v.identifier(licensee_number, "licensee_number")
         return _json(
             await licensees.update_licensee(
                 licensee_number,
@@ -812,6 +954,8 @@ async def netlicensing_update_licensee(
                 licensee_secret=licensee_secret or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -825,7 +969,10 @@ async def netlicensing_delete_licensee(licensee_number: str, force_cascade: bool
         force_cascade: Also delete all dependent licenses
     """
     try:
+        licensee_number = v.identifier(licensee_number, "licensee_number")
         return await licensees.delete_licensee(licensee_number, force_cascade)
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -854,6 +1001,13 @@ async def netlicensing_validate_licensee(
         node_secret: NodeLocked model — unique device/node secret
     """
     try:
+        licensee_number = v.identifier(licensee_number, "licensee_number")
+        if product_number:
+            product_number = v.identifier(product_number, "product_number")
+        if product_module_number:
+            product_module_number = v.identifier(product_module_number, "product_module_number")
+        if action:
+            action = v.floating_action(action)
         return _json(
             await licensees.validate_licensee(
                 licensee_number,
@@ -865,6 +1019,8 @@ async def netlicensing_validate_licensee(
                 node_secret=node_secret or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -881,12 +1037,16 @@ async def netlicensing_transfer_licenses(
         to_licensee_number: Destination licensee
     """
     try:
+        from_licensee_number = v.identifier(from_licensee_number, "from_licensee_number")
+        to_licensee_number = v.identifier(to_licensee_number, "to_licensee_number")
         return _json(
             await licensees.transfer_licenses(
                 from_licensee_number,
                 to_licensee_number,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -905,12 +1065,15 @@ async def netlicensing_list_licenses(licensee_number: str, filter: str = "") -> 
         filter: Optional server-side filter expression (e.g. 'active=true')
     """
     try:
+        licensee_number = v.identifier(licensee_number, "licensee_number")
         return _json(
             await licenses.list_licenses(
                 licensee_number,
                 filter_str=filter or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -923,7 +1086,10 @@ async def netlicensing_get_license(license_number: str) -> str:
         license_number: License identifier
     """
     try:
+        license_number = v.identifier(license_number, "license_number")
         return _json(await licenses.get_license(license_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -962,6 +1128,16 @@ async def netlicensing_create_license(
         hidden: Hide license from end customer in Shop (omit to inherit)
     """
     try:
+        licensee_number = v.identifier(licensee_number, "licensee_number")
+        license_template_number = v.identifier(license_template_number, "license_template_number")
+        if number:
+            number = v.identifier(number, "number")
+        if start_date:
+            start_date = v.iso_datetime(start_date, "start_date")
+        if price is not None:
+            v.non_negative_number(price, "price")
+        normalized_currency = v.currency(currency) if currency else None
+        normalized_period = v.time_volume_period(time_volume_period) if time_volume_period else None
         return _json(
             await licenses.create_license(
                 licensee_number,
@@ -971,14 +1147,16 @@ async def netlicensing_create_license(
                 name=name or None,
                 start_date=start_date or None,
                 price=price,
-                currency=currency or None,
+                currency=normalized_currency,
                 time_volume=time_volume or None,
-                time_volume_period=time_volume_period or None,
+                time_volume_period=normalized_period,
                 quantity=quantity or None,
                 parent_feature=parent_feature or None,
                 hidden=hidden,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1015,6 +1193,13 @@ async def netlicensing_update_license(
         hidden: Visibility in Shop (omit to keep current)
     """
     try:
+        license_number = v.identifier(license_number, "license_number")
+        if start_date:
+            start_date = v.iso_datetime(start_date, "start_date")
+        if price is not None:
+            v.non_negative_number(price, "price")
+        normalized_currency = v.currency(currency) if currency else None
+        normalized_period = v.time_volume_period(time_volume_period) if time_volume_period else None
         return _json(
             await licenses.update_license(
                 license_number,
@@ -1022,15 +1207,17 @@ async def netlicensing_update_license(
                 name=name or None,
                 start_date=start_date or None,
                 price=price,
-                currency=currency or None,
+                currency=normalized_currency,
                 time_volume=time_volume or None,
-                time_volume_period=time_volume_period or None,
+                time_volume_period=normalized_period,
                 quantity=quantity or None,
                 used_quantity=used_quantity or None,
                 parent_feature=parent_feature or None,
                 hidden=hidden,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1044,7 +1231,10 @@ async def netlicensing_delete_license(license_number: str, force_cascade: bool =
         force_cascade: Force deletion even if dependencies exist
     """
     try:
+        license_number = v.identifier(license_number, "license_number")
         return await licenses.delete_license(license_number, force_cascade)
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1075,7 +1265,10 @@ async def netlicensing_get_token(token_number: str) -> str:
         token_number: Token identifier
     """
     try:
+        token_number = v.identifier(token_number, "token_number")
         return _json(await tokens.get_token(token_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1102,6 +1295,13 @@ async def netlicensing_create_shop_token(
         cancel_url_title: Optional button/link label for cancel redirect
     """
     try:
+        licensee_number = v.identifier(licensee_number, "licensee_number")
+        if product_number:
+            product_number = v.identifier(product_number, "product_number")
+        if license_template_number:
+            license_template_number = v.identifier(
+                license_template_number, "license_template_number"
+            )
         return _json(
             await tokens.create_shop_token(
                 licensee_number,
@@ -1113,6 +1313,8 @@ async def netlicensing_create_shop_token(
                 cancel_url_title=cancel_url_title or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1130,7 +1332,12 @@ async def netlicensing_create_api_token(
         licensee_number: Optional — scope token to a specific licensee
     """
     try:
+        api_key_role = v.api_key_role(api_key_role)
+        if licensee_number:
+            licensee_number = v.identifier(licensee_number, "licensee_number")
         return _json(await tokens.create_api_token(api_key_role, licensee_number or None))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1143,7 +1350,10 @@ async def netlicensing_delete_token(token_number: str) -> str:
         token_number: Token to revoke
     """
     try:
+        token_number = v.identifier(token_number, "token_number")
         return await tokens.delete_token(token_number)
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1178,7 +1388,10 @@ async def netlicensing_get_transaction(transaction_number: str) -> str:
         transaction_number: Transaction identifier
     """
     try:
+        transaction_number = v.identifier(transaction_number, "transaction_number")
         return _json(await transactions.get_transaction(transaction_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1209,6 +1422,18 @@ async def netlicensing_create_transaction(
         payment_method: Optional payment method number
     """
     try:
+        status = v.transaction_status(status)
+        source = v.transaction_source(source)
+        if licensee_number:
+            licensee_number = v.identifier(licensee_number, "licensee_number")
+        if number:
+            number = v.identifier(number, "number")
+        if date_created:
+            date_created = v.iso_datetime(date_created, "date_created")
+        if date_closed:
+            date_closed = v.iso_datetime(date_closed, "date_closed")
+        if payment_method:
+            payment_method = v.identifier(payment_method, "payment_method")
         return _json(
             await transactions.create_transaction(
                 status,
@@ -1222,6 +1447,8 @@ async def netlicensing_create_transaction(
                 payment_method=payment_method or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1246,16 +1473,24 @@ async def netlicensing_update_transaction(
         payment_method: Payment method number (leave empty to keep current)
     """
     try:
+        transaction_number = v.identifier(transaction_number, "transaction_number")
+        normalized_status = v.transaction_status(status) if status else None
+        if date_closed:
+            date_closed = v.iso_datetime(date_closed, "date_closed")
+        if payment_method:
+            payment_method = v.identifier(payment_method, "payment_method")
         return _json(
             await transactions.update_transaction(
                 transaction_number,
-                status=status or None,
+                status=normalized_status,
                 active=active,
                 name=name or None,
                 date_closed=date_closed or None,
                 payment_method=payment_method or None,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1290,7 +1525,10 @@ async def netlicensing_get_payment_method(payment_method_number: str) -> str:
         payment_method_number: Payment method identifier
     """
     try:
+        payment_method_number = v.identifier(payment_method_number, "payment_method_number")
         return _json(await payment_methods.get_payment_method(payment_method_number))
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1309,13 +1547,17 @@ async def netlicensing_update_payment_method(
         paypal_subject: PayPal account e-mail address
     """
     try:
+        payment_method_number = v.identifier(payment_method_number, "payment_method_number")
+        normalized_paypal = v.email(paypal_subject, "paypal_subject") if paypal_subject else None
         return _json(
             await payment_methods.update_payment_method(
                 payment_method_number,
                 active=active,
-                paypal_subject=paypal_subject or None,
+                paypal_subject=normalized_paypal,
             )
         )
+    except ValidationError as exc:
+        return _validation_error(exc)
     except NetLicensingError as exc:
         return _error(exc)
 

@@ -30,6 +30,21 @@ api_key_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
     "api_key", default=os.getenv("NETLICENSING_API_KEY", "")
 )
 
+
+def _float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning("%s=%r is not a number — using default %s", name, raw, default)
+        return default
+
+
+HTTP_TIMEOUT: float = _float_env("NETLICENSING_HTTP_TIMEOUT", 30.0)
+HTTP_CONNECT_TIMEOUT: float = _float_env("NETLICENSING_HTTP_CONNECT_TIMEOUT", 10.0)
+
 # ── Error wrapper ────────────────────────────────────────────────────────────
 
 
@@ -85,7 +100,7 @@ def _get_client() -> httpx.AsyncClient:
     global _client  # noqa: PLW0603
     if _client is None or _client.is_closed:
         _client = httpx.AsyncClient(
-            timeout=httpx.Timeout(30.0, connect=10.0),
+            timeout=httpx.Timeout(HTTP_TIMEOUT, connect=HTTP_CONNECT_TIMEOUT),
             limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         )
     return _client

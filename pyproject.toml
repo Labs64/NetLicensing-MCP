@@ -61,3 +61,17 @@ omit = ["tests/*"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+# Baseline mypy config: keep the existing default-level checks (which already
+# pass cleanly). Raising the baseline to strict mode would surface dozens of
+# pre-existing issues in the tool wrappers and is better tackled as a
+# separate cleanup pass.
+[tool.mypy]
+python_version = "3.12"
+pretty = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["mcp.*"]
+ignore_missing_imports = true
+
