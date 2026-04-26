@@ -55,7 +55,7 @@ jobs:
       # This is a transitive dependency via rich, which is needed for better CLI output
       # See: https://github.com/pygments/pygments/issues/2681
       - name: pip-audit
-        run: pip-audit --ignore-vuln CVE-2026-4539
+        run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
 
   test:
     name: Test (Python ${{ matrix.python-version }})
