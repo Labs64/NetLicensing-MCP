@@ -2,6 +2,7 @@
 
 from netlicensing_mcp.tools import (
     bundles,
+    helpers,
     license_templates,
     licensees,
     licenses,
@@ -15,6 +16,7 @@ from netlicensing_mcp.tools import (
 
 __all__ = [
     "bundles",
+    "helpers",
     "license_templates",
     "licensees",
     "licenses",

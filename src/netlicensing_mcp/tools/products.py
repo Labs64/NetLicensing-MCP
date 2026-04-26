@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
+from netlicensing_mcp.tools.helpers import strip_output_fields
 
 
 async def list_products(filter_str: str | None = None) -> dict:
@@ -13,12 +14,12 @@ async def list_products(filter_str: str | None = None) -> dict:
     params: dict[str, str] = {}
     if filter_str:
         params["filter"] = filter_str
-    return await nl_get("/product", params or None)
+    return strip_output_fields(await nl_get("/product", params or None))
 
 
 async def get_product(product_number: str) -> dict:
     """Get a single product by its number."""
-    return await nl_get(f"/product/{product_number}")
+    return strip_output_fields(await nl_get(f"/product/{product_number}"))
 
 
 async def create_product(
@@ -38,6 +39,9 @@ async def create_product(
     vat_mode: GROSS | NET
     licensee_auto_create: if true, non-existing licensees are created on first validation.
     licensee_secret_mode: DISABLED | PREDEFINED | CLIENT
+
+    Note: 'logo' is intentionally not passed — omitting it avoids accidentally
+    clearing an existing product logo on the NetLicensing server.
     """
     data: dict[str, str] = {
         "number": number,
@@ -55,7 +59,7 @@ async def create_product(
         data["vatMode"] = vat_mode
     if licensee_secret_mode:
         data["licenseeSecretMode"] = licensee_secret_mode
-    return await nl_post("/product", data)
+    return strip_output_fields(await nl_post("/product", data))
 
 
 async def update_product(
@@ -72,6 +76,9 @@ async def update_product(
     """Update fields of an existing product.
 
     licensee_secret_mode: DISABLED | PREDEFINED | CLIENT
+
+    Note: 'logo' is intentionally not passed — omitting it preserves the
+    existing product logo on the NetLicensing server.
     """
     data: dict[str, str] = {}
     if name is not None:
@@ -90,7 +97,7 @@ async def update_product(
         data["vatMode"] = vat_mode
     if licensee_secret_mode is not None:
         data["licenseeSecretMode"] = licensee_secret_mode
-    return await nl_post(f"/product/{product_number}", data)
+    return strip_output_fields(await nl_post(f"/product/{product_number}", data))
 
 
 async def delete_product(product_number: str, force_cascade: bool = False) -> str:

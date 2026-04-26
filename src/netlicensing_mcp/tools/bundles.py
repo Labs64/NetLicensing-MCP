@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
+from netlicensing_mcp.tools.helpers import strip_output_fields
 
 
 async def list_bundles() -> dict:
     """List all bundles in the account."""
-    return await nl_get("/bundle")
+    return strip_output_fields(await nl_get("/bundle"))
 
 
 async def get_bundle(bundle_number: str) -> dict:
     """Get a single bundle by its number."""
-    return await nl_get(f"/bundle/{bundle_number}")
+    return strip_output_fields(await nl_get(f"/bundle/{bundle_number}"))
 
 
 async def create_bundle(
@@ -30,6 +31,9 @@ async def create_bundle(
     license_template_numbers: list of license template numbers included in the bundle.
     price: bundle price (optional).
     currency: ISO 4217 currency code (e.g. EUR, USD).
+
+    Note: 'logo' is intentionally not passed — omitting it avoids accidentally
+    clearing an existing bundle logo on the NetLicensing server.
     """
     data: dict[str, str] = {
         "number": number,
@@ -44,7 +48,7 @@ async def create_bundle(
         data["price"] = str(price)
     if currency:
         data["currency"] = currency
-    return await nl_post("/bundle", data)
+    return strip_output_fields(await nl_post("/bundle", data))
 
 
 async def update_bundle(
@@ -56,7 +60,11 @@ async def update_bundle(
     currency: str | None = None,
     description: str | None = None,
 ) -> dict:
-    """Update fields of an existing bundle."""
+    """Update fields of an existing bundle.
+
+    Note: 'logo' is intentionally not passed — omitting it preserves the
+    existing bundle logo on the NetLicensing server.
+    """
     data: dict[str, str] = {}
     if name is not None:
         data["name"] = name
@@ -70,7 +78,7 @@ async def update_bundle(
         data["currency"] = currency
     if description is not None:
         data["description"] = description
-    return await nl_post(f"/bundle/{bundle_number}", data)
+    return strip_output_fields(await nl_post(f"/bundle/{bundle_number}", data))
 
 
 async def delete_bundle(bundle_number: str, force_cascade: bool = False) -> str:
