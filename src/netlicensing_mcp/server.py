@@ -23,6 +23,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from netlicensing_mcp.client import NetLicensingError
+from netlicensing_mcp import safety
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
     bundles,
@@ -147,6 +148,38 @@ def _error(exc: NetLicensingError) -> str:
     return json.dumps({"error": True, "status": exc.status_code, "detail": exc.detail}, indent=2)
 
 
+def _count_items(response: dict) -> int:
+    """Count items in a NetLicensing API list response."""
+    items = response.get("items", {}).get("item", [])
+    return len(items) if isinstance(items, list) else 0
+
+
+def _sample_numbers(response: dict, limit: int = 3) -> list[str]:
+    """Extract up to `limit` entity numbers from a NetLicensing API list response."""
+    items = response.get("items", {}).get("item", [])
+    if not isinstance(items, list):
+        return []
+    numbers: list[str] = []
+    for item in items[:limit]:
+        for prop in item.get("property", []):
+            if isinstance(prop, dict) and prop.get("name") == "number":
+                numbers.append(prop["value"])
+                break
+    return numbers
+
+
+def _extract_props(response: dict) -> dict[str, str]:
+    """Extract property name/value pairs from a single-item NetLicensing response."""
+    items = response.get("items", {}).get("item", [])
+    if not items:
+        return {}
+    return {
+        p["name"]: p["value"]
+        for p in items[0].get("property", [])
+        if isinstance(p, dict) and "name" in p and "value" in p
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PRODUCTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -222,6 +255,43 @@ async def netlicensing_create_product(
 
 
 @mcp.tool()
+async def netlicensing_preview_update_product(
+    product_number: str,
+    licensee_auto_create: bool | None = None,
+    vat_mode: str = "",
+) -> str:
+    """Preview a sensitive product update (licenseeAutoCreate or vatMode change).
+
+    Returns a diff of proposed changes and a confirmation token. Pass the
+    token to netlicensing_update_product within 5 minutes to apply.
+
+    Args:
+        product_number: Product to preview changes for
+        licensee_auto_create: Proposed new auto-create setting (omit to skip)
+        vat_mode: Proposed new VAT mode — GROSS or NET (leave empty to skip)
+    """
+    try:
+        current_resp = await products.get_product(product_number)
+        current = _extract_props(current_resp)
+        diff: list[dict] = []
+        if licensee_auto_create is not None:
+            diff.append(
+                {
+                    "field": "licenseeAutoCreate",
+                    "from": current.get("licenseeAutoCreate"),
+                    "to": str(licensee_auto_create).lower(),
+                }
+            )
+        if vat_mode:
+            diff.append(
+                {"field": "vatMode", "from": current.get("vatMode"), "to": vat_mode}
+            )
+        return _json(safety.make_update_preview("update_product", product_number, diff))
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
 async def netlicensing_update_product(
     product_number: str,
     name: str = "",
@@ -232,8 +302,12 @@ async def netlicensing_update_product(
     licensee_auto_create: bool | None = None,
     vat_mode: str = "",
     licensee_secret_mode: str = "",
+    confirm_token: str = "",
 ) -> str:
     """Update an existing product's fields.
+
+    Changing licenseeAutoCreate or vatMode requires a confirmation token
+    (downstream business effect). Call netlicensing_preview_update_product first.
 
     Args:
         product_number: Product to update
@@ -245,8 +319,38 @@ async def netlicensing_update_product(
         licensee_auto_create: Auto-create licensees on first validation
         vat_mode: GROSS or NET (leave empty to keep current)
         licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty to keep current)
+        confirm_token: Confirmation token (required when licenseeAutoCreate or vatMode change)
     """
     try:
+        sensitive = licensee_auto_create is not None or bool(vat_mode)
+
+        if sensitive:
+            if confirm_token:
+                safety.validate_and_consume(confirm_token, "update_product", product_number)
+            else:
+                current_resp = await products.get_product(product_number)
+                current = _extract_props(current_resp)
+                diff: list[dict] = []
+                if licensee_auto_create is not None:
+                    diff.append(
+                        {
+                            "field": "licenseeAutoCreate",
+                            "from": current.get("licenseeAutoCreate"),
+                            "to": str(licensee_auto_create).lower(),
+                        }
+                    )
+                if vat_mode:
+                    diff.append(
+                        {
+                            "field": "vatMode",
+                            "from": current.get("vatMode"),
+                            "to": vat_mode,
+                        }
+                    )
+                return _json(
+                    safety.make_update_preview("update_product", product_number, diff)
+                )
+
         return _json(
             await products.update_product(
                 product_number,
@@ -260,20 +364,81 @@ async def netlicensing_update_product(
                 licensee_secret_mode=licensee_secret_mode or None,
             )
         )
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_delete_product(product_number: str, force_cascade: bool = False) -> str:
+async def netlicensing_preview_delete_product(product_number: str) -> str:
+    """Preview what would be deleted when deleting a product.
+
+    Returns affected counts, sample entity identifiers, and a short-lived
+    confirmation token. Pass the token to netlicensing_delete_product within
+    5 minutes to confirm the deletion.
+
+    Args:
+        product_number: Product to preview deletion for
+    """
+    try:
+        modules_resp = await product_modules.list_product_modules(product_number)
+        licensees_resp = await licensees.list_licensees(product_number)
+        return _json(
+            safety.make_delete_preview(
+                "delete_product",
+                product_number,
+                affected={
+                    "product_modules": _count_items(modules_resp),
+                    "licensees": _count_items(licensees_resp),
+                },
+                samples={"licensees": _sample_numbers(licensees_resp)},
+            )
+        )
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
+async def netlicensing_delete_product(
+    product_number: str,
+    force_cascade: bool = False,
+    confirm_token: str = "",
+) -> str:
     """Delete a product permanently.
+
+    When the product has dependent modules or licensees, calling without
+    confirm_token returns a preview + short-lived token instead of deleting.
+    Pass the token back within 5 minutes to confirm.
 
     Args:
         product_number: Product to delete
         force_cascade: Also delete all dependent modules, templates, licensees, and licenses
+        confirm_token: Confirmation token from a previous preview call
     """
     try:
-        return await products.delete_product(product_number, force_cascade)
+        if confirm_token:
+            safety.validate_and_consume(confirm_token, "delete_product", product_number)
+            return await products.delete_product(product_number, force_cascade)
+
+        modules_resp = await product_modules.list_product_modules(product_number)
+        licensees_resp = await licensees.list_licensees(product_number)
+        n_modules = _count_items(modules_resp)
+        n_licensees = _count_items(licensees_resp)
+
+        if n_modules == 0 and n_licensees == 0:
+            return await products.delete_product(product_number, force_cascade)
+
+        return _json(
+            safety.make_delete_preview(
+                "delete_product",
+                product_number,
+                affected={"product_modules": n_modules, "licensees": n_licensees},
+                samples={"licensees": _sample_numbers(licensees_resp)},
+            )
+        )
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -380,15 +545,55 @@ async def netlicensing_update_bundle(
 
 
 @mcp.tool()
-async def netlicensing_delete_bundle(bundle_number: str, force_cascade: bool = False) -> str:
+async def netlicensing_preview_delete_bundle(bundle_number: str) -> str:
+    """Preview what would be deleted when deleting a bundle.
+
+    Bundles reference license templates but do not own them; only the bundle
+    record itself is removed. Returns a confirmation token.
+
+    Args:
+        bundle_number: Bundle to preview deletion for
+    """
+    try:
+        bundle_resp = await bundles.get_bundle(bundle_number)
+        props = _extract_props(bundle_resp)
+        return _json(
+            safety.make_delete_preview(
+                "delete_bundle",
+                bundle_number,
+                affected={
+                    "license_templates": "referenced only — will NOT be deleted",
+                },
+                samples={"bundle_name": props.get("name", "")},
+            )
+        )
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
+async def netlicensing_delete_bundle(
+    bundle_number: str,
+    force_cascade: bool = False,
+    confirm_token: str = "",
+) -> str:
     """Delete a bundle permanently.
+
+    Bundles have no owned dependents; deletion executes immediately without a
+    token. If you obtained a token from netlicensing_preview_delete_bundle,
+    passing it here validates and consumes it before executing.
 
     Args:
         bundle_number: Bundle to delete
         force_cascade: Force deletion even if dependencies exist
+        confirm_token: Optional confirmation token from a previous preview call
     """
     try:
+        if confirm_token:
+            safety.validate_and_consume(confirm_token, "delete_bundle", bundle_number)
         return await bundles.delete_bundle(bundle_number, force_cascade)
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -530,17 +735,65 @@ async def netlicensing_update_product_module(
 
 
 @mcp.tool()
+async def netlicensing_preview_delete_product_module(module_number: str) -> str:
+    """Preview what would be deleted when deleting a product module.
+
+    Returns affected license template counts and a confirmation token.
+
+    Args:
+        module_number: Module to preview deletion for
+    """
+    try:
+        templates_resp = await license_templates.list_license_templates(module_number)
+        return _json(
+            safety.make_delete_preview(
+                "delete_product_module",
+                module_number,
+                affected={"license_templates": _count_items(templates_resp)},
+                samples={"license_templates": _sample_numbers(templates_resp)},
+            )
+        )
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
 async def netlicensing_delete_product_module(
-    module_number: str, force_cascade: bool = False
+    module_number: str,
+    force_cascade: bool = False,
+    confirm_token: str = "",
 ) -> str:
     """Delete a product module.
+
+    When the module has dependent license templates, calling without
+    confirm_token returns a preview + token instead of deleting.
 
     Args:
         module_number: Module to delete
         force_cascade: Also delete all dependent license templates and licenses
+        confirm_token: Confirmation token from a previous preview call
     """
     try:
-        return await product_modules.delete_product_module(module_number, force_cascade)
+        if confirm_token:
+            safety.validate_and_consume(confirm_token, "delete_product_module", module_number)
+            return await product_modules.delete_product_module(module_number, force_cascade)
+
+        templates_resp = await license_templates.list_license_templates(module_number)
+        n_templates = _count_items(templates_resp)
+
+        if n_templates == 0:
+            return await product_modules.delete_product_module(module_number, force_cascade)
+
+        return _json(
+            safety.make_delete_preview(
+                "delete_product_module",
+                module_number,
+                affected={"license_templates": n_templates},
+                samples={"license_templates": _sample_numbers(templates_resp)},
+            )
+        )
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -644,6 +897,47 @@ async def netlicensing_create_license_template(
 
 
 @mcp.tool()
+async def netlicensing_preview_update_license_template(
+    template_number: str,
+    active: bool | None = None,
+    price: float | None = None,
+    currency: str = "",
+) -> str:
+    """Preview a sensitive license template update (price, currency, or active state).
+
+    Returns a diff table of the proposed changes and a confirmation token. Pass
+    the token to netlicensing_update_license_template within 5 minutes to apply.
+
+    Args:
+        template_number: Template to preview changes for
+        active: Proposed new active state (omit to skip)
+        price: Proposed new price (omit to skip)
+        currency: Proposed new currency code (leave empty to skip)
+    """
+    try:
+        current_resp = await license_templates.get_license_template(template_number)
+        current = _extract_props(current_resp)
+        diff: list[dict] = []
+        if price is not None:
+            diff.append({"field": "price", "from": current.get("price"), "to": str(price)})
+        if currency:
+            diff.append(
+                {"field": "currency", "from": current.get("currency"), "to": currency}
+            )
+        if active is not None:
+            diff.append(
+                {
+                    "field": "active",
+                    "from": current.get("active"),
+                    "to": str(active).lower(),
+                }
+            )
+        return _json(safety.make_update_preview("update_license_template", template_number, diff))
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
 async def netlicensing_update_license_template(
     template_number: str,
     name: str = "",
@@ -658,8 +952,12 @@ async def netlicensing_update_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    confirm_token: str = "",
 ) -> str:
     """Update a license template's properties.
+
+    Changing price, currency, or active requires a confirmation token (revenue /
+    availability impact). Call netlicensing_preview_update_license_template first.
 
     Args:
         template_number: Template to update
@@ -675,8 +973,46 @@ async def netlicensing_update_license_template(
         max_sessions: Concurrent sessions — FLOATING type (omit to keep current)
         quantity: Usage quota — QUANTITY / PayPerUse type (omit to keep current)
         grace_period: Grace period after expiry — Subscription model (omit to keep current)
+        confirm_token: Confirmation token (required when price, currency, or active change)
     """
     try:
+        sensitive = price is not None or bool(currency) or active is not None
+
+        if sensitive:
+            if confirm_token:
+                safety.validate_and_consume(
+                    confirm_token, "update_license_template", template_number
+                )
+            else:
+                current_resp = await license_templates.get_license_template(template_number)
+                current = _extract_props(current_resp)
+                diff: list[dict] = []
+                if price is not None:
+                    diff.append(
+                        {"field": "price", "from": current.get("price"), "to": str(price)}
+                    )
+                if currency:
+                    diff.append(
+                        {
+                            "field": "currency",
+                            "from": current.get("currency"),
+                            "to": currency,
+                        }
+                    )
+                if active is not None:
+                    diff.append(
+                        {
+                            "field": "active",
+                            "from": current.get("active"),
+                            "to": str(active).lower(),
+                        }
+                    )
+                return _json(
+                    safety.make_update_preview(
+                        "update_license_template", template_number, diff
+                    )
+                )
+
         return _json(
             await license_templates.update_license_template(
                 template_number,
@@ -694,22 +1030,86 @@ async def netlicensing_update_license_template(
                 grace_period=grace_period,
             )
         )
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
+async def netlicensing_preview_delete_license_template(template_number: str) -> str:
+    """Preview what would be deleted when deleting a license template.
+
+    Dependent licenses cannot be efficiently counted without enumerating all
+    licensees, so the preview always warns that licenses may be affected.
+    Returns a confirmation token.
+
+    Args:
+        template_number: Template to preview deletion for
+    """
+    try:
+        template_resp = await license_templates.get_license_template(template_number)
+        props = _extract_props(template_resp)
+        return _json(
+            safety.make_delete_preview(
+                "delete_license_template",
+                template_number,
+                affected={
+                    "licenses": "unknown — may have licenses derived from this template",
+                },
+                samples={
+                    "template_name": props.get("name", ""),
+                    "price": props.get("price", ""),
+                },
+            )
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
 async def netlicensing_delete_license_template(
-    template_number: str, force_cascade: bool = False
+    template_number: str,
+    force_cascade: bool = False,
+    confirm_token: str = "",
 ) -> str:
     """Delete a license template.
+
+    Because dependent licenses cannot be cheaply enumerated, a confirmation
+    token is always required. Call netlicensing_preview_delete_license_template
+    first to obtain one.
 
     Args:
         template_number: Template to delete
         force_cascade: Also delete all dependent licenses
+        confirm_token: Confirmation token from a previous preview call
     """
     try:
-        return await license_templates.delete_license_template(template_number, force_cascade)
+        if confirm_token:
+            safety.validate_and_consume(
+                confirm_token, "delete_license_template", template_number
+            )
+            return await license_templates.delete_license_template(
+                template_number, force_cascade
+            )
+
+        template_resp = await license_templates.get_license_template(template_number)
+        props = _extract_props(template_resp)
+        return _json(
+            safety.make_delete_preview(
+                "delete_license_template",
+                template_number,
+                affected={
+                    "licenses": "unknown — may have licenses derived from this template",
+                },
+                samples={
+                    "template_name": props.get("name", ""),
+                    "price": props.get("price", ""),
+                },
+            )
+        )
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -817,15 +1217,65 @@ async def netlicensing_update_licensee(
 
 
 @mcp.tool()
-async def netlicensing_delete_licensee(licensee_number: str, force_cascade: bool = False) -> str:
+async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
+    """Preview what would be deleted when deleting a licensee.
+
+    Returns the count of licenses that would be removed and a confirmation token.
+
+    Args:
+        licensee_number: Licensee to preview deletion for
+    """
+    try:
+        licenses_resp = await licenses.list_licenses(licensee_number)
+        return _json(
+            safety.make_delete_preview(
+                "delete_licensee",
+                licensee_number,
+                affected={"licenses": _count_items(licenses_resp)},
+                samples={"licenses": _sample_numbers(licenses_resp)},
+            )
+        )
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
+async def netlicensing_delete_licensee(
+    licensee_number: str,
+    force_cascade: bool = False,
+    confirm_token: str = "",
+) -> str:
     """Delete a licensee and all their licenses permanently.
+
+    When the licensee has licenses, calling without confirm_token returns a
+    preview + token instead of deleting.
 
     Args:
         licensee_number: Licensee to delete
         force_cascade: Also delete all dependent licenses
+        confirm_token: Confirmation token from a previous preview call
     """
     try:
-        return await licensees.delete_licensee(licensee_number, force_cascade)
+        if confirm_token:
+            safety.validate_and_consume(confirm_token, "delete_licensee", licensee_number)
+            return await licensees.delete_licensee(licensee_number, force_cascade)
+
+        licenses_resp = await licenses.list_licenses(licensee_number)
+        n_licenses = _count_items(licenses_resp)
+
+        if n_licenses == 0:
+            return await licensees.delete_licensee(licensee_number, force_cascade)
+
+        return _json(
+            safety.make_delete_preview(
+                "delete_licensee",
+                licensee_number,
+                affected={"licenses": n_licenses},
+                samples={"licenses": _sample_numbers(licenses_resp)},
+            )
+        )
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1036,15 +1486,56 @@ async def netlicensing_update_license(
 
 
 @mcp.tool()
-async def netlicensing_delete_license(license_number: str, force_cascade: bool = False) -> str:
+async def netlicensing_preview_delete_license(license_number: str) -> str:
+    """Preview what would be deleted when deleting a license.
+
+    Licenses have no owned dependents. Returns context about the license
+    (licensee, template) and a confirmation token.
+
+    Args:
+        license_number: License to preview deletion for
+    """
+    try:
+        license_resp = await licenses.get_license(license_number)
+        props = _extract_props(license_resp)
+        return _json(
+            safety.make_delete_preview(
+                "delete_license",
+                license_number,
+                affected={},
+                samples={
+                    "licensee": props.get("licenseeNumber", ""),
+                    "template": props.get("licenseTemplateNumber", ""),
+                },
+            )
+        )
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
+async def netlicensing_delete_license(
+    license_number: str,
+    force_cascade: bool = False,
+    confirm_token: str = "",
+) -> str:
     """Delete a license permanently.
+
+    Licenses have no owned dependents so deletion executes immediately without
+    a token. If you obtained a token from netlicensing_preview_delete_license,
+    passing it here validates and consumes it before executing.
 
     Args:
         license_number: License to delete
         force_cascade: Force deletion even if dependencies exist
+        confirm_token: Optional confirmation token from a previous preview call
     """
     try:
+        if confirm_token:
+            safety.validate_and_consume(confirm_token, "delete_license", license_number)
         return await licenses.delete_license(license_number, force_cascade)
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1136,14 +1627,74 @@ async def netlicensing_create_api_token(
 
 
 @mcp.tool()
-async def netlicensing_delete_token(token_number: str) -> str:
+async def netlicensing_preview_delete_token(token_number: str) -> str:
+    """Preview what would be revoked when deleting a token.
+
+    For APIKEY tokens this is always required before deletion.
+    Returns token kind, role, and a confirmation token.
+
+    Args:
+        token_number: Token to preview deletion for
+    """
+    try:
+        token_resp = await tokens.get_token(token_number)
+        props = _extract_props(token_resp)
+        return _json(
+            safety.make_delete_preview(
+                "delete_token",
+                token_number,
+                affected={
+                    "token_type": props.get("tokenType", "UNKNOWN"),
+                    "role": props.get("role", ""),
+                },
+                samples={},
+            )
+        )
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
+async def netlicensing_delete_token(
+    token_number: str,
+    confirm_token: str = "",
+) -> str:
     """Revoke an API or shop token.
+
+    APIKEY tokens require a confirmation token (call
+    netlicensing_preview_delete_token first). SHOP tokens are revoked
+    immediately without a token.
 
     Args:
         token_number: Token to revoke
+        confirm_token: Confirmation token from a previous preview call
+                       (required for APIKEY tokens)
     """
     try:
+        if confirm_token:
+            safety.validate_and_consume(confirm_token, "delete_token", token_number)
+            return await tokens.delete_token(token_number)
+
+        token_resp = await tokens.get_token(token_number)
+        props = _extract_props(token_resp)
+        token_type = props.get("tokenType", "")
+
+        if token_type == "APIKEY":
+            return _json(
+                safety.make_delete_preview(
+                    "delete_token",
+                    token_number,
+                    affected={
+                        "token_type": "APIKEY",
+                        "role": props.get("role", ""),
+                    },
+                    samples={},
+                )
+            )
+
         return await tokens.delete_token(token_number)
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1296,19 +1847,78 @@ async def netlicensing_get_payment_method(payment_method_number: str) -> str:
 
 
 @mcp.tool()
+async def netlicensing_preview_update_payment_method(
+    payment_method_number: str,
+    active: bool | None = None,
+) -> str:
+    """Preview a sensitive payment method update (active state change).
+
+    Returns a diff and a confirmation token. Pass the token to
+    netlicensing_update_payment_method within 5 minutes to apply.
+
+    Args:
+        payment_method_number: Payment method to preview changes for
+        active: Proposed new active state (omit to skip)
+    """
+    try:
+        current_resp = await payment_methods.get_payment_method(payment_method_number)
+        current = _extract_props(current_resp)
+        diff: list[dict] = []
+        if active is not None:
+            diff.append(
+                {
+                    "field": "active",
+                    "from": current.get("active"),
+                    "to": str(active).lower(),
+                }
+            )
+        return _json(
+            safety.make_update_preview("update_payment_method", payment_method_number, diff)
+        )
+    except NetLicensingError as exc:
+        return _error(exc)
+
+
+@mcp.tool()
 async def netlicensing_update_payment_method(
     payment_method_number: str,
     active: bool | None = None,
     paypal_subject: str = "",
+    confirm_token: str = "",
 ) -> str:
     """Update a payment method's configuration.
+
+    Changing the active state requires a confirmation token. Call
+    netlicensing_preview_update_payment_method first.
 
     Args:
         payment_method_number: Payment method to update
         active: Enable or disable the payment method
         paypal_subject: PayPal account e-mail address
+        confirm_token: Confirmation token (required when active changes)
     """
     try:
+        if active is not None:
+            if confirm_token:
+                safety.validate_and_consume(
+                    confirm_token, "update_payment_method", payment_method_number
+                )
+            else:
+                current_resp = await payment_methods.get_payment_method(payment_method_number)
+                current = _extract_props(current_resp)
+                diff: list[dict] = [
+                    {
+                        "field": "active",
+                        "from": current.get("active"),
+                        "to": str(active).lower(),
+                    }
+                ]
+                return _json(
+                    safety.make_update_preview(
+                        "update_payment_method", payment_method_number, diff
+                    )
+                )
+
         return _json(
             await payment_methods.update_payment_method(
                 payment_method_number,
@@ -1316,6 +1926,8 @@ async def netlicensing_update_payment_method(
                 paypal_subject=paypal_subject or None,
             )
         )
+    except ValueError as exc:
+        return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
         return _error(exc)
 
