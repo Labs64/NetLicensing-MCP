@@ -1,4 +1,5 @@
 """Tests for P0.4: Destructive-operation safety — preview + confirmation tokens."""
+
 from __future__ import annotations
 
 import json
@@ -460,9 +461,7 @@ async def test_update_license_template_with_valid_token_executes():
             ]
         }
     }
-    with patch(
-        "netlicensing_mcp.tools.license_templates.nl_post", AsyncMock(return_value=updated)
-    ):
+    with patch("netlicensing_mcp.tools.license_templates.nl_post", AsyncMock(return_value=updated)):
         from netlicensing_mcp.server import netlicensing_update_license_template
 
         result = json.loads(
@@ -487,9 +486,7 @@ async def test_update_license_template_non_sensitive_executes_directly():
             ]
         }
     }
-    with patch(
-        "netlicensing_mcp.tools.license_templates.nl_post", AsyncMock(return_value=updated)
-    ):
+    with patch("netlicensing_mcp.tools.license_templates.nl_post", AsyncMock(return_value=updated)):
         from netlicensing_mcp.server import netlicensing_update_license_template
 
         result = json.loads(await netlicensing_update_license_template("LT01", name="New Name"))

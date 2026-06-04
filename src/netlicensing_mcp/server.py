@@ -22,7 +22,9 @@ from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from netlicensing_mcp.client import NetLicensingError
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from netlicensing_mcp.client import NetLicensingError, api_key_ctx
 from netlicensing_mcp import safety
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
@@ -283,9 +285,7 @@ async def netlicensing_preview_update_product(
                 }
             )
         if vat_mode:
-            diff.append(
-                {"field": "vatMode", "from": current.get("vatMode"), "to": vat_mode}
-            )
+            diff.append({"field": "vatMode", "from": current.get("vatMode"), "to": vat_mode})
         return _json(safety.make_update_preview("update_product", product_number, diff))
     except NetLicensingError as exc:
         return _error(exc)
@@ -347,9 +347,7 @@ async def netlicensing_update_product(
                             "to": vat_mode,
                         }
                     )
-                return _json(
-                    safety.make_update_preview("update_product", product_number, diff)
-                )
+                return _json(safety.make_update_preview("update_product", product_number, diff))
 
         return _json(
             await products.update_product(
@@ -921,9 +919,7 @@ async def netlicensing_preview_update_license_template(
         if price is not None:
             diff.append({"field": "price", "from": current.get("price"), "to": str(price)})
         if currency:
-            diff.append(
-                {"field": "currency", "from": current.get("currency"), "to": currency}
-            )
+            diff.append({"field": "currency", "from": current.get("currency"), "to": currency})
         if active is not None:
             diff.append(
                 {
@@ -988,9 +984,7 @@ async def netlicensing_update_license_template(
                 current = _extract_props(current_resp)
                 diff: list[dict] = []
                 if price is not None:
-                    diff.append(
-                        {"field": "price", "from": current.get("price"), "to": str(price)}
-                    )
+                    diff.append({"field": "price", "from": current.get("price"), "to": str(price)})
                 if currency:
                     diff.append(
                         {
@@ -1008,9 +1002,7 @@ async def netlicensing_update_license_template(
                         }
                     )
                 return _json(
-                    safety.make_update_preview(
-                        "update_license_template", template_number, diff
-                    )
+                    safety.make_update_preview("update_license_template", template_number, diff)
                 )
 
         return _json(
@@ -1086,12 +1078,8 @@ async def netlicensing_delete_license_template(
     """
     try:
         if confirm_token:
-            safety.validate_and_consume(
-                confirm_token, "delete_license_template", template_number
-            )
-            return await license_templates.delete_license_template(
-                template_number, force_cascade
-            )
+            safety.validate_and_consume(confirm_token, "delete_license_template", template_number)
+            return await license_templates.delete_license_template(template_number, force_cascade)
 
         template_resp = await license_templates.get_license_template(template_number)
         props = _extract_props(template_resp)
@@ -1914,9 +1902,7 @@ async def netlicensing_update_payment_method(
                     }
                 ]
                 return _json(
-                    safety.make_update_preview(
-                        "update_payment_method", payment_method_number, diff
-                    )
+                    safety.make_update_preview("update_payment_method", payment_method_number, diff)
                 )
 
         return _json(
@@ -1976,6 +1962,38 @@ register_audit_prompts(mcp)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+class ApiKeyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Health check endpoint must remain unauthenticated for load-balancer probes
+        if request.url.path == "/health":
+            return await call_next(request)
+
+        # Extract key: prefer dedicated header, fall back to Bearer token
+        key = request.headers.get("x-netlicensing-api-key", "").strip()
+        if not key:
+            auth = request.headers.get("authorization", "")
+            if auth.lower().startswith("bearer "):
+                key = auth[7:].strip()
+
+        if key:
+            token = api_key_ctx.set(key)
+            try:
+                return await call_next(request)
+            finally:
+                api_key_ctx.reset(token)
+
+        # Reject unauthenticated requests with a standard 401 + WWW-Authenticate header
+        return JSONResponse(
+            {
+                "error": "NetLicensing API key is required for HTTP transport. "
+                "Supply it via the x-netlicensing-api-key header or "
+                "Authorization: Bearer <key>."
+            },
+            status_code=401,
+            headers={"WWW-Authenticate": 'Bearer realm="netlicensing-mcp"'},
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="NetLicensing MCP Server")
     parser.add_argument(
@@ -2016,27 +2034,6 @@ def main() -> None:
 
         import anyio
         import uvicorn
-        from starlette.middleware.base import BaseHTTPMiddleware
-        from netlicensing_mcp.client import api_key_ctx
-
-        class ApiKeyMiddleware(BaseHTTPMiddleware):
-            async def dispatch(self, request: Request, call_next):
-                key = request.headers.get("x-netlicensing-api-key")
-                if not key:
-                    auth = request.headers.get("authorization")
-                    if auth and auth.lower().startswith("bearer "):
-                        key = auth[7:]
-
-                if not key:
-                    key = request.query_params.get("apikey")
-
-                if key:
-                    token = api_key_ctx.set(key)
-                    try:
-                        return await call_next(request)
-                    finally:
-                        api_key_ctx.reset(token)
-                return await call_next(request)
 
         async def run_server() -> None:
             app = mcp.streamable_http_app()

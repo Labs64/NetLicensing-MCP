@@ -41,9 +41,7 @@ def issue_token(operation: str, target: str) -> tuple[str, datetime]:
 
     safe_target = target.replace("-", "").upper()[:8]
     while True:
-        suffix = "".join(
-            secrets.choice(string.ascii_uppercase + string.digits) for _ in range(4)
-        )
+        suffix = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(4))
         token = f"CONF-{safe_target}-{suffix}"
         if token not in _store:
             break
@@ -70,8 +68,7 @@ def validate_and_consume(token: str, operation: str, target: str) -> None:
 
     if stored_op != operation or stored_target != target:
         raise ValueError(
-            f"Token {token!r} is for {stored_op!r}/{stored_target!r}, "
-            f"not {operation!r}/{target!r}"
+            f"Token {token!r} is for {stored_op!r}/{stored_target!r}, not {operation!r}/{target!r}"
         )
 
     del _store[token]
@@ -93,8 +90,7 @@ def make_delete_preview(
         "confirmation_token": token,
         "expires_at": expires_at.isoformat(),
         "instructions": (
-            f"To execute this deletion, call the delete tool again "
-            f"with confirm_token={token!r}"
+            f"To execute this deletion, call the delete tool again with confirm_token={token!r}"
         ),
     }
 
@@ -113,7 +109,6 @@ def make_update_preview(
         "confirmation_token": token,
         "expires_at": expires_at.isoformat(),
         "instructions": (
-            f"To execute this update, call the update tool again "
-            f"with confirm_token={token!r}"
+            f"To execute this update, call the update tool again with confirm_token={token!r}"
         ),
     }
