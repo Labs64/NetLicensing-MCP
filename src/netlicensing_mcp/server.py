@@ -151,9 +151,26 @@ def _error(exc: NetLicensingError) -> str:
 
 
 def _count_items(response: dict) -> int:
-    """Count items in a NetLicensing API list response."""
+    """Count items in a NetLicensing API list response (current page only)."""
     items = response.get("items", {}).get("item", [])
     return len(items) if isinstance(items, list) else 0
+
+
+def _total_items(response: dict) -> int:
+    """Return the *total* item count from pagination metadata.
+
+    Reads ``totalitems`` from the ``items`` envelope returned by the
+    NetLicensing paged API (e.g. when called with
+    ``filter=productNumber=X;page=0;items=1``).  Falls back to counting
+    the items present in the response when the metadata field is absent
+    (e.g. in unit-test mocks that don't include pagination info).
+    """
+    items_obj = response.get("items", {})
+    try:
+        return int(items_obj["totalitems"])
+    except (KeyError, ValueError, TypeError):
+        items = items_obj.get("item", [])
+        return len(items) if isinstance(items, list) else 0
 
 
 def _sample_numbers(response: dict, limit: int = 3) -> list[str]:
@@ -380,15 +397,21 @@ async def netlicensing_preview_delete_product(product_number: str) -> str:
         product_number: Product to preview deletion for
     """
     try:
-        modules_resp = await product_modules.list_product_modules(product_number)
-        licensees_resp = await licensees.list_licensees(product_number)
+        # Use filter-embedded pagination to get accurate total counts from
+        # the API metadata (``totalitems``), not just the current page.
+        # items=1 for modules — only total count is needed, no samples.
+        # items=100 for licensees — fetch enough to also extract samples.
+        modules_resp = await product_modules.list_product_modules(
+            product_number, page=0, items_per_page=1
+        )
+        licensees_resp = await licensees.list_licensees(product_number, page=0, items_per_page=100)
         return _json(
             safety.make_delete_preview(
                 "delete_product",
                 product_number,
                 affected={
-                    "product_modules": _count_items(modules_resp),
-                    "licensees": _count_items(licensees_resp),
+                    "product_modules": _total_items(modules_resp),
+                    "licensees": _total_items(licensees_resp),
                 },
                 samples={"licensees": _sample_numbers(licensees_resp)},
             )
@@ -419,10 +442,12 @@ async def netlicensing_delete_product(
             safety.validate_and_consume(confirm_token, "delete_product", product_number)
             return await products.delete_product(product_number, force_cascade)
 
-        modules_resp = await product_modules.list_product_modules(product_number)
-        licensees_resp = await licensees.list_licensees(product_number)
-        n_modules = _count_items(modules_resp)
-        n_licensees = _count_items(licensees_resp)
+        modules_resp = await product_modules.list_product_modules(
+            product_number, page=0, items_per_page=1
+        )
+        licensees_resp = await licensees.list_licensees(product_number, page=0, items_per_page=100)
+        n_modules = _total_items(modules_resp)
+        n_licensees = _total_items(licensees_resp)
 
         if n_modules == 0 and n_licensees == 0:
             return await products.delete_product(product_number, force_cascade)
@@ -742,12 +767,14 @@ async def netlicensing_preview_delete_product_module(module_number: str) -> str:
         module_number: Module to preview deletion for
     """
     try:
-        templates_resp = await license_templates.list_license_templates(module_number)
+        templates_resp = await license_templates.list_license_templates(
+            module_number, page=0, items_per_page=100
+        )
         return _json(
             safety.make_delete_preview(
                 "delete_product_module",
                 module_number,
-                affected={"license_templates": _count_items(templates_resp)},
+                affected={"license_templates": _total_items(templates_resp)},
                 samples={"license_templates": _sample_numbers(templates_resp)},
             )
         )
@@ -776,8 +803,10 @@ async def netlicensing_delete_product_module(
             safety.validate_and_consume(confirm_token, "delete_product_module", module_number)
             return await product_modules.delete_product_module(module_number, force_cascade)
 
-        templates_resp = await license_templates.list_license_templates(module_number)
-        n_templates = _count_items(templates_resp)
+        templates_resp = await license_templates.list_license_templates(
+            module_number, page=0, items_per_page=100
+        )
+        n_templates = _total_items(templates_resp)
 
         if n_templates == 0:
             return await product_modules.delete_product_module(module_number, force_cascade)
@@ -1214,12 +1243,12 @@ async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
         licensee_number: Licensee to preview deletion for
     """
     try:
-        licenses_resp = await licenses.list_licenses(licensee_number)
+        licenses_resp = await licenses.list_licenses(licensee_number, page=0, items_per_page=100)
         return _json(
             safety.make_delete_preview(
                 "delete_licensee",
                 licensee_number,
-                affected={"licenses": _count_items(licenses_resp)},
+                affected={"licenses": _total_items(licenses_resp)},
                 samples={"licenses": _sample_numbers(licenses_resp)},
             )
         )
@@ -1248,8 +1277,8 @@ async def netlicensing_delete_licensee(
             safety.validate_and_consume(confirm_token, "delete_licensee", licensee_number)
             return await licensees.delete_licensee(licensee_number, force_cascade)
 
-        licenses_resp = await licenses.list_licenses(licensee_number)
-        n_licenses = _count_items(licenses_resp)
+        licenses_resp = await licenses.list_licenses(licensee_number, page=0, items_per_page=100)
+        n_licenses = _total_items(licenses_resp)
 
         if n_licenses == 0:
             return await licensees.delete_licensee(licensee_number, force_cascade)

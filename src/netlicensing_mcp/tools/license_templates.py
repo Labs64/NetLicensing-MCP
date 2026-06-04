@@ -8,11 +8,27 @@ from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 async def list_license_templates(
     module_number: str,
     filter_str: str | None = None,
+    page: int | None = None,
+    items_per_page: int | None = None,
 ) -> dict:
     """List all license templates for a product module.
 
     filter_str: optional server-side filter expression (e.g. 'active=true').
+    page / items_per_page: when provided, embeds all criteria (including
+        productModuleNumber) into the ``filter`` query parameter using the
+        semicolon-separated format required by the NetLicensing API for
+        accurate pagination and total-item counts
+        (e.g. ``filter=productModuleNumber=M01;page=0;items=100``).
     """
+    if page is not None or items_per_page is not None:
+        parts = [f"productModuleNumber={module_number}"]
+        if page is not None:
+            parts.append(f"page={page}")
+        if items_per_page is not None:
+            parts.append(f"items={items_per_page}")
+        if filter_str:
+            parts.append(filter_str)
+        return await nl_get("/licensetemplate", {"filter": ";".join(parts)})
     params: dict[str, str] = {"productModuleNumber": module_number}
     if filter_str:
         params["filter"] = filter_str
