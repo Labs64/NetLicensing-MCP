@@ -179,6 +179,53 @@ async def test_get_token_apikey_drops_console_url():
     assert "supersecret-apikey-value" not in json.dumps(result)
 
 
+def test_wrap_preserves_top_level_meta():
+    raw = {
+        "signature": "abc==",
+        "ttl": "2030-01-01T00:00:00Z",
+        "items": {
+            "item": [
+                {
+                    "type": "ProductModuleValidation",
+                    "property": [
+                        {"name": "productModuleNumber", "value": "M01"},
+                        {"name": "valid", "value": "true"},
+                    ],
+                },
+                {
+                    "type": "ProductModuleValidation",
+                    "property": [
+                        {"name": "productModuleNumber", "value": "M02"},
+                        {"name": "valid", "value": "false"},
+                    ],
+                },
+            ]
+        },
+    }
+    env = wrap(raw, "ProductModuleValidation")
+    assert env["type"] == "list"
+    assert env["count"] == 2
+    # Top-level metadata must survive the envelope so callers don't need
+    # include_raw=True just to read non-entity fields.
+    assert env["signature"] == "abc=="
+    assert env["ttl"] == "2030-01-01T00:00:00Z"
+
+
+@pytest.mark.asyncio
+async def test_create_api_token_drops_console_url():
+    raw = _single(
+        "Token",
+        {"number": "plaintext-apikey-shown-once", "tokenType": "APIKEY"},
+    )
+    with patch("netlicensing_mcp.server.tokens.create_api_token", AsyncMock(return_value=raw)):
+        result = json.loads(await server.netlicensing_create_api_token("ROLE_APIKEY_LICENSEE"))
+
+    assert result["tokenType"] == "APIKEY"
+    assert result["shown_once"] is True
+    # The plaintext API key must not appear in a console_url path segment.
+    assert "console_url" not in result
+
+
 @pytest.mark.asyncio
 async def test_get_token_shop_keeps_console_url():
     raw = _single(

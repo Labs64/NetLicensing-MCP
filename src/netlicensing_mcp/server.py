@@ -195,28 +195,39 @@ def _wrap_json(entity: dict, kind: str, *, include_raw: bool = False) -> str:
     return _json(wrapped)
 
 
+def _scrub_apikey_console_url(env: dict) -> None:
+    """Strip ``console_url`` from APIKEY token envelopes (single or list).
+
+    For APIKEY tokens the ``number`` property *is* the API key value, so
+    embedding it in a URL path (``…/tokens/<apikey>``) leaks the credential
+    — both on read paths (where ``number`` is masked, producing a broken URL
+    that still hints at the key shape) and on create paths (where ``number``
+    is the plaintext key being shown once).
+    """
+
+    def _scrub(item: dict) -> None:
+        if item.get("tokenType") == "APIKEY":
+            item.pop("console_url", None)
+
+    if env.get("type") == "list":
+        for it in env.get("items", []):
+            if isinstance(it, dict):
+                _scrub(it)
+    else:
+        _scrub(env)
+
+
 def _wrap_json_token_read(entity: dict, *, include_raw: bool = False) -> str:
     """Normalize a token *read* response with extra credential masking.
 
     Applies :func:`redact_token_read` (masks APIKEY ``number`` and SHOP
     ``shopURL``) on the original property-array structure *before* wrapping,
-    then serializes via :func:`_json`. For APIKEY tokens the ``number``
-    *is* the API key, so the envelope's ``console_url`` is dropped to avoid
-    using the masked-and-now-broken value as a URL path segment.
+    then serializes via :func:`_json`. For APIKEY tokens the envelope's
+    ``console_url`` is dropped — see :func:`_scrub_apikey_console_url`.
     """
     token_safe = redact_token_read(entity) if isinstance(entity, (dict, list)) else entity
     wrapped = wrap(token_safe, "Token", raw=token_safe if include_raw else None)
-
-    def _scrub_apikey(env: dict) -> None:
-        if env.get("tokenType") == "APIKEY":
-            env.pop("console_url", None)
-
-    if wrapped.get("type") == "list":
-        for it in wrapped.get("items", []):
-            if isinstance(it, dict):
-                _scrub_apikey(it)
-    else:
-        _scrub_apikey(wrapped)
+    _scrub_apikey_console_url(wrapped)
     return _json(wrapped)
 
 
@@ -1868,6 +1879,7 @@ async def netlicensing_create_api_token(
     try:
         raw = await tokens.create_api_token(api_key_role, licensee_number or None)
         wrapped = wrap(raw, "Token", raw=raw if include_raw else None)
+        _scrub_apikey_console_url(wrapped)
         return _json(tag_one_time_display(wrapped))
     except NetLicensingError as exc:
         return _error(exc)
@@ -2346,7 +2358,6 @@ def main() -> None:
                 "Not suitable for production. "
                 "Set NETLICENSING_API_KEY to use real credentials."
             )
-        register_audit_prompts(mcp)
         mcp.run(transport="stdio")
     elif transport == "http":
         print(f"Starting MCP server on http://{mcp.settings.host}:{mcp.settings.port}")

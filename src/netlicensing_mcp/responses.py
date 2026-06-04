@@ -176,6 +176,12 @@ def wrap(
     if not isinstance(item_list, list):
         item_list = []
 
+    # Preserve upstream top-level metadata (e.g. ``signature``, ``ttl`` on
+    # validate-licensee responses; ``infos`` on certain create responses) so
+    # that callers don't need ``include_raw=True`` just to read non-entity
+    # fields. ``items`` itself is consumed below.
+    meta: dict[str, Any] = {k: v for k, v in entity.items() if k != "items"}
+
     # Determine effective kind from first item when not explicitly supplied.
     effective_kind = kind
     if not effective_kind and item_list:
@@ -191,6 +197,9 @@ def wrap(
         # Override kind from caller hint if the item has no type.
         if not envelope.get("type") and effective_kind:
             envelope["type"] = effective_kind
+        # Merge upstream meta without clobbering envelope-defined fields.
+        for k, v in meta.items():
+            envelope.setdefault(k, v)
     else:
         # List or empty response.
         wrapped_items = [_wrap_item(item) for item in item_list if isinstance(item, dict)]
@@ -204,6 +213,8 @@ def wrap(
         }
         if summary is not None:
             envelope["summary"] = summary
+        for k, v in meta.items():
+            envelope.setdefault(k, v)
 
     if raw is not None:
         envelope["raw"] = raw
