@@ -42,11 +42,13 @@ CI matrix runs tests on Python 3.12, 3.13, 3.14. Lint/format/mypy run on 3.14 on
 
 Three layers, top-down:
 
-1. **`server.py`** — single FastMCP entry point. Each NetLicensing operation is a thin `@mcp.tool()` wrapper named `netlicensing_<action>_<entity>` (e.g. `netlicensing_create_license`). The wrapper's only jobs are: (a) translate empty strings / `None` defaults into "leave unchanged" semantics, (b) call the matching function in `tools/<entity>.py`, (c) wrap `NetLicensingError` into a JSON error blob via `_error()`. Tools return JSON strings, not dicts — `_json()` serializes the result.
+1. **`server.py`** — single FastMCP entry point. Each NetLicensing operation is a thin `@mcp.tool()` wrapper named `netlicensing_<action>_<entity>` (e.g. `netlicensing_create_license`). The wrapper's only jobs are: (a) translate empty strings / `None` defaults into "leave unchanged" semantics, (b) call the matching function in `tools/<entity>.py`, (c) wrap `NetLicensingError` into a JSON error blob via `_error()`. Tools return JSON strings, not dicts — `_json()` serializes the result **and applies the redaction layer**. Token create operations additionally call `tag_one_time_display()` before `_json()`; token read operations use `_json_token_read()` which applies `redact_token_read()` to also mask APIKEY `number` and SHOP `shopURL` fields.
 
 2. **`tools/<entity>.py`** — one module per NetLicensing entity (`products`, `product_modules`, `license_templates`, `licensees`, `licenses`, `bundles`, `tokens`, `transactions`, `payment_methods`, `utilities`). Each builds the form-encoded payload, calls `nl_get/post/put/delete`, and runs the response through `strip_output_fields` from `tools/helpers.py`.
 
-3. **`client.py`** — shared async `httpx.AsyncClient` (lazy singleton), Basic-auth header construction, and `nl_get/post/put/delete` helpers. Non-2xx responses raise `NetLicensingError` carrying the unwrapped NetLicensing `infos.info[].value` messages.
+3. **`client.py`** — shared async `httpx.AsyncClient` (lazy singleton), Basic-auth header construction, and `nl_get/post/put/delete` helpers. Non-2xx responses raise `NetLicensingError` carrying the unwrapped NetLicensing `infos.info[].value` messages. POST/PUT debug logs pass request data through `redact()` so sensitive fields are never logged in plaintext.
+
+4. **`redaction.py`** — redaction layer (P0.3). Exposes `redact(payload, fields, mode)`, `tag_one_time_display(response)`, and `redact_token_read(response)`. Default redact set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. Extendable via `MCP_REDACT_FIELDS`. Handles both plain dict keys and NetLicensing property arrays (`{"property": [{"name": "licenseeSecret", "value": "..."}]}`). `mode="mask"` (default) produces a partial mask (`s3c****ecret`); `mode="remove"` drops the field.
 
 ### API key resolution (`api_key_ctx`)
 
@@ -81,7 +83,8 @@ Environment variables (all optional):
 - `NETLICENSING_BASE_URL` — defaults to `https://go.netlicensing.io/core/v2/rest`
 - `MCP_TRANSPORT` — `stdio` (default) or `http`; also via positional CLI arg
 - `MCP_HOST` / `MCP_PORT` — HTTP bind (default `127.0.0.1:8000`)
-- `MCP_VERBOSE` — `true|1|yes` enables debug logging of API requests/responses; also via `-v` flag
+- `MCP_VERBOSE` — `true|1|yes` enables debug logging of API requests/responses (sensitive fields automatically redacted); also via `-v` flag
+- `MCP_REDACT_FIELDS` — comma-separated extra field names to add to the redaction set (e.g. `ssn,phone`); default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`
 
 Logs go to **stderr** (stdio mode must keep stdout clean for the MCP protocol).
 

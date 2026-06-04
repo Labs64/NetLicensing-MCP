@@ -187,6 +187,7 @@ class TestJsonDemoModeTag:
         token = nl_client.api_key_ctx.set("")
         try:
             import json
+
             result = json.loads(_json({"status": "ok"}))
             assert result.get("demo_mode") is True
         finally:
@@ -199,6 +200,7 @@ class TestJsonDemoModeTag:
         token = nl_client.api_key_ctx.set("real-key")
         try:
             import json
+
             result = json.loads(_json({"status": "ok"}))
             assert "demo_mode" not in result
         finally:
@@ -211,6 +213,7 @@ class TestJsonDemoModeTag:
         token = nl_client.api_key_ctx.set("")
         try:
             import json
+
             result = json.loads(_json({"status": "ok"}))
             assert "demo_mode" not in result
         finally:
@@ -224,6 +227,7 @@ class TestJsonDemoModeTag:
         token = nl_client.api_key_ctx.set("")
         try:
             import json
+
             result = json.loads(_json([1, 2, 3]))
             assert result == [1, 2, 3]
         finally:
@@ -245,6 +249,7 @@ class TestToolCallErrorPath:
         token = nl_client.api_key_ctx.set("")
         try:
             import json
+
             result = await srv.netlicensing_list_products()
             parsed = json.loads(result)
             assert parsed.get("error") is True
@@ -272,6 +277,7 @@ class TestDemoModeBackwardsCompatibility:
                 new=AsyncMock(return_value=mock_response),
             ):
                 import json
+
                 result = await srv.netlicensing_list_products()
                 parsed = json.loads(result)
                 # Must not be an error
@@ -280,5 +286,3 @@ class TestDemoModeBackwardsCompatibility:
                 assert parsed.get("demo_mode") is True
         finally:
             nl_client.api_key_ctx.reset(token)
-
-

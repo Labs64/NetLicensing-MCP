@@ -60,6 +60,18 @@ Once connected, you can talk to NetLicensing in plain language:
 | **Utilities** | list licensing models, list license types |
 | **Audit Prompts** | full account, single customer, expiry sweep, cleanup, anomaly detection |
 | **Delete Safety** | `force_cascade` option on all delete tools |
+| **Redaction** | secrets (`apiKey`, `licenseeSecret`, `nodeSecret`, …) masked in all responses and logs |
+
+---
+
+## Security defaults
+
+The server is designed to be safe by default:
+
+- **No silent credential fallback** — if `NETLICENSING_API_KEY` is not set and `NETLICENSING_ALLOW_DEMO` is not explicitly enabled, the server refuses to start (stdio) or returns `503` (HTTP) rather than silently using demo credentials.
+- **Redaction layer** — every tool response passes through a redaction filter. Sensitive fields (`apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`) are masked to a partial form (e.g. `s3c****ecret`). The set is extendable via `MCP_REDACT_FIELDS`.
+- **One-time credentials** — `create_api_token` and `create_shop_token` tag their response with `"shown_once": true` so clients know the credential will not be visible in full again. Subsequent `get_token` / `list_tokens` calls return masked values.
+- **Delete confirmation** — all destructive operations require a two-step confirmation token flow; nothing is silently cascaded.
  
 ---
  
@@ -134,7 +146,8 @@ docker run -i --rm \
 | `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` (default) or `http`. Can also be passed as a CLI argument. |
 | `MCP_HOST` | No | `127.0.0.1` | Host address to bind the HTTP server (HTTP mode only). |
 | `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
-| `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs raw API requests/responses. Can also be set via `-v` CLI flag. |
+| `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs raw API requests/responses **with sensitive fields automatically redacted**. Can also be set via `-v` CLI flag. |
+| `MCP_REDACT_FIELDS` | No | — | Comma-separated list of additional field names to redact from all tool responses and log output (e.g. `MCP_REDACT_FIELDS=ssn,phone`). Extends the built-in default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. |
 
 > **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode) or return `503 Service Unavailable` for all tool calls (HTTP mode). This prevents accidental use of demo credentials in production.
 

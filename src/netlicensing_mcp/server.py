@@ -26,6 +26,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp import safety
+from netlicensing_mcp.redaction import redact, redact_token_read, tag_one_time_display
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
     bundles,
@@ -144,6 +145,22 @@ async def health_check(request: Request) -> JSONResponse:
 def _json(obj: object) -> str:
     if is_demo_mode() and isinstance(obj, dict):
         obj = {**obj, "demo_mode": True}
+    if isinstance(obj, (dict, list)):
+        obj = redact(obj)
+    return json.dumps(obj, indent=2)
+
+
+def _json_token_read(obj: object) -> str:
+    """Serialize a token *read* response (get / list) with extra credential masking.
+
+    APIKEY token ``number`` fields and SHOP token ``shopURL`` fields are masked
+    on read paths because they were shown once at creation time.  Standard
+    DEFAULT_REDACT fields are also applied.
+    """
+    if is_demo_mode() and isinstance(obj, dict):
+        obj = {**obj, "demo_mode": True}
+    if isinstance(obj, (dict, list)):
+        obj = redact_token_read(obj)
     return json.dumps(obj, indent=2)
 
 
@@ -1596,7 +1613,7 @@ async def netlicensing_list_tokens(filter: str = "") -> str:
         filter: Optional server-side filter expression (e.g. 'tokenType=SHOP')
     """
     try:
-        return _json(await tokens.list_tokens(filter_str=filter or None))
+        return _json_token_read(await tokens.list_tokens(filter_str=filter or None))
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1609,7 +1626,7 @@ async def netlicensing_get_token(token_number: str) -> str:
         token_number: Token identifier
     """
     try:
-        return _json(await tokens.get_token(token_number))
+        return _json_token_read(await tokens.get_token(token_number))
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1637,14 +1654,16 @@ async def netlicensing_create_shop_token(
     """
     try:
         return _json(
-            await tokens.create_shop_token(
-                licensee_number,
-                product_number=product_number or None,
-                license_template_number=license_template_number or None,
-                success_url=success_url or None,
-                cancel_url=cancel_url or None,
-                success_url_title=success_url_title or None,
-                cancel_url_title=cancel_url_title or None,
+            tag_one_time_display(
+                await tokens.create_shop_token(
+                    licensee_number,
+                    product_number=product_number or None,
+                    license_template_number=license_template_number or None,
+                    success_url=success_url or None,
+                    cancel_url=cancel_url or None,
+                    success_url_title=success_url_title or None,
+                    cancel_url_title=cancel_url_title or None,
+                )
             )
         )
     except NetLicensingError as exc:
@@ -1664,7 +1683,11 @@ async def netlicensing_create_api_token(
         licensee_number: Optional — scope token to a specific licensee
     """
     try:
-        return _json(await tokens.create_api_token(api_key_role, licensee_number or None))
+        return _json(
+            tag_one_time_display(
+                await tokens.create_api_token(api_key_role, licensee_number or None)
+            )
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -2079,7 +2102,11 @@ def main() -> None:
 
     if transport == "stdio":
         _startup_api_key = os.getenv("NETLICENSING_API_KEY", "")
-        _startup_allow_demo = os.getenv("NETLICENSING_ALLOW_DEMO", "").lower() in ("true", "1", "yes")
+        _startup_allow_demo = os.getenv("NETLICENSING_ALLOW_DEMO", "").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         if not _startup_api_key and not _startup_allow_demo:
             logger.error(
                 "FATAL: No NetLicensing API key configured. "

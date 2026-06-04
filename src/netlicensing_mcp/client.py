@@ -18,6 +18,8 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 
+from netlicensing_mcp.redaction import redact
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,7 @@ def is_demo_mode() -> bool:
     ``NETLICENSING_ALLOW_DEMO=true`` has been explicitly set.
     """
     return not api_key_ctx.get() and _allow_demo()
+
 
 # ── Error wrapper ────────────────────────────────────────────────────────────
 
@@ -150,7 +153,8 @@ async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, A
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug("POST %s", url)
+    # Redact sensitive fields before logging so secrets never appear in log output.
+    logger.debug("POST %s data=%s", url, redact(dict(data)) if data else None)
     r = await client.post(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
@@ -164,7 +168,8 @@ async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, An
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug("PUT %s", url)
+    # Redact sensitive fields before logging so secrets never appear in log output.
+    logger.debug("PUT %s data=%s", url, redact(dict(data)))
     r = await client.put(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
