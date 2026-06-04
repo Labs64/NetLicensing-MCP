@@ -428,9 +428,10 @@ async def netlicensing_delete_product(
 ) -> str:
     """Delete a product permanently.
 
-    When the product has dependent modules or licensees, calling without
-    confirm_token returns a preview + short-lived token instead of deleting.
-    Pass the token back within 5 minutes to confirm.
+    Always requires a two-step confirmation:
+    1. Call without confirm_token (or call netlicensing_preview_delete_product)
+       to receive a preview and a short-lived confirmation token.
+    2. Call again with the confirm_token within 5 minutes to execute.
 
     Args:
         product_number: Product to delete
@@ -442,21 +443,19 @@ async def netlicensing_delete_product(
             safety.validate_and_consume(confirm_token, "delete_product", product_number)
             return await products.delete_product(product_number, force_cascade)
 
+        # No token — always show preview; deletion is never allowed without confirmation.
         modules_resp = await product_modules.list_product_modules(
             product_number, page=0, items_per_page=1
         )
         licensees_resp = await licensees.list_licensees(product_number, page=0, items_per_page=100)
-        n_modules = _total_items(modules_resp)
-        n_licensees = _total_items(licensees_resp)
-
-        if n_modules == 0 and n_licensees == 0:
-            return await products.delete_product(product_number, force_cascade)
-
         return _json(
             safety.make_delete_preview(
                 "delete_product",
                 product_number,
-                affected={"product_modules": n_modules, "licensees": n_licensees},
+                affected={
+                    "product_modules": _total_items(modules_resp),
+                    "licensees": _total_items(licensees_resp),
+                },
                 samples={"licensees": _sample_numbers(licensees_resp)},
             )
         )
@@ -602,19 +601,32 @@ async def netlicensing_delete_bundle(
 ) -> str:
     """Delete a bundle permanently.
 
-    Bundles have no owned dependents; deletion executes immediately without a
-    token. If you obtained a token from netlicensing_preview_delete_bundle,
-    passing it here validates and consumes it before executing.
+    Always requires a two-step confirmation:
+    1. Call without confirm_token (or call netlicensing_preview_delete_bundle)
+       to receive a preview and a short-lived confirmation token.
+    2. Call again with the confirm_token within 5 minutes to execute.
 
     Args:
         bundle_number: Bundle to delete
         force_cascade: Force deletion even if dependencies exist
-        confirm_token: Optional confirmation token from a previous preview call
+        confirm_token: Confirmation token from a previous preview call
     """
     try:
         if confirm_token:
             safety.validate_and_consume(confirm_token, "delete_bundle", bundle_number)
-        return await bundles.delete_bundle(bundle_number, force_cascade)
+            return await bundles.delete_bundle(bundle_number, force_cascade)
+
+        # No token — always show preview; deletion is never allowed without confirmation.
+        bundle_resp = await bundles.get_bundle(bundle_number)
+        props = _extract_props(bundle_resp)
+        return _json(
+            safety.make_delete_preview(
+                "delete_bundle",
+                bundle_number,
+                affected={"license_templates": "referenced only — will NOT be deleted"},
+                samples={"bundle_name": props.get("name", "")},
+            )
+        )
     except ValueError as exc:
         return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
@@ -790,8 +802,10 @@ async def netlicensing_delete_product_module(
 ) -> str:
     """Delete a product module.
 
-    When the module has dependent license templates, calling without
-    confirm_token returns a preview + token instead of deleting.
+    Always requires a two-step confirmation:
+    1. Call without confirm_token (or call netlicensing_preview_delete_product_module)
+       to receive a preview and a short-lived confirmation token.
+    2. Call again with the confirm_token within 5 minutes to execute.
 
     Args:
         module_number: Module to delete
@@ -803,19 +817,15 @@ async def netlicensing_delete_product_module(
             safety.validate_and_consume(confirm_token, "delete_product_module", module_number)
             return await product_modules.delete_product_module(module_number, force_cascade)
 
+        # No token — always show preview; deletion is never allowed without confirmation.
         templates_resp = await license_templates.list_license_templates(
             module_number, page=0, items_per_page=100
         )
-        n_templates = _total_items(templates_resp)
-
-        if n_templates == 0:
-            return await product_modules.delete_product_module(module_number, force_cascade)
-
         return _json(
             safety.make_delete_preview(
                 "delete_product_module",
                 module_number,
-                affected={"license_templates": n_templates},
+                affected={"license_templates": _total_items(templates_resp)},
                 samples={"license_templates": _sample_numbers(templates_resp)},
             )
         )
@@ -1264,8 +1274,10 @@ async def netlicensing_delete_licensee(
 ) -> str:
     """Delete a licensee and all their licenses permanently.
 
-    When the licensee has licenses, calling without confirm_token returns a
-    preview + token instead of deleting.
+    Always requires a two-step confirmation:
+    1. Call without confirm_token (or call netlicensing_preview_delete_licensee)
+       to receive a preview and a short-lived confirmation token.
+    2. Call again with the confirm_token within 5 minutes to execute.
 
     Args:
         licensee_number: Licensee to delete
@@ -1277,17 +1289,13 @@ async def netlicensing_delete_licensee(
             safety.validate_and_consume(confirm_token, "delete_licensee", licensee_number)
             return await licensees.delete_licensee(licensee_number, force_cascade)
 
+        # No token — always show preview; deletion is never allowed without confirmation.
         licenses_resp = await licenses.list_licenses(licensee_number, page=0, items_per_page=100)
-        n_licenses = _total_items(licenses_resp)
-
-        if n_licenses == 0:
-            return await licensees.delete_licensee(licensee_number, force_cascade)
-
         return _json(
             safety.make_delete_preview(
                 "delete_licensee",
                 licensee_number,
-                affected={"licenses": n_licenses},
+                affected={"licenses": _total_items(licenses_resp)},
                 samples={"licenses": _sample_numbers(licenses_resp)},
             )
         )
@@ -1538,19 +1546,35 @@ async def netlicensing_delete_license(
 ) -> str:
     """Delete a license permanently.
 
-    Licenses have no owned dependents so deletion executes immediately without
-    a token. If you obtained a token from netlicensing_preview_delete_license,
-    passing it here validates and consumes it before executing.
+    Always requires a two-step confirmation:
+    1. Call without confirm_token (or call netlicensing_preview_delete_license)
+       to receive a preview and a short-lived confirmation token.
+    2. Call again with the confirm_token within 5 minutes to execute.
 
     Args:
         license_number: License to delete
         force_cascade: Force deletion even if dependencies exist
-        confirm_token: Optional confirmation token from a previous preview call
+        confirm_token: Confirmation token from a previous preview call
     """
     try:
         if confirm_token:
             safety.validate_and_consume(confirm_token, "delete_license", license_number)
-        return await licenses.delete_license(license_number, force_cascade)
+            return await licenses.delete_license(license_number, force_cascade)
+
+        # No token — always show preview; deletion is never allowed without confirmation.
+        license_resp = await licenses.get_license(license_number)
+        props = _extract_props(license_resp)
+        return _json(
+            safety.make_delete_preview(
+                "delete_license",
+                license_number,
+                affected={},
+                samples={
+                    "licensee": props.get("licenseeNumber", ""),
+                    "template": props.get("licenseTemplateNumber", ""),
+                },
+            )
+        )
     except ValueError as exc:
         return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:
@@ -1678,38 +1702,34 @@ async def netlicensing_delete_token(
 ) -> str:
     """Revoke an API or shop token.
 
-    APIKEY tokens require a confirmation token (call
-    netlicensing_preview_delete_token first). SHOP tokens are revoked
-    immediately without a token.
+    Always requires a two-step confirmation:
+    1. Call without confirm_token (or call netlicensing_preview_delete_token)
+       to receive a preview and a short-lived confirmation token.
+    2. Call again with the confirm_token within 5 minutes to execute.
 
     Args:
         token_number: Token to revoke
         confirm_token: Confirmation token from a previous preview call
-                       (required for APIKEY tokens)
     """
     try:
         if confirm_token:
             safety.validate_and_consume(confirm_token, "delete_token", token_number)
             return await tokens.delete_token(token_number)
 
+        # No token — always show preview; deletion is never allowed without confirmation.
         token_resp = await tokens.get_token(token_number)
         props = _extract_props(token_resp)
-        token_type = props.get("tokenType", "")
-
-        if token_type == "APIKEY":
-            return _json(
-                safety.make_delete_preview(
-                    "delete_token",
-                    token_number,
-                    affected={
-                        "token_type": "APIKEY",
-                        "role": props.get("role", ""),
-                    },
-                    samples={},
-                )
+        return _json(
+            safety.make_delete_preview(
+                "delete_token",
+                token_number,
+                affected={
+                    "token_type": props.get("tokenType", "UNKNOWN"),
+                    "role": props.get("role", ""),
+                },
+                samples={},
             )
-
-        return await tokens.delete_token(token_number)
+        )
     except ValueError as exc:
         return _json({"error": True, "detail": str(exc)})
     except NetLicensingError as exc:

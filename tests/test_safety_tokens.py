@@ -229,8 +229,8 @@ async def test_delete_product_returns_preview_when_has_modules(modules_one, empt
 
 
 @pytest.mark.asyncio
-async def test_delete_product_executes_when_no_dependents(empty_items):
-    """delete_product without token on empty product executes deletion."""
+async def test_delete_product_always_requires_confirmation(empty_items):
+    """delete_product without token always returns preview — even for products with no dependents."""
     with (
         patch(
             "netlicensing_mcp.tools.product_modules.nl_get",
@@ -240,15 +240,14 @@ async def test_delete_product_executes_when_no_dependents(empty_items):
             "netlicensing_mcp.tools.licensees.nl_get",
             AsyncMock(return_value=empty_items),
         ),
-        patch(
-            "netlicensing_mcp.tools.products.nl_delete",
-            AsyncMock(return_value=200),
-        ),
     ):
         from netlicensing_mcp.server import netlicensing_delete_product
 
-        result = await netlicensing_delete_product("P001")
-        assert "deleted" in result.lower()
+        result = json.loads(await netlicensing_delete_product("P001"))
+        assert result["operation"] == "delete_product"
+        assert "confirmation_token" in result
+        assert result["affected"]["product_modules"] == 0
+        assert result["affected"]["licensees"] == 0
 
 
 @pytest.mark.asyncio
@@ -321,30 +320,29 @@ async def test_delete_licensee_returns_preview_when_has_licenses(licenses_one):
 
 
 @pytest.mark.asyncio
-async def test_delete_licensee_executes_when_no_licenses(empty_items):
-    """delete_licensee without token executes when licensee has no licenses."""
-    with (
-        patch("netlicensing_mcp.tools.licenses.nl_get", AsyncMock(return_value=empty_items)),
-        patch("netlicensing_mcp.tools.licensees.nl_delete", AsyncMock(return_value=200)),
-    ):
+async def test_delete_licensee_always_requires_confirmation(empty_items):
+    """delete_licensee without token always returns preview — even when licensee has no licenses."""
+    with patch("netlicensing_mcp.tools.licenses.nl_get", AsyncMock(return_value=empty_items)):
         from netlicensing_mcp.server import netlicensing_delete_licensee
 
-        result = await netlicensing_delete_licensee("I001")
-        assert "deleted" in result.lower()
+        result = json.loads(await netlicensing_delete_licensee("I001"))
+        assert result["operation"] == "delete_licensee"
+        assert "confirmation_token" in result
+        assert result["affected"]["licenses"] == 0
 
 
 @pytest.mark.asyncio
-async def test_delete_product_module_returns_preview_when_has_templates(templates_one):
-    """delete_product_module without token returns preview when module has templates."""
+async def test_delete_product_module_always_requires_confirmation(empty_items):
+    """delete_product_module without token always returns preview — even for empty modules."""
     with patch(
         "netlicensing_mcp.tools.license_templates.nl_get",
-        AsyncMock(return_value=templates_one),
+        AsyncMock(return_value=empty_items),
     ):
         from netlicensing_mcp.server import netlicensing_delete_product_module
 
         result = json.loads(await netlicensing_delete_product_module("M01"))
         assert result["operation"] == "delete_product_module"
-        assert result["affected"]["license_templates"] == 1
+        assert result["affected"]["license_templates"] == 0
         assert "confirmation_token" in result
 
 
@@ -389,16 +387,126 @@ async def test_delete_token_apikey_requires_confirmation(apikey_token_resp):
         assert "confirmation_token" in result
 
 
+@pytest.fixture
+def bundle_resp():
+    return {
+        "items": {
+            "item": [
+                {
+                    "type": "Bundle",
+                    "property": [
+                        {"name": "number", "value": "B001"},
+                        {"name": "name", "value": "Starter Pack"},
+                    ],
+                }
+            ]
+        }
+    }
+
+
+@pytest.fixture
+def license_resp():
+    return {
+        "items": {
+            "item": [
+                {
+                    "type": "License",
+                    "property": [
+                        {"name": "number", "value": "L001"},
+                        {"name": "licenseeNumber", "value": "I001"},
+                        {"name": "licenseTemplateNumber", "value": "LT01"},
+                    ],
+                }
+            ]
+        }
+    }
+
+
 @pytest.mark.asyncio
-async def test_delete_token_shop_executes_immediately(shop_token_resp):
-    """delete_token without token executes immediately for SHOP tokens."""
+async def test_delete_bundle_always_requires_confirmation(bundle_resp):
+    """delete_bundle without token always returns preview."""
+    with patch("netlicensing_mcp.tools.bundles.nl_get", AsyncMock(return_value=bundle_resp)):
+        from netlicensing_mcp.server import netlicensing_delete_bundle
+
+        result = json.loads(await netlicensing_delete_bundle("B001"))
+        assert result["operation"] == "delete_bundle"
+        assert "confirmation_token" in result
+
+
+@pytest.mark.asyncio
+async def test_delete_bundle_with_valid_token_executes(bundle_resp):
+    """delete_bundle executes when a valid confirm_token is supplied."""
+    token, _ = safety.issue_token("delete_bundle", "B001")
+    with (
+        patch("netlicensing_mcp.tools.bundles.nl_get", AsyncMock(return_value=bundle_resp)),
+        patch("netlicensing_mcp.tools.bundles.nl_delete", AsyncMock(return_value=200)),
+    ):
+        from netlicensing_mcp.server import netlicensing_delete_bundle
+
+        result = await netlicensing_delete_bundle("B001", confirm_token=token)
+        assert "deleted" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_license_always_requires_confirmation(license_resp):
+    """delete_license without token always returns preview."""
+    with patch("netlicensing_mcp.tools.licenses.nl_get", AsyncMock(return_value=license_resp)):
+        from netlicensing_mcp.server import netlicensing_delete_license
+
+        result = json.loads(await netlicensing_delete_license("L001"))
+        assert result["operation"] == "delete_license"
+        assert "confirmation_token" in result
+        assert result["samples"]["licensee"] == "I001"
+
+
+@pytest.mark.asyncio
+async def test_delete_license_with_valid_token_executes(license_resp):
+    """delete_license executes when a valid confirm_token is supplied."""
+    token, _ = safety.issue_token("delete_license", "L001")
+    with (
+        patch("netlicensing_mcp.tools.licenses.nl_get", AsyncMock(return_value=license_resp)),
+        patch("netlicensing_mcp.tools.licenses.nl_delete", AsyncMock(return_value=200)),
+    ):
+        from netlicensing_mcp.server import netlicensing_delete_license
+
+        result = await netlicensing_delete_license("L001", confirm_token=token)
+        assert "deleted" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_licensee_with_valid_token_executes():
+    """delete_licensee executes when a valid confirm_token is supplied."""
+    token, _ = safety.issue_token("delete_licensee", "I001")
+    with patch("netlicensing_mcp.tools.licensees.nl_delete", AsyncMock(return_value=200)):
+        from netlicensing_mcp.server import netlicensing_delete_licensee
+
+        result = await netlicensing_delete_licensee("I001", confirm_token=token)
+        assert "deleted" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_token_always_requires_confirmation(shop_token_resp):
+    """delete_token without token always returns preview — for both SHOP and APIKEY tokens."""
+    with patch("netlicensing_mcp.tools.tokens.nl_get", AsyncMock(return_value=shop_token_resp)):
+        from netlicensing_mcp.server import netlicensing_delete_token
+
+        result = json.loads(await netlicensing_delete_token("TK002"))
+        assert result["operation"] == "delete_token"
+        assert "confirmation_token" in result
+        assert result["affected"]["token_type"] == "SHOP"
+
+
+@pytest.mark.asyncio
+async def test_delete_token_shop_executes_with_valid_token(shop_token_resp):
+    """delete_token executes for SHOP tokens when a valid confirm_token is supplied."""
+    token, _ = safety.issue_token("delete_token", "TK002")
     with (
         patch("netlicensing_mcp.tools.tokens.nl_get", AsyncMock(return_value=shop_token_resp)),
         patch("netlicensing_mcp.tools.tokens.nl_delete", AsyncMock(return_value=200)),
     ):
         from netlicensing_mcp.server import netlicensing_delete_token
 
-        result = await netlicensing_delete_token("TK002")
+        result = await netlicensing_delete_token("TK002", confirm_token=token)
         assert "deleted" in result.lower()
 
 
