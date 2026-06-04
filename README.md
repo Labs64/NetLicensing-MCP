@@ -108,8 +108,17 @@ docker run -i --rm \
   ghcr.io/labs64/netlicensing-mcp:latest
 ```
 
-> **No API key?** Leave `NETLICENSING_API_KEY` empty to run against NetLicensing's built-in
+#### Demo / sandbox mode (no API key)
+```bash
+docker run -i --rm \
+  -e NETLICENSING_ALLOW_DEMO=true \
+  ghcr.io/labs64/netlicensing-mcp:latest
+```
+
+> **No API key?** Set `NETLICENSING_ALLOW_DEMO=true` to run against NetLicensing's built-in
 > sandbox with demo credentials — no account required.
+> The server will tag every response with `"demo_mode": true` and emit a periodic warning
+> so it is always clear you are not using a real account.
 
 ---
  
@@ -119,12 +128,15 @@ docker run -i --rm \
  
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `NETLICENSING_API_KEY` | No | *(demo mode)* | NetLicensing API key. Leave empty to use sandbox demo credentials. |
+| `NETLICENSING_API_KEY` | **Yes*** | — | NetLicensing API key. Required unless `NETLICENSING_ALLOW_DEMO=true` is set. |
+| `NETLICENSING_ALLOW_DEMO` | No | `false` | Set to `true` to explicitly opt in to sandbox demo mode when no API key is configured. Every tool response is tagged with `"demo_mode": true` and a warning is logged every 60 seconds. **Never set this in production.** |
 | `NETLICENSING_BASE_URL` | No | `https://go.netlicensing.io/core/v2/rest` | Override the NetLicensing REST API base URL (e.g. for on-prem deployments). |
 | `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` (default) or `http`. Can also be passed as a CLI argument. |
 | `MCP_HOST` | No | `127.0.0.1` | Host address to bind the HTTP server (HTTP mode only). |
 | `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
 | `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs raw API requests/responses. Can also be set via `-v` CLI flag. |
+
+> **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode) or return `503 Service Unavailable` for all tool calls (HTTP mode). This prevents accidental use of demo credentials in production.
 
 > **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header, or `?apikey=<key>` query parameter.
 
@@ -237,7 +249,8 @@ mcp dev src/netlicensing_mcp/server.py
 | `401 Unauthorized` responses | Invalid or expired API key | Regenerate your key at [ui.netlicensing.io](https://ui.netlicensing.io) |
 | Server not listed in Claude | Config file JSON syntax error | Validate with `python -m json.tool claude_desktop_config.json` |
 | `uvx: command not found` | `uv` not installed | `pip install uv` or see [docs.astral.sh/uv](https://docs.astral.sh/uv) |
-| Demo data instead of live data | `NETLICENSING_API_KEY` not set | Ensure the env var is exported in the shell that starts the client |
+| Server exits immediately / `503` on all calls | `NETLICENSING_API_KEY` not set and demo mode not enabled | Set `NETLICENSING_API_KEY`, or set `NETLICENSING_ALLOW_DEMO=true` for sandbox testing |
+| Demo data instead of live data | `NETLICENSING_API_KEY` not set; `NETLICENSING_ALLOW_DEMO=true` active | Ensure `NETLICENSING_API_KEY` is exported in the shell that starts the client and unset `NETLICENSING_ALLOW_DEMO` |
  
 ---
  

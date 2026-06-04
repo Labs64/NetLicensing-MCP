@@ -24,7 +24,7 @@ from starlette.responses import JSONResponse
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from netlicensing_mcp.client import NetLicensingError, api_key_ctx
+from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp import safety
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
@@ -142,6 +142,8 @@ async def health_check(request: Request) -> JSONResponse:
 
 
 def _json(obj: object) -> str:
+    if is_demo_mode() and isinstance(obj, dict):
+        obj = {**obj, "demo_mode": True}
     return json.dumps(obj, indent=2)
 
 
@@ -2076,6 +2078,20 @@ def main() -> None:
     logger.info("Starting NetLicensing MCP server (transport=%s, verbose=%s)", transport, verbose)
 
     if transport == "stdio":
+        _startup_api_key = os.getenv("NETLICENSING_API_KEY", "")
+        _startup_allow_demo = os.getenv("NETLICENSING_ALLOW_DEMO", "").lower() in ("true", "1", "yes")
+        if not _startup_api_key and not _startup_allow_demo:
+            logger.error(
+                "FATAL: No NetLicensing API key configured. "
+                "Set NETLICENSING_API_KEY or NETLICENSING_ALLOW_DEMO=true for sandbox access."
+            )
+            sys.exit(1)
+        if _startup_allow_demo and not _startup_api_key:
+            logger.warning(
+                "⚠️  DEMO MODE ACTIVE — using sandbox demo:demo credentials. "
+                "Not suitable for production. "
+                "Set NETLICENSING_API_KEY to use real credentials."
+            )
         register_audit_prompts(mcp)
         mcp.run(transport="stdio")
     elif transport == "http":

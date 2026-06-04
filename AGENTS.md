@@ -76,7 +76,8 @@ The long `instructions=` string passed to `FastMCP(...)` in `server.py` document
 ## Configuration
 
 Environment variables (all optional):
-- `NETLICENSING_API_KEY` — empty = sandbox demo mode
+- `NETLICENSING_API_KEY` — **required** unless `NETLICENSING_ALLOW_DEMO=true`; empty without demo flag = fatal error (stdio) or 503 (HTTP)
+- `NETLICENSING_ALLOW_DEMO` — `true` opts in to sandbox demo mode; every tool response is tagged `"demo_mode": true` and a warning logs every 60 s; **never set in production**
 - `NETLICENSING_BASE_URL` — defaults to `https://go.netlicensing.io/core/v2/rest`
 - `MCP_TRANSPORT` — `stdio` (default) or `http`; also via positional CLI arg
 - `MCP_HOST` / `MCP_PORT` — HTTP bind (default `127.0.0.1:8000`)

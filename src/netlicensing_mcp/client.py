@@ -9,14 +9,14 @@ wrapping the upstream JSON error body when available.
 from __future__ import annotations
 
 import base64
+import contextvars
 import logging
 import os
+import time
 from typing import Any
 
 import httpx
 from dotenv import load_dotenv
-
-import contextvars
 
 load_dotenv()
 
@@ -29,6 +29,24 @@ BASE_URL: str = os.getenv(
 api_key_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
     "api_key", default=os.getenv("NETLICENSING_API_KEY", "")
 )
+
+# ── Demo-mode helpers ─────────────────────────────────────────────────────────
+
+_last_demo_warning_time: float = 0.0
+
+
+def _allow_demo() -> bool:
+    """Return True when ``NETLICENSING_ALLOW_DEMO`` is explicitly opted-in."""
+    return os.getenv("NETLICENSING_ALLOW_DEMO", "").lower() in ("true", "1", "yes")
+
+
+def is_demo_mode() -> bool:
+    """Return True when the current request will use demo sandbox credentials.
+
+    Demo mode is active only when no API key is present in the context AND
+    ``NETLICENSING_ALLOW_DEMO=true`` has been explicitly set.
+    """
+    return not api_key_ctx.get() and _allow_demo()
 
 # ── Error wrapper ────────────────────────────────────────────────────────────
 
@@ -59,12 +77,29 @@ def _raise_on_error(response: httpx.Response) -> None:
 
 
 def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
+    global _last_demo_warning_time  # noqa: PLW0603
     api_key = api_key_ctx.get()
     if api_key:
         auth_str = f"apiKey:{api_key}"
-    else:
-        logger.warning("NETLICENSING_API_KEY not set — falling back to demo credentials")
+    elif _allow_demo():
+        # Demo mode is explicitly opted-in — emit a loud, throttled warning.
+        now = time.monotonic()
+        if now - _last_demo_warning_time >= 60:
+            logger.warning(
+                "⚠️  DEMO MODE ACTIVE — using sandbox demo:demo credentials. "
+                "All API calls go to the NetLicensing sandbox. "
+                "Set NETLICENSING_API_KEY for production use. "
+                "Remove NETLICENSING_ALLOW_DEMO=true to disable this mode."
+            )
+            _last_demo_warning_time = now
         auth_str = "demo:demo"
+    else:
+        raise NetLicensingError(
+            503,
+            "No NetLicensing API key configured. "
+            "Set NETLICENSING_API_KEY or supply X-NetLicensing-API-Key. "
+            "For sandbox/demo access, set NETLICENSING_ALLOW_DEMO=true.",
+        )
     token = base64.b64encode(auth_str.encode()).decode()
     h: dict[str, str] = {
         "Authorization": f"Basic {token}",
