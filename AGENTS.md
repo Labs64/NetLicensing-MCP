@@ -48,7 +48,9 @@ Three layers, top-down:
 
 3. **`client.py`** — shared async `httpx.AsyncClient` (lazy singleton), Basic-auth header construction, and `nl_get/post/put/delete` helpers. Non-2xx responses raise `NetLicensingError` carrying the unwrapped NetLicensing `infos.info[].value` messages. POST/PUT debug logs pass request data through `redact()` so sensitive fields are never logged in plaintext.
 
-4. **`redaction.py`** — redaction layer (P0.3). Exposes `redact(payload, fields, mode)`, `tag_one_time_display(response)`, and `redact_token_read(response)`. Default redact set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. Extendable via `MCP_REDACT_FIELDS`. Handles both plain dict keys and NetLicensing property arrays (`{"property": [{"name": "licenseeSecret", "value": "..."}]}`). `mode="mask"` (default) produces a partial mask (`s3c****ecret`); `mode="remove"` drops the field.
+5. **`responses.py`** — normalized response envelope (P0.6). Exposes `wrap(entity, kind, summary=None, suggested_actions=None, raw=None)` and `console_url(kind, number)`. Single-item upstream responses become a flat dict with all properties promoted to top level, `active` coerced to a JSON bool, and a `console_url` deep link derived from `MCP_CONSOLE_BASE_URL` (default `https://ui.netlicensing.io/#`). List responses become `{"type": "list", "kind", "count", "items": [...]}` with `console_url` on each item. Every `@mcp.tool()` accepts `include_raw: bool = False`; when true the original NetLicensing payload is attached under `raw`. Server-layer helpers `_wrap_json()` / `_wrap_json_token_read()` apply the envelope before `_json()` redaction; for APIKEY tokens `_wrap_json_token_read()` drops `console_url` because the token `number` (used as the URL path) is itself the API key.
+
+6. **`redaction.py`** — redaction layer (P0.3). Exposes `redact(payload, fields, mode)`, `tag_one_time_display(response)`, and `redact_token_read(response)`. Default redact set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. Extendable via `MCP_REDACT_FIELDS`. Handles both plain dict keys and NetLicensing property arrays (`{"property": [{"name": "licenseeSecret", "value": "..."}]}`). `mode="mask"` (default) produces a partial mask (`s3c****ecret`); `mode="remove"` drops the field.
 
 ### API key resolution (`api_key_ctx`)
 
@@ -85,6 +87,7 @@ Environment variables (all optional):
 - `MCP_HOST` / `MCP_PORT` — HTTP bind (default `127.0.0.1:8000`)
 - `MCP_VERBOSE` — `true|1|yes` enables debug logging of API requests/responses (sensitive fields automatically redacted); also via `-v` flag
 - `MCP_REDACT_FIELDS` — comma-separated extra field names to add to the redaction set (e.g. `ssn,phone`); default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`
+- `MCP_CONSOLE_BASE_URL` — Console UI base for `console_url` deep links emitted by the normalized response envelope; default `https://ui.netlicensing.io/#`
 
 Logs go to **stderr** (stdio mode must keep stdout clean for the MCP protocol).
 

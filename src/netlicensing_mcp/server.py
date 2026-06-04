@@ -27,6 +27,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp import safety
 from netlicensing_mcp.redaction import redact, redact_token_read, tag_one_time_display
+from netlicensing_mcp.responses import wrap
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
     bundles,
@@ -122,6 +123,20 @@ online license and entitlements management system for software vendors.
   tools handle this conversion automatically.
 - An API Key with the specified role is required to use REST API.
   API Key role may limit access to the specific API endpoints or operations.
+
+## Output conventions
+
+- Every entity-returning tool (list / get / create / update) emits a
+  **normalized envelope** that includes a ``console_url`` field pointing
+  at the entity in the NetLicensing Console UI.  When ``console_url`` is
+  present, render the entity ``number`` as a Markdown link:
+  ``[{number}]({console_url})``.
+- List responses have the shape
+  ``{"type": "list", "kind": "...", "count": N, "items": [...]}``;
+  single-entity responses are flat dicts.
+- Pass ``include_raw=true`` to any tool to receive the original
+  NetLicensing API payload nested under the ``"raw"`` key alongside the
+  normalized envelope.
 """,
     host=os.getenv("MCP_HOST", "127.0.0.1"),
     port=int(os.getenv("MCP_PORT", "8000")),
@@ -162,6 +177,47 @@ def _json_token_read(obj: object) -> str:
     if isinstance(obj, (dict, list)):
         obj = redact_token_read(obj)
     return json.dumps(obj, indent=2)
+
+
+def _wrap_json(entity: dict, kind: str, *, include_raw: bool = False) -> str:
+    """Normalize *entity* into the response envelope then serialize.
+
+    Calls :func:`wrap` to produce a flat envelope with ``console_url``,
+    then passes the result through :func:`_json` for redaction and
+    serialization.
+
+    Args:
+        entity:      Raw (stripped) NetLicensing API response.
+        kind:        Entity type hint (e.g. ``"Licensee"``).
+        include_raw: When ``True``, embed the original payload under ``"raw"``.
+    """
+    wrapped = wrap(entity, kind, raw=entity if include_raw else None)
+    return _json(wrapped)
+
+
+def _wrap_json_token_read(entity: dict, *, include_raw: bool = False) -> str:
+    """Normalize a token *read* response with extra credential masking.
+
+    Applies :func:`redact_token_read` (masks APIKEY ``number`` and SHOP
+    ``shopURL``) on the original property-array structure *before* wrapping,
+    then serializes via :func:`_json`. For APIKEY tokens the ``number``
+    *is* the API key, so the envelope's ``console_url`` is dropped to avoid
+    using the masked-and-now-broken value as a URL path segment.
+    """
+    token_safe = redact_token_read(entity) if isinstance(entity, (dict, list)) else entity
+    wrapped = wrap(token_safe, "Token", raw=token_safe if include_raw else None)
+
+    def _scrub_apikey(env: dict) -> None:
+        if env.get("tokenType") == "APIKEY":
+            env.pop("console_url", None)
+
+    if wrapped.get("type") == "list":
+        for it in wrapped.get("items", []):
+            if isinstance(it, dict):
+                _scrub_apikey(it)
+    else:
+        _scrub_apikey(wrapped)
+    return _json(wrapped)
 
 
 def _error(exc: NetLicensingError) -> str:
@@ -224,27 +280,35 @@ def _extract_props(response: dict) -> dict[str, str]:
 
 
 @mcp.tool()
-async def netlicensing_list_products(filter: str = "") -> str:
+async def netlicensing_list_products(filter: str = "", include_raw: bool = False) -> str:
     """List all products in the NetLicensing account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'active=true')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await products.list_products(filter_str=filter or None))
+        return _wrap_json(
+            await products.list_products(filter_str=filter or None),
+            "Product",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_product(product_number: str) -> str:
+async def netlicensing_get_product(product_number: str, include_raw: bool = False) -> str:
     """Get details of a specific product.
 
     Args:
         product_number: Product identifier (e.g. 'P001')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await products.get_product(product_number))
+        return _wrap_json(
+            await products.get_product(product_number), "Product", include_raw=include_raw
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -260,6 +324,7 @@ async def netlicensing_create_product(
     licensee_auto_create: bool | None = None,
     vat_mode: str = "",
     licensee_secret_mode: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Create a new product.
 
@@ -273,9 +338,10 @@ async def netlicensing_create_product(
         licensee_auto_create: Auto-create licensees on first validation attempt
         vat_mode: GROSS or NET (leave empty to use account default)
         licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty for default)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await products.create_product(
                 number,
                 name,
@@ -286,7 +352,9 @@ async def netlicensing_create_product(
                 licensee_auto_create=licensee_auto_create,
                 vat_mode=vat_mode or None,
                 licensee_secret_mode=licensee_secret_mode or None,
-            )
+            ),
+            "Product",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -339,6 +407,7 @@ async def netlicensing_update_product(
     vat_mode: str = "",
     licensee_secret_mode: str = "",
     confirm_token: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Update an existing product's fields.
 
@@ -356,6 +425,7 @@ async def netlicensing_update_product(
         vat_mode: GROSS or NET (leave empty to keep current)
         licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty to keep current)
         confirm_token: Confirmation token (required when licenseeAutoCreate or vatMode change)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
         sensitive = licensee_auto_create is not None or bool(vat_mode)
@@ -385,7 +455,7 @@ async def netlicensing_update_product(
                     )
                 return _json(safety.make_update_preview("update_product", product_number, diff))
 
-        return _json(
+        return _wrap_json(
             await products.update_product(
                 product_number,
                 name or None,
@@ -396,7 +466,9 @@ async def netlicensing_update_product(
                 licensee_auto_create=licensee_auto_create,
                 vat_mode=vat_mode or None,
                 licensee_secret_mode=licensee_secret_mode or None,
-            )
+            ),
+            "Product",
+            include_raw=include_raw,
         )
     except ValueError as exc:
         return _json({"error": True, "detail": str(exc)})
@@ -490,23 +562,30 @@ async def netlicensing_delete_product(
 
 
 @mcp.tool()
-async def netlicensing_list_bundles() -> str:
-    """List all bundles in the NetLicensing account."""
+async def netlicensing_list_bundles(include_raw: bool = False) -> str:
+    """List all bundles in the NetLicensing account.
+
+    Args:
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
+    """
     try:
-        return _json(await bundles.list_bundles())
+        return _wrap_json(await bundles.list_bundles(), "Bundle", include_raw=include_raw)
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_bundle(bundle_number: str) -> str:
+async def netlicensing_get_bundle(bundle_number: str, include_raw: bool = False) -> str:
     """Get details of a specific bundle.
 
     Args:
         bundle_number: Bundle identifier (e.g. 'B001')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await bundles.get_bundle(bundle_number))
+        return _wrap_json(
+            await bundles.get_bundle(bundle_number), "Bundle", include_raw=include_raw
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -520,6 +599,7 @@ async def netlicensing_create_bundle(
     price: float | None = None,
     currency: str = "",
     description: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Create a new bundle grouping one or more license templates.
 
@@ -531,9 +611,10 @@ async def netlicensing_create_bundle(
         price: Optional bundle price
         currency: ISO 4217 currency code (e.g. EUR, USD — leave empty for account default)
         description: Optional bundle description
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await bundles.create_bundle(
                 number,
                 name,
@@ -542,7 +623,9 @@ async def netlicensing_create_bundle(
                 price=price,
                 currency=currency or None,
                 description=description,
-            )
+            ),
+            "Bundle",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -557,6 +640,7 @@ async def netlicensing_update_bundle(
     price: float | None = None,
     currency: str = "",
     description: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Update an existing bundle's fields.
 
@@ -568,9 +652,10 @@ async def netlicensing_update_bundle(
         price: New price (omit to keep current)
         currency: New currency code (leave empty to keep current)
         description: New description (leave empty to keep current)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await bundles.update_bundle(
                 bundle_number,
                 name or None,
@@ -579,7 +664,9 @@ async def netlicensing_update_bundle(
                 price,
                 currency or None,
                 description or None,
-            )
+            ),
+            "Bundle",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -656,6 +743,7 @@ async def netlicensing_delete_bundle(
 async def netlicensing_obtain_bundle(
     bundle_number: str,
     licensee_number: str,
+    include_raw: bool = False,
 ) -> str:
     """Obtain a bundle for a customer — creates licenses from all license
     templates included in the bundle for the specified licensee.
@@ -663,9 +751,14 @@ async def netlicensing_obtain_bundle(
     Args:
         bundle_number: Bundle to obtain
         licensee_number: Customer (licensee) who receives the licenses
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await bundles.obtain_bundle(bundle_number, licensee_number))
+        return _wrap_json(
+            await bundles.obtain_bundle(bundle_number, licensee_number),
+            "License",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -676,33 +769,43 @@ async def netlicensing_obtain_bundle(
 
 
 @mcp.tool()
-async def netlicensing_list_product_modules(product_number: str, filter: str = "") -> str:
+async def netlicensing_list_product_modules(
+    product_number: str, filter: str = "", include_raw: bool = False
+) -> str:
     """List all modules (feature groups) for a product.
 
     Args:
         product_number: Product whose modules to list
         filter: Optional server-side filter expression (e.g. 'active=true')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await product_modules.list_product_modules(
                 product_number,
                 filter_str=filter or None,
-            )
+            ),
+            "ProductModule",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_product_module(module_number: str) -> str:
+async def netlicensing_get_product_module(module_number: str, include_raw: bool = False) -> str:
     """Get a specific product module.
 
     Args:
         module_number: Module identifier
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await product_modules.get_product_module(module_number))
+        return _wrap_json(
+            await product_modules.get_product_module(module_number),
+            "ProductModule",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -718,6 +821,7 @@ async def netlicensing_create_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Create a product module with a licensing model.
 
@@ -732,9 +836,10 @@ async def netlicensing_create_product_module(
         yellow_threshold: Remaining time volume for yellow warning (Rental model)
         red_threshold: Remaining time volume for red warning (Rental model)
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await product_modules.create_product_module(
                 product_number,
                 number,
@@ -745,7 +850,9 @@ async def netlicensing_create_product_module(
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
                 node_secret_mode=node_secret_mode or None,
-            )
+            ),
+            "ProductModule",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -760,6 +867,7 @@ async def netlicensing_update_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Update a product module's properties.
 
@@ -771,9 +879,10 @@ async def netlicensing_update_product_module(
         yellow_threshold: Remaining time volume for yellow warning (Rental model, omit to keep current)
         red_threshold: Remaining time volume for red warning (Rental model, omit to keep current)
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model, leave empty to keep current)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await product_modules.update_product_module(
                 module_number,
                 name or None,
@@ -782,7 +891,9 @@ async def netlicensing_update_product_module(
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
                 node_secret_mode=node_secret_mode or None,
-            )
+            ),
+            "ProductModule",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -860,33 +971,43 @@ async def netlicensing_delete_product_module(
 
 
 @mcp.tool()
-async def netlicensing_list_license_templates(module_number: str, filter: str = "") -> str:
+async def netlicensing_list_license_templates(
+    module_number: str, filter: str = "", include_raw: bool = False
+) -> str:
     """List all license templates for a product module.
 
     Args:
         module_number: Module whose templates to list
         filter: Optional server-side filter expression (e.g. 'active=true')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await license_templates.list_license_templates(
                 module_number,
                 filter_str=filter or None,
-            )
+            ),
+            "LicenseTemplate",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_license_template(template_number: str) -> str:
+async def netlicensing_get_license_template(template_number: str, include_raw: bool = False) -> str:
     """Get a specific license template.
 
     Args:
         template_number: Template identifier
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await license_templates.get_license_template(template_number))
+        return _wrap_json(
+            await license_templates.get_license_template(template_number),
+            "LicenseTemplate",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -908,6 +1029,7 @@ async def netlicensing_create_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    include_raw: bool = False,
 ) -> str:
     """Create a license template.
 
@@ -927,9 +1049,10 @@ async def netlicensing_create_license_template(
         max_sessions: Concurrent sessions allowed (FLOATING type)
         quantity: Usage quota (QUANTITY / PayPerUse type)
         grace_period: Allow grace period after expiry (Subscription model)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await license_templates.create_license_template(
                 module_number,
                 number,
@@ -946,7 +1069,9 @@ async def netlicensing_create_license_template(
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
-            )
+            ),
+            "LicenseTemplate",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1007,6 +1132,7 @@ async def netlicensing_update_license_template(
     quantity: int | None = None,
     grace_period: bool | None = None,
     confirm_token: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Update a license template's properties.
 
@@ -1028,6 +1154,7 @@ async def netlicensing_update_license_template(
         quantity: Usage quota — QUANTITY / PayPerUse type (omit to keep current)
         grace_period: Grace period after expiry — Subscription model (omit to keep current)
         confirm_token: Confirmation token (required when price, currency, or active change)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
         sensitive = price is not None or bool(currency) or active is not None
@@ -1063,7 +1190,7 @@ async def netlicensing_update_license_template(
                     safety.make_update_preview("update_license_template", template_number, diff)
                 )
 
-        return _json(
+        return _wrap_json(
             await license_templates.update_license_template(
                 template_number,
                 name or None,
@@ -1078,7 +1205,9 @@ async def netlicensing_update_license_template(
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
-            )
+            ),
+            "LicenseTemplate",
+            include_raw=include_raw,
         )
     except ValueError as exc:
         return _json({"error": True, "detail": str(exc)})
@@ -1166,33 +1295,43 @@ async def netlicensing_delete_license_template(
 
 
 @mcp.tool()
-async def netlicensing_list_licensees(product_number: str, filter: str = "") -> str:
+async def netlicensing_list_licensees(
+    product_number: str, filter: str = "", include_raw: bool = False
+) -> str:
     """List all customers (licensees) for a product.
 
     Args:
         product_number: Product to list customers for
         filter: Optional server-side filter expression (e.g. 'active=true')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licensees.list_licensees(
                 product_number,
                 filter_str=filter or None,
-            )
+            ),
+            "Licensee",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_licensee(licensee_number: str) -> str:
+async def netlicensing_get_licensee(licensee_number: str, include_raw: bool = False) -> str:
     """Get a specific licensee (customer).
 
     Args:
         licensee_number: Licensee identifier (e.g. 'I001')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await licensees.get_licensee(licensee_number))
+        return _wrap_json(
+            await licensees.get_licensee(licensee_number),
+            "Licensee",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1205,6 +1344,7 @@ async def netlicensing_create_licensee(
     active: bool = True,
     marked_for_transfer: bool | None = None,
     licensee_secret: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Create a new customer (licensee) under a product.
 
@@ -1215,9 +1355,10 @@ async def netlicensing_create_licensee(
         active: Whether the licensee is active
         marked_for_transfer: Mark licensee for license transfer
         licensee_secret: Secret for licensee identification (when product licenseeSecretMode is PREDEFINED)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licensees.create_licensee(
                 product_number,
                 number or None,
@@ -1225,7 +1366,9 @@ async def netlicensing_create_licensee(
                 active,
                 marked_for_transfer=marked_for_transfer,
                 licensee_secret=licensee_secret or None,
-            )
+            ),
+            "Licensee",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1238,6 +1381,7 @@ async def netlicensing_update_licensee(
     active: bool | None = None,
     marked_for_transfer: bool | None = None,
     licensee_secret: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Update a licensee's properties.
 
@@ -1247,16 +1391,19 @@ async def netlicensing_update_licensee(
         active: New active state (omit to keep current)
         marked_for_transfer: Mark for license transfer (omit to keep current)
         licensee_secret: Secret for licensee identification (leave empty to keep current)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licensees.update_licensee(
                 licensee_number,
                 name or None,
                 active,
                 marked_for_transfer=marked_for_transfer,
                 licensee_secret=licensee_secret or None,
-            )
+            ),
+            "Licensee",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1333,6 +1480,7 @@ async def netlicensing_validate_licensee(
     action: str = "",
     product_module_number: str = "",
     node_secret: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Validate a customer's licenses across all product modules.
 
@@ -1346,9 +1494,10 @@ async def netlicensing_validate_licensee(
         action: Floating model — 'checkOut' or 'checkIn'
         product_module_number: NodeLocked model — target product module
         node_secret: NodeLocked model — unique device/node secret
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licensees.validate_licensee(
                 licensee_number,
                 product_number=product_number or None,
@@ -1357,7 +1506,9 @@ async def netlicensing_validate_licensee(
                 action=action or None,
                 product_module_number=product_module_number or None,
                 node_secret=node_secret or None,
-            )
+            ),
+            "ProductModuleValidation",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1367,19 +1518,23 @@ async def netlicensing_validate_licensee(
 async def netlicensing_transfer_licenses(
     from_licensee_number: str,
     to_licensee_number: str,
+    include_raw: bool = False,
 ) -> str:
     """Transfer all licenses from one licensee to another.
 
     Args:
         from_licensee_number: Source licensee
         to_licensee_number: Destination licensee
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licensees.transfer_licenses(
                 from_licensee_number,
                 to_licensee_number,
-            )
+            ),
+            "Licensee",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1391,33 +1546,43 @@ async def netlicensing_transfer_licenses(
 
 
 @mcp.tool()
-async def netlicensing_list_licenses(licensee_number: str, filter: str = "") -> str:
+async def netlicensing_list_licenses(
+    licensee_number: str, filter: str = "", include_raw: bool = False
+) -> str:
     """List all licenses for a specific customer.
 
     Args:
         licensee_number: Customer whose licenses to list
         filter: Optional server-side filter expression (e.g. 'active=true')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licenses.list_licenses(
                 licensee_number,
                 filter_str=filter or None,
-            )
+            ),
+            "License",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_license(license_number: str) -> str:
+async def netlicensing_get_license(license_number: str, include_raw: bool = False) -> str:
     """Get details of a specific license.
 
     Args:
         license_number: License identifier
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await licenses.get_license(license_number))
+        return _wrap_json(
+            await licenses.get_license(license_number),
+            "License",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1437,6 +1602,7 @@ async def netlicensing_create_license(
     quantity: str = "",
     parent_feature: str = "",
     hidden: bool | None = None,
+    include_raw: bool = False,
 ) -> str:
     """Assign a new license to a customer from a license template.
 
@@ -1454,9 +1620,10 @@ async def netlicensing_create_license(
         quantity: Usage quota — mandatory for PayPerUse / NodeLocked models
         parent_feature: Parent feature — mandatory for TIMEVOLUME + Rental model
         hidden: Hide license from end customer in Shop (omit to inherit)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licenses.create_license(
                 licensee_number,
                 license_template_number,
@@ -1471,7 +1638,9 @@ async def netlicensing_create_license(
                 quantity=quantity or None,
                 parent_feature=parent_feature or None,
                 hidden=hidden,
-            )
+            ),
+            "License",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1491,6 +1660,7 @@ async def netlicensing_update_license(
     used_quantity: str = "",
     parent_feature: str = "",
     hidden: bool | None = None,
+    include_raw: bool = False,
 ) -> str:
     """Update a license's properties.
 
@@ -1507,9 +1677,10 @@ async def netlicensing_update_license(
         used_quantity: Used count — PayPerUse model (leave empty to keep current)
         parent_feature: Parent feature — Rental model (leave empty to keep current)
         hidden: Visibility in Shop (omit to keep current)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await licenses.update_license(
                 license_number,
                 active,
@@ -1523,7 +1694,9 @@ async def netlicensing_update_license(
                 used_quantity=used_quantity or None,
                 parent_feature=parent_feature or None,
                 hidden=hidden,
-            )
+            ),
+            "License",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1606,27 +1779,35 @@ async def netlicensing_delete_license(
 
 
 @mcp.tool()
-async def netlicensing_list_tokens(filter: str = "") -> str:
+async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) -> str:
     """List all active tokens in the account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'tokenType=SHOP')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json_token_read(await tokens.list_tokens(filter_str=filter or None))
+        return _wrap_json_token_read(
+            await tokens.list_tokens(filter_str=filter or None),
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_token(token_number: str) -> str:
+async def netlicensing_get_token(token_number: str, include_raw: bool = False) -> str:
     """Get details of a specific token.
 
     Args:
         token_number: Token identifier
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json_token_read(await tokens.get_token(token_number))
+        return _wrap_json_token_read(
+            await tokens.get_token(token_number),
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1640,6 +1821,7 @@ async def netlicensing_create_shop_token(
     cancel_url: str = "",
     success_url_title: str = "",
     cancel_url_title: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Generate a NetLicensing Shop one-time checkout URL for a customer.
 
@@ -1651,21 +1833,20 @@ async def netlicensing_create_shop_token(
         cancel_url: Optional URL to redirect to if customer cancels
         success_url_title: Optional button/link label for success redirect
         cancel_url_title: Optional button/link label for cancel redirect
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
-            tag_one_time_display(
-                await tokens.create_shop_token(
-                    licensee_number,
-                    product_number=product_number or None,
-                    license_template_number=license_template_number or None,
-                    success_url=success_url or None,
-                    cancel_url=cancel_url or None,
-                    success_url_title=success_url_title or None,
-                    cancel_url_title=cancel_url_title or None,
-                )
-            )
+        raw = await tokens.create_shop_token(
+            licensee_number,
+            product_number=product_number or None,
+            license_template_number=license_template_number or None,
+            success_url=success_url or None,
+            cancel_url=cancel_url or None,
+            success_url_title=success_url_title or None,
+            cancel_url_title=cancel_url_title or None,
         )
+        wrapped = wrap(raw, "Token", raw=raw if include_raw else None)
+        return _json(tag_one_time_display(wrapped))
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1674,6 +1855,7 @@ async def netlicensing_create_shop_token(
 async def netlicensing_create_api_token(
     api_key_role: str = "ROLE_APIKEY_LICENSEE",
     licensee_number: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Create a scoped API token.
 
@@ -1681,13 +1863,12 @@ async def netlicensing_create_api_token(
         api_key_role: ROLE_APIKEY_LICENSEE | ROLE_APIKEY_ANALYTICS |
               ROLE_APIKEY_OPERATION | ROLE_APIKEY_MAINTENANCE | ROLE_APIKEY_ADMIN
         licensee_number: Optional — scope token to a specific licensee
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
-            tag_one_time_display(
-                await tokens.create_api_token(api_key_role, licensee_number or None)
-            )
-        )
+        raw = await tokens.create_api_token(api_key_role, licensee_number or None)
+        wrapped = wrap(raw, "Token", raw=raw if include_raw else None)
+        return _json(tag_one_time_display(wrapped))
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1767,31 +1948,39 @@ async def netlicensing_delete_token(
 
 
 @mcp.tool()
-async def netlicensing_list_transactions(filter: str = "") -> str:
+async def netlicensing_list_transactions(filter: str = "", include_raw: bool = False) -> str:
     """List all transactions in the account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'status=CLOSED')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await transactions.list_transactions(
                 filter_str=filter or None,
-            )
+            ),
+            "Transaction",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_transaction(transaction_number: str) -> str:
+async def netlicensing_get_transaction(transaction_number: str, include_raw: bool = False) -> str:
     """Get details of a specific transaction.
 
     Args:
         transaction_number: Transaction identifier
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await transactions.get_transaction(transaction_number))
+        return _wrap_json(
+            await transactions.get_transaction(transaction_number),
+            "Transaction",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1807,6 +1996,7 @@ async def netlicensing_create_transaction(
     date_created: str = "",
     date_closed: str = "",
     payment_method: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Create a new transaction.
 
@@ -1820,9 +2010,10 @@ async def netlicensing_create_transaction(
         date_created: Optional ISO 8601 creation timestamp
         date_closed: Optional ISO 8601 close timestamp
         payment_method: Optional payment method number
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await transactions.create_transaction(
                 status,
                 source,
@@ -1833,7 +2024,9 @@ async def netlicensing_create_transaction(
                 date_created=date_created or None,
                 date_closed=date_closed or None,
                 payment_method=payment_method or None,
-            )
+            ),
+            "Transaction",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1847,6 +2040,7 @@ async def netlicensing_update_transaction(
     name: str = "",
     date_closed: str = "",
     payment_method: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Update a transaction's status or properties.
 
@@ -1857,9 +2051,10 @@ async def netlicensing_update_transaction(
         name: Human-readable name (leave empty to keep current)
         date_closed: ISO 8601 close timestamp (leave empty to keep current)
         payment_method: Payment method number (leave empty to keep current)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await transactions.update_transaction(
                 transaction_number,
                 status=status or None,
@@ -1867,7 +2062,9 @@ async def netlicensing_update_transaction(
                 name=name or None,
                 date_closed=date_closed or None,
                 payment_method=payment_method or None,
-            )
+            ),
+            "Transaction",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1879,31 +2076,41 @@ async def netlicensing_update_transaction(
 
 
 @mcp.tool()
-async def netlicensing_list_payment_methods(filter: str = "") -> str:
+async def netlicensing_list_payment_methods(filter: str = "", include_raw: bool = False) -> str:
     """List all payment methods configured for the account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'active=true')
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(
+        return _wrap_json(
             await payment_methods.list_payment_methods(
                 filter_str=filter or None,
-            )
+            ),
+            "PaymentMethod",
+            include_raw=include_raw,
         )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_get_payment_method(payment_method_number: str) -> str:
+async def netlicensing_get_payment_method(
+    payment_method_number: str, include_raw: bool = False
+) -> str:
     """Get details of a specific payment method.
 
     Args:
         payment_method_number: Payment method identifier
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
-        return _json(await payment_methods.get_payment_method(payment_method_number))
+        return _wrap_json(
+            await payment_methods.get_payment_method(payment_method_number),
+            "PaymentMethod",
+            include_raw=include_raw,
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1947,6 +2154,7 @@ async def netlicensing_update_payment_method(
     active: bool | None = None,
     paypal_subject: str = "",
     confirm_token: str = "",
+    include_raw: bool = False,
 ) -> str:
     """Update a payment method's configuration.
 
@@ -1958,6 +2166,7 @@ async def netlicensing_update_payment_method(
         active: Enable or disable the payment method
         paypal_subject: PayPal account e-mail address
         confirm_token: Confirmation token (required when active changes)
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
         if active is not None:
@@ -1979,12 +2188,14 @@ async def netlicensing_update_payment_method(
                     safety.make_update_preview("update_payment_method", payment_method_number, diff)
                 )
 
-        return _json(
+        return _wrap_json(
             await payment_methods.update_payment_method(
                 payment_method_number,
                 active=active,
                 paypal_subject=paypal_subject or None,
-            )
+            ),
+            "PaymentMethod",
+            include_raw=include_raw,
         )
     except ValueError as exc:
         return _json({"error": True, "detail": str(exc)})
@@ -1998,28 +2209,44 @@ async def netlicensing_update_payment_method(
 
 
 @mcp.tool()
-async def netlicensing_list_licensing_models() -> str:
-    """List all licensing models supported by the NetLicensing service."""
+async def netlicensing_list_licensing_models(include_raw: bool = False) -> str:
+    """List all licensing models supported by the NetLicensing service.
+
+    Args:
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
+    """
     try:
-        return _json(await utilities.list_licensing_models())
+        return _wrap_json(
+            await utilities.list_licensing_models(), "LicensingModel", include_raw=include_raw
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_list_license_types() -> str:
-    """List all license types supported by the NetLicensing service."""
+async def netlicensing_list_license_types(include_raw: bool = False) -> str:
+    """List all license types supported by the NetLicensing service.
+
+    Args:
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
+    """
     try:
-        return _json(await utilities.list_license_types())
+        return _wrap_json(
+            await utilities.list_license_types(), "LicenseType", include_raw=include_raw
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
 
 @mcp.tool()
-async def netlicensing_list_countries() -> str:
-    """List all countries available for VAT and localization settings."""
+async def netlicensing_list_countries(include_raw: bool = False) -> str:
+    """List all countries available for VAT and localization settings.
+
+    Args:
+        include_raw: When true, include the original NetLicensing API payload under 'raw'
+    """
     try:
-        return _json(await utilities.list_countries())
+        return _wrap_json(await utilities.list_countries(), "Country", include_raw=include_raw)
     except NetLicensingError as exc:
         return _error(exc)
 
