@@ -1,0 +1,27 @@
+{
+  "items": {
+    "item": [
+      {
+        "type": "ProductModuleValidation",
+        "property": [
+          {"name": "productModuleNumber", "value": "M-CORE"},
+          {"name": "licensingModel",      "value": "Subscription"},
+          {"name": "valid",               "value": "true"},
+          {"name": "warningLevel",        "value": "GREEN"},
+          {"name": "expires",             "value": "2027-06-09T00:00:00Z"}
+        ]
+      },
+      {
+        "type": "ProductModuleValidation",
+        "property": [
+          {"name": "productModuleNumber", "value": "M-FLOAT"},
+          {"name": "licensingModel",      "value": "Floating"},
+          {"name": "valid",               "value": "false"},
+          {"name": "warningLevel",        "value": "RED"},
+          {"name": "maxSessions",         "value": "50"},
+          {"name": "activeSessions",      "value": "50"}
+        ]
+      }
+    ]
+  }
+}

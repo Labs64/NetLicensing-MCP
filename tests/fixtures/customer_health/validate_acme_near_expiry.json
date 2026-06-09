@@ -1,0 +1,38 @@
+{
+  "items": {
+    "item": [
+      {
+        "type": "ProductModuleValidation",
+        "property": [
+          {"name": "productModuleNumber", "value": "M-CORE"},
+          {"name": "licensingModel",      "value": "Subscription"},
+          {"name": "valid",               "value": "true"},
+          {"name": "warningLevel",        "value": "YELLOW"},
+          {"name": "expires",             "value": "2026-06-23T00:00:00Z"}
+        ]
+      },
+      {
+        "type": "ProductModuleValidation",
+        "property": [
+          {"name": "productModuleNumber", "value": "M-API"},
+          {"name": "licensingModel",      "value": "Pay-per-Use"},
+          {"name": "valid",               "value": "true"},
+          {"name": "warningLevel",        "value": "GREEN"},
+          {"name": "quota",               "value": "10000"},
+          {"name": "quotaUsed",           "value": "1000"}
+        ]
+      },
+      {
+        "type": "ProductModuleValidation",
+        "property": [
+          {"name": "productModuleNumber", "value": "M-FLOAT"},
+          {"name": "licensingModel",      "value": "Floating"},
+          {"name": "valid",               "value": "true"},
+          {"name": "warningLevel",        "value": "GREEN"},
+          {"name": "maxSessions",         "value": "50"},
+          {"name": "activeSessions",      "value": "12"}
+        ]
+      }
+    ]
+  }
+}

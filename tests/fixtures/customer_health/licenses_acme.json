@@ -1,0 +1,37 @@
+{
+  "items": {
+    "item": [
+      {
+        "type": "License",
+        "property": [
+          {"name": "number",              "value": "L-CORE-1"},
+          {"name": "active",              "value": "true"},
+          {"name": "licenseeNumber",      "value": "CUST-ACME"},
+          {"name": "productModuleNumber", "value": "M-CORE"},
+          {"name": "licensingModel",      "value": "Subscription"},
+          {"name": "expires",             "value": "2026-06-23T00:00:00Z"}
+        ]
+      },
+      {
+        "type": "License",
+        "property": [
+          {"name": "number",              "value": "L-API-1"},
+          {"name": "active",              "value": "true"},
+          {"name": "licenseeNumber",      "value": "CUST-ACME"},
+          {"name": "productModuleNumber", "value": "M-API"},
+          {"name": "licensingModel",      "value": "Pay-per-Use"}
+        ]
+      },
+      {
+        "type": "License",
+        "property": [
+          {"name": "number",              "value": "L-FLOAT-1"},
+          {"name": "active",              "value": "true"},
+          {"name": "licenseeNumber",      "value": "CUST-ACME"},
+          {"name": "productModuleNumber", "value": "M-FLOAT"},
+          {"name": "licensingModel",      "value": "Floating"}
+        ]
+      }
+    ]
+  }
+}

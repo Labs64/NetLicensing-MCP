@@ -811,6 +811,28 @@ async def test_validate_licensee_all_params(validation_response):
 
 
 @pytest.mark.asyncio
+async def test_validate_licensee_dry_run(validation_response):
+    mock_post = AsyncMock(return_value=validation_response)
+    with patch("netlicensing_mcp.tools.licensees.nl_post", new=mock_post):
+        from netlicensing_mcp.tools.licensees import validate_licensee
+
+        await validate_licensee("I001", dry_run=True)
+        call_data = mock_post.call_args[0][1]
+        assert call_data.get("dryRun") == "true"
+
+
+@pytest.mark.asyncio
+async def test_validate_licensee_no_dry_run_by_default(validation_response):
+    mock_post = AsyncMock(return_value=validation_response)
+    with patch("netlicensing_mcp.tools.licensees.nl_post", new=mock_post):
+        from netlicensing_mcp.tools.licensees import validate_licensee
+
+        await validate_licensee("I001")
+        call_data = mock_post.call_args[0][1]
+        assert "dryRun" not in call_data
+
+
+@pytest.mark.asyncio
 async def test_create_licensee(licensee_response):
     with patch(
         "netlicensing_mcp.tools.licensees.nl_post", new=AsyncMock(return_value=licensee_response)

@@ -1,0 +1,16 @@
+{
+  "items": {
+    "item": [
+      {
+        "type": "ProductModuleValidation",
+        "property": [
+          {"name": "productModuleNumber", "value": "M-NODE"},
+          {"name": "licensingModel",      "value": "NodeLocked"},
+          {"name": "valid",               "value": "false"},
+          {"name": "warningLevel",        "value": "RED"},
+          {"name": "nodeLocked",          "value": "false"}
+        ]
+      }
+    ]
+  }
+}

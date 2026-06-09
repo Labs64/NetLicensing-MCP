@@ -111,6 +111,7 @@ async def validate_licensee(
     node_secret: str | None = None,
     session_id: str | None = None,
     action: str | None = None,
+    dry_run: bool = False,
 ) -> dict:
     """
     Validate a licensee's licenses across all product modules.
@@ -124,6 +125,8 @@ async def validate_licensee(
       node_secret: for Node-Locked model — unique device secret.
       session_id: for Floating model — unique session identifier.
       action: for Floating model — 'checkOut' or 'checkIn'.
+      dry_run: when True, sends dryRun=true so the call has no side effects
+               (does not consume quota, check out floating sessions, etc.).
     """
     data: dict[str, str] = {}
     if product_number:
@@ -138,6 +141,8 @@ async def validate_licensee(
         data["sessionId"] = session_id
     if action:
         data["action"] = action
+    if dry_run:
+        data["dryRun"] = "true"
     return await nl_post(f"/licensee/{licensee_number}/validate", data)
 
 

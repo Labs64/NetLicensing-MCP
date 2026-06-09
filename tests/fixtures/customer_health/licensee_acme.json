@@ -1,0 +1,14 @@
+{
+  "items": {
+    "item": [
+      {
+        "type": "Licensee",
+        "property": [
+          {"name": "number",   "value": "CUST-ACME"},
+          {"name": "name",     "value": "ACME Inc."},
+          {"name": "active",   "value": "true"}
+        ]
+      }
+    ]
+  }
+}
