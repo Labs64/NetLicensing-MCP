@@ -30,7 +30,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install --upgrade pip && pip install -e ".[dev]"
 
       - name: Lint (ruff)
         run: ruff check .
@@ -61,7 +61,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install build tools
-        run: pip install hatch
+        run: pip install --upgrade pip && pip install hatch
 
       - name: Build package
         run: hatch build
@@ -87,7 +87,7 @@ jobs:
 
       - name: Build wheel
         run: |
-          pip install hatch hatch-vcs
+          pip install --upgrade pip && pip install hatch hatch-vcs
           rm -rf dist/
           hatch build --target wheel
 

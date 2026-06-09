@@ -135,27 +135,28 @@ class TestHeaders:
 
     def test_demo_mode_logs_warning(self, monkeypatch, caplog):
         monkeypatch.setenv("NETLICENSING_ALLOW_DEMO", "true")
-        # Reset throttle timer so the warning fires immediately.
-        nl_client._last_demo_warning_time = 0.0
+        # Use -inf so now - (-inf) = inf >= 60 regardless of system uptime.
+        # 0.0 breaks on fresh CI containers where time.monotonic() < 60 s.
+        nl_client._last_demo_warning_time = float("-inf")
         token = nl_client.api_key_ctx.set("")
         try:
             with caplog.at_level(logging.WARNING, logger="netlicensing_mcp.client"):
                 _headers()
-            assert any("DEMO MODE" in r.message for r in caplog.records)
+            assert any("DEMO MODE" in m for m in caplog.messages)
         finally:
             nl_client.api_key_ctx.reset(token)
 
     def test_demo_mode_warning_throttled(self, monkeypatch, caplog):
         """Second call within 60 s must not repeat the warning."""
         monkeypatch.setenv("NETLICENSING_ALLOW_DEMO", "true")
-        nl_client._last_demo_warning_time = 0.0
+        nl_client._last_demo_warning_time = float("-inf")
         token = nl_client.api_key_ctx.set("")
         try:
             with caplog.at_level(logging.WARNING, logger="netlicensing_mcp.client"):
                 _headers()  # first — emits warning
-                count_after_first = sum(1 for r in caplog.records if "DEMO MODE" in r.message)
+                count_after_first = sum(1 for m in caplog.messages if "DEMO MODE" in m)
                 _headers()  # second — throttled
-                count_after_second = sum(1 for r in caplog.records if "DEMO MODE" in r.message)
+                count_after_second = sum(1 for m in caplog.messages if "DEMO MODE" in m)
             assert count_after_first == 1
             assert count_after_second == 1  # no additional warning
         finally:
