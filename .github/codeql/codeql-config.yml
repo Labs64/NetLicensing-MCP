@@ -1,0 +1,8 @@
+name: NetLicensing MCP CodeQL Configuration
+
+# Extends the default security-extended query suite with a local model pack
+# that marks redact() (from netlicensing_mcp.redaction) as a neutral sanitizer.
+# This eliminates false-positive py/clear-text-logging-sensitive-data alerts
+# on log calls that already pass their payload through redact().
+model-packs:
+  - .github/codeql/python-models

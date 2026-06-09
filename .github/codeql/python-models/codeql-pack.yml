@@ -1,0 +1,5 @@
+name: netlicensing-mcp/python-models
+version: 0.0.1
+library: true
+dependencies:
+  codeql/python-all: "*"

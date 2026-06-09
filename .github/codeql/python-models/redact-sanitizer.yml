@@ -1,0 +1,16 @@
+# Neutral model for netlicensing_mcp.redaction.redact().
+#
+# redact() masks sensitive field values in a dict before the dict is used
+# elsewhere (e.g. logged).  Declaring it neutral tells CodeQL that taint
+# does NOT propagate from the argument to the return value, preventing
+# false-positive py/clear-text-logging-sensitive-data alerts on log calls
+# that already pass their payload through redact().
+#
+# Column order for neutralModel (codeql/python-all):
+#   package | type | subtypes | name | signature | ext | kind | provenance
+extensions:
+  - addsTo:
+      pack: codeql/python-all
+      extensible: neutralModel
+    data:
+      - ["netlicensing_mcp.redaction", "", false, "redact", "", "", "taint", "manual"]

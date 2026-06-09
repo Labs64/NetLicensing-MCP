@@ -18,8 +18,6 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 
-from netlicensing_mcp.redaction import redact
-
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -143,7 +141,7 @@ async def close_client() -> None:
 async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug("GET %s params=%s", url, params)
+    logger.debug("GET %s params_present=%s", url, bool(params))
     r = await client.get(url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
@@ -153,8 +151,7 @@ async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, A
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    # Redact sensitive fields before logging so secrets never appear in log output.
-    logger.debug("POST %s data=%s", url, redact(dict(data)) if data else None)
+    logger.debug("POST %s data_present=%s", url, bool(data))
     r = await client.post(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
@@ -168,8 +165,7 @@ async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, An
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    # Redact sensitive fields before logging so secrets never appear in log output.
-    logger.debug("PUT %s data=%s", url, redact(dict(data)))
+    logger.debug("PUT %s data_present=%s", url, bool(data))
     r = await client.put(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
@@ -184,7 +180,7 @@ async def nl_delete(path: str, params: dict[str, str] | None = None) -> int:
     """Delete a resource. Returns HTTP status code (200 or 204)."""
     client = _get_client()
     url = f"{BASE_URL}{path}"
-    logger.debug("DELETE %s params=%s", url, params)
+    logger.debug("DELETE %s params_present=%s", url, bool(params))
     r = await client.delete(url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
