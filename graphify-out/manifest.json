@@ -1,0 +1,307 @@
+{
+  "/Users/alexey/work/projects/NetLicensing-MCP/.venv-ci-check/bin/Activate.ps1": {
+    "mtime": 1770132740.0,
+    "ast_hash": "c32677ff1a8444fc54b6dfa2c40c4f84",
+    "semantic_hash": "c32677ff1a8444fc54b6dfa2c40c4f84"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.vscode/mcp.json": {
+    "mtime": 1773664642.0,
+    "ast_hash": "ee66702ebb6954ff8017cdc9d653e373",
+    "semantic_hash": "ee66702ebb6954ff8017cdc9d653e373"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/deploy/aws/deploy.sh": {
+    "mtime": 1775019556.0821235,
+    "ast_hash": "d3e693b95e73d35ae49d3c6d7bd367a1",
+    "semantic_hash": "d3e693b95e73d35ae49d3c6d7bd367a1"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/glama.json": {
+    "mtime": 1774416988.1331184,
+    "ast_hash": "7dbae86e810c6767ce3d2f4281ade15d",
+    "semantic_hash": "7dbae86e810c6767ce3d2f4281ade15d"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/server.json": {
+    "mtime": 1773983496.247348,
+    "ast_hash": "d874080e99fc064cf0c229eed4fb1981",
+    "semantic_hash": "d874080e99fc064cf0c229eed4fb1981"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/__init__.py": {
+    "mtime": 1773664642.0,
+    "ast_hash": "d3820778bac7e8ec6031a46759ffa3fb",
+    "semantic_hash": "d3820778bac7e8ec6031a46759ffa3fb"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/client.py": {
+    "mtime": 1780981263.2819643,
+    "ast_hash": "fe9cb64014dffb60a4bb516083aaef75",
+    "semantic_hash": "fe9cb64014dffb60a4bb516083aaef75"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/prompts/__init__.py": {
+    "mtime": 1773664642.0,
+    "ast_hash": "44804aac227519f7310d74f5048d4a2e",
+    "semantic_hash": "44804aac227519f7310d74f5048d4a2e"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/prompts/audit.py": {
+    "mtime": 1774985484.6440656,
+    "ast_hash": "6fa12497b7df8c89325951d6a340baed",
+    "semantic_hash": "6fa12497b7df8c89325951d6a340baed"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/redaction.py": {
+    "mtime": 1780586388.9428384,
+    "ast_hash": "1f54ac0a3c67fd0e4e3d82e351656811",
+    "semantic_hash": "1f54ac0a3c67fd0e4e3d82e351656811"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/responses.py": {
+    "mtime": 1780590744.9743853,
+    "ast_hash": "41a9b1bc5e635a973aff6abd7241860d",
+    "semantic_hash": "41a9b1bc5e635a973aff6abd7241860d"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/safety.py": {
+    "mtime": 1780572445.7256916,
+    "ast_hash": "0579c486c0f81f63043ac5d3777f774b",
+    "semantic_hash": "0579c486c0f81f63043ac5d3777f774b"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/server.py": {
+    "mtime": 1780984661.4068077,
+    "ast_hash": "b4ef652754b39a91619704dd7a798ff3",
+    "semantic_hash": "b4ef652754b39a91619704dd7a798ff3"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/__init__.py": {
+    "mtime": 1777192349.9611335,
+    "ast_hash": "68ae37f034aeea6df80e3ff68aaa5942",
+    "semantic_hash": "68ae37f034aeea6df80e3ff68aaa5942"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/bundles.py": {
+    "mtime": 1777192349.9617286,
+    "ast_hash": "2274b2e3ac8f7869c9fac54988809783",
+    "semantic_hash": "2274b2e3ac8f7869c9fac54988809783"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/helpers.py": {
+    "mtime": 1777192350.0025165,
+    "ast_hash": "bfecfa824cb01c1c8343c5776f850592",
+    "semantic_hash": "bfecfa824cb01c1c8343c5776f850592"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/license_templates.py": {
+    "mtime": 1780578804.4928925,
+    "ast_hash": "bd22aa770e596ad015ffd62ca0e20fae",
+    "semantic_hash": "bd22aa770e596ad015ffd62ca0e20fae"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/licensees.py": {
+    "mtime": 1780983015.55859,
+    "ast_hash": "854134f045c963d4294ac4a3f3aeec04",
+    "semantic_hash": "854134f045c963d4294ac4a3f3aeec04"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/licenses.py": {
+    "mtime": 1780578804.4939466,
+    "ast_hash": "238d63c23303e1b58d0579465a38aedc",
+    "semantic_hash": "238d63c23303e1b58d0579465a38aedc"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/payment_methods.py": {
+    "mtime": 1773820032.4518511,
+    "ast_hash": "afedc64cf1e99aaf53d763e5b9670f25",
+    "semantic_hash": "afedc64cf1e99aaf53d763e5b9670f25"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/product_modules.py": {
+    "mtime": 1780578804.49435,
+    "ast_hash": "9640b4c2f008773ee3abd20dd1a08640",
+    "semantic_hash": "9640b4c2f008773ee3abd20dd1a08640"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/products.py": {
+    "mtime": 1777192349.9624686,
+    "ast_hash": "77ba2ee84dc0b7f590fad26cdc935f42",
+    "semantic_hash": "77ba2ee84dc0b7f590fad26cdc935f42"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/transactions.py": {
+    "mtime": 1773820032.4520237,
+    "ast_hash": "9d9d2ace05d694ee9824ff65fdf25fbd",
+    "semantic_hash": "9d9d2ace05d694ee9824ff65fdf25fbd"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/tools/utilities.py": {
+    "mtime": 1773820032.452192,
+    "ast_hash": "baa8e47ef3ac77a99f920466ddb15afa",
+    "semantic_hash": "baa8e47ef3ac77a99f920466ddb15afa"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/workflows/__init__.py": {
+    "mtime": 1780984238.1470864,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/workflows/_thresholds.py": {
+    "mtime": 1780984242.770256,
+    "ast_hash": "852f6b7e8de53bf5209e346a7b4e69b7",
+    "semantic_hash": "852f6b7e8de53bf5209e346a7b4e69b7"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/workflows/customer_health.py": {
+    "mtime": 1780984661.405339,
+    "ast_hash": "70a9436a90f343b86f2357856d4a11ea",
+    "semantic_hash": "70a9436a90f343b86f2357856d4a11ea"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/src/netlicensing_mcp/workflows/validation_explain.py": {
+    "mtime": 1780984661.4052362,
+    "ast_hash": "fe96f291c6a0fcd9bbb260a00239865f",
+    "semantic_hash": "fe96f291c6a0fcd9bbb260a00239865f"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/__init__.py": {
+    "mtime": 1773664642.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/customer_health/licensee_acme.json": {
+    "mtime": 1780984328.2880516,
+    "ast_hash": "ddac451dde3241562fcff628e606fa78",
+    "semantic_hash": "ddac451dde3241562fcff628e606fa78"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/customer_health/licensee_acme_inactive.json": {
+    "mtime": 1780984332.2136526,
+    "ast_hash": "9c821f074cda28102fe30c986b718de1",
+    "semantic_hash": "9c821f074cda28102fe30c986b718de1"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/customer_health/licenses_acme.json": {
+    "mtime": 1780984338.9699543,
+    "ast_hash": "81a7c0a961217f60af8d3fc173fded2e",
+    "semantic_hash": "81a7c0a961217f60af8d3fc173fded2e"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/customer_health/validate_acme_all_green.json": {
+    "mtime": 1780984345.8110728,
+    "ast_hash": "2bf3a2cf20361c8b8a47a91ed9f9a874",
+    "semantic_hash": "2bf3a2cf20361c8b8a47a91ed9f9a874"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/customer_health/validate_acme_floating_saturated.json": {
+    "mtime": 1780984363.1671574,
+    "ast_hash": "092f16d087103ebb25a72eb916838b67",
+    "semantic_hash": "092f16d087103ebb25a72eb916838b67"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/customer_health/validate_acme_near_expiry.json": {
+    "mtime": 1780984352.2314038,
+    "ast_hash": "2be7b0422d0306c315b5b50d6b0cf78e",
+    "semantic_hash": "2be7b0422d0306c315b5b50d6b0cf78e"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/customer_health/validate_acme_quota_exhausted.json": {
+    "mtime": 1780984357.9576364,
+    "ast_hash": "f5eba1653684ab8d77947f8ee2ca8f9c",
+    "semantic_hash": "f5eba1653684ab8d77947f8ee2ca8f9c"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/validation_explain/validate_acme_node_mismatch.json": {
+    "mtime": 1780984522.7137735,
+    "ast_hash": "42fc77f736e436c0bb4a8f8b7ea13603",
+    "semantic_hash": "42fc77f736e436c0bb4a8f8b7ea13603"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/fixtures/validation_explain/validate_acme_subscription_expired.json": {
+    "mtime": 1780984518.598915,
+    "ast_hash": "d71eefd24d8907788482a19c49d067c7",
+    "semantic_hash": "d71eefd24d8907788482a19c49d067c7"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/test_auth_middleware.py": {
+    "mtime": 1780572445.7196507,
+    "ast_hash": "482d174c91988aaefc99f1ce1cd3dd3f",
+    "semantic_hash": "482d174c91988aaefc99f1ce1cd3dd3f"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/test_customer_health.py": {
+    "mtime": 1780984389.5837505,
+    "ast_hash": "d57fc31d3c7904a5115de1b33ac50dd0",
+    "semantic_hash": "d57fc31d3c7904a5115de1b33ac50dd0"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/test_demo_credential_fallback.py": {
+    "mtime": 1780981263.2743402,
+    "ast_hash": "544f980f98dae4157f533d710352181c",
+    "semantic_hash": "544f980f98dae4157f533d710352181c"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/test_redaction.py": {
+    "mtime": 1780586388.94353,
+    "ast_hash": "232b241e00e0f993b538fb5bfa6948e3",
+    "semantic_hash": "232b241e00e0f993b538fb5bfa6948e3"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/test_responses.py": {
+    "mtime": 1780590787.4747095,
+    "ast_hash": "9560b4423ccbc2149545e976d9099ba1",
+    "semantic_hash": "9560b4423ccbc2149545e976d9099ba1"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/test_tools.py": {
+    "mtime": 1780983040.6344,
+    "ast_hash": "275f6c6f0ccbc128f224b7652679353a",
+    "semantic_hash": "275f6c6f0ccbc128f224b7652679353a"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/tests/test_validation_explain.py": {
+    "mtime": 1780984661.405097,
+    "ast_hash": "a301901eb355a13cc56b7adfed65a787",
+    "semantic_hash": "a301901eb355a13cc56b7adfed65a787"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/codeql/codeql-config.yml": {
+    "mtime": 1780981263.280727,
+    "ast_hash": "d2a1d736782136326f697e0ec0dad0a8",
+    "semantic_hash": "d2a1d736782136326f697e0ec0dad0a8"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/codeql/python-models/codeql-pack.yml": {
+    "mtime": 1780981263.2810693,
+    "ast_hash": "94260d818f0ad10a5ad847c486a2acf7",
+    "semantic_hash": "94260d818f0ad10a5ad847c486a2acf7"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/codeql/python-models/redact-sanitizer.yml": {
+    "mtime": 1780981263.2813177,
+    "ast_hash": "66ee9ed523b7f36d67fa034c66df995f",
+    "semantic_hash": "66ee9ed523b7f36d67fa034c66df995f"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/labeler.yml": {
+    "mtime": 1773983496.230501,
+    "ast_hash": "4dfeaf3297939f1acac2a3439d564040",
+    "semantic_hash": "4dfeaf3297939f1acac2a3439d564040"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/release.yml": {
+    "mtime": 1773983496.2307363,
+    "ast_hash": "cfaa915a27e89bdf429a1f314d3cd6d6",
+    "semantic_hash": "cfaa915a27e89bdf429a1f314d3cd6d6"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/workflows/netlicensing-ci.yml": {
+    "mtime": 1780981263.2264822,
+    "ast_hash": "3916ebf70e16604d3535e56a82a01aab",
+    "semantic_hash": "3916ebf70e16604d3535e56a82a01aab"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/workflows/netlicensing-codeql.yml": {
+    "mtime": 1780981263.2816331,
+    "ast_hash": "6ba344eeba56ad50cdf8115024381b41",
+    "semantic_hash": "6ba344eeba56ad50cdf8115024381b41"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/workflows/netlicensing-labeler.yml": {
+    "mtime": 1773983496.2392905,
+    "ast_hash": "17e39923e44eb79c62711ef799d35d0e",
+    "semantic_hash": "17e39923e44eb79c62711ef799d35d0e"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/.github/workflows/netlicensing-release.yml": {
+    "mtime": 1780981263.2269561,
+    "ast_hash": "ef2421704ed8edf6db61558dd094c0b0",
+    "semantic_hash": "ef2421704ed8edf6db61558dd094c0b0"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/AGENTS.md": {
+    "mtime": 1780589648.455964,
+    "ast_hash": "cf40619da8d93d5b37c7fd85d7531e1a",
+    "semantic_hash": "cf40619da8d93d5b37c7fd85d7531e1a"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/CLAUDE.md": {
+    "mtime": 1780572445.6495874,
+    "ast_hash": "d9c1aa00474b45b2de5f587fe328cb8d",
+    "semantic_hash": "d9c1aa00474b45b2de5f587fe328cb8d"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/README.md": {
+    "mtime": 1780586421.0862741,
+    "ast_hash": "2440cc9c28da6a50a3d9dcffc1168b61",
+    "semantic_hash": "2440cc9c28da6a50a3d9dcffc1168b61"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/deploy/aws/README.md": {
+    "mtime": 1775019556.0815382,
+    "ast_hash": "f64a629f00eea727338460d576b2c9f3",
+    "semantic_hash": "f64a629f00eea727338460d576b2c9f3"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/deploy/aws/apprunner.yaml": {
+    "mtime": 1775019556.0817828,
+    "ast_hash": "45540af6b3382c45aba71f3a9db33164",
+    "semantic_hash": "45540af6b3382c45aba71f3a9db33164"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/deploy/aws/ecs-fargate.yaml": {
+    "mtime": 1775019556.0824602,
+    "ast_hash": "f35086c79dda283dca610ac60ac36165",
+    "semantic_hash": "f35086c79dda283dca610ac60ac36165"
+  },
+  "/Users/alexey/work/projects/NetLicensing-MCP/assets/banner.jpg": {
+    "mtime": 1774418307.8448322,
+    "ast_hash": "ac544462775ff13c87fea14f1ee0f6cc",
+    "semantic_hash": "ac544462775ff13c87fea14f1ee0f6cc"
+  }
+}

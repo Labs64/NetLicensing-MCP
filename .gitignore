@@ -209,3 +209,7 @@ __marimo__/
 *.iml
 .idea
 .claude
+
+# graphify knowledge-graph output (local exploration aid, regenerable)
+graphify-out/cache
+graphify-out/cost.json
