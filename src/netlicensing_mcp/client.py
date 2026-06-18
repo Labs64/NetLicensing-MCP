@@ -14,6 +14,7 @@ import logging
 import os
 import time
 from typing import Any
+from urllib.parse import unquote
 
 import httpx
 from dotenv import load_dotenv
@@ -72,6 +73,33 @@ def _raise_on_error(response: httpx.Response) -> None:
     except Exception:
         detail = response.text
     raise NetLicensingError(response.status_code, detail)
+
+
+# ── Path validation ──────────────────────────────────────────────────────────
+
+
+def _validated_path(path: str) -> str:
+    """Reject path-traversal / separator injection in interpolated identifiers.
+
+    Tool layers build REST paths like ``f"/product/{number}"`` from
+    caller-controlled values. httpx applies RFC 3986 / WHATWG dot-segment
+    removal, so a value of ``../token`` collapses ``/product/../token`` to
+    ``/token`` — silently redirecting the request to an unintended endpoint and
+    bypassing endpoint-specific redaction (e.g. token APIKEY masking).
+
+    Validate every segment before the request is built. ``unquote`` is applied
+    first because httpx does not decode ``%2f``/``%2e``, so percent-encoded
+    separators would otherwise reach the upstream untouched.
+    """
+    if not path.startswith("/"):
+        raise NetLicensingError(400, "Internal error: upstream path must start with '/'")
+    for segment in path.split("/"):
+        decoded = unquote(segment)
+        if decoded in {".", ".."} or "/" in decoded or "\\" in decoded:
+            raise NetLicensingError(400, "Invalid identifier: path separators are not allowed")
+        if any(ord(ch) < 32 for ch in decoded):
+            raise NetLicensingError(400, "Invalid identifier: control characters are not allowed")
+    return path
 
 
 # ── Auth header ──────────────────────────────────────────────────────────────
@@ -140,7 +168,7 @@ async def close_client() -> None:
 
 async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
-    url = f"{BASE_URL}{path}"
+    url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("GET %s params_present=%s", url, bool(params))
     r = await client.get(url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
@@ -150,7 +178,7 @@ async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, A
 
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
-    url = f"{BASE_URL}{path}"
+    url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("POST %s data_present=%s", url, bool(data))
     r = await client.post(
         url,
@@ -164,7 +192,7 @@ async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, An
 
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
     client = _get_client()
-    url = f"{BASE_URL}{path}"
+    url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("PUT %s data_present=%s", url, bool(data))
     r = await client.put(
         url,
@@ -179,7 +207,7 @@ async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
 async def nl_delete(path: str, params: dict[str, str] | None = None) -> int:
     """Delete a resource. Returns HTTP status code (200 or 204)."""
     client = _get_client()
-    url = f"{BASE_URL}{path}"
+    url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("DELETE %s params_present=%s", url, bool(params))
     r = await client.delete(url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
