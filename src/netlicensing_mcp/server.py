@@ -848,6 +848,7 @@ async def netlicensing_create_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
+    custom_properties: dict[str, str] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Create a product module with a licensing model.
@@ -863,6 +864,7 @@ async def netlicensing_create_product_module(
         yellow_threshold: Remaining time volume for yellow warning (Rental model)
         red_threshold: Remaining time volume for red warning (Rental model)
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model)
+        custom_properties: Additional properties as key-value pairs (e.g. skudef for PricingTable)
         include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
@@ -877,6 +879,7 @@ async def netlicensing_create_product_module(
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
                 node_secret_mode=node_secret_mode or None,
+                custom_properties=custom_properties,
             ),
             "ProductModule",
             include_raw=include_raw,
@@ -894,6 +897,7 @@ async def netlicensing_update_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
+    custom_properties: dict[str, str] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Update a product module's properties.
@@ -906,6 +910,7 @@ async def netlicensing_update_product_module(
         yellow_threshold: Remaining time volume for yellow warning (Rental model, omit to keep current)
         red_threshold: Remaining time volume for red warning (Rental model, omit to keep current)
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model, leave empty to keep current)
+        custom_properties: Additional properties to set or update as key-value pairs
         include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
@@ -918,6 +923,7 @@ async def netlicensing_update_product_module(
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
                 node_secret_mode=node_secret_mode or None,
+                custom_properties=custom_properties,
             ),
             "ProductModule",
             include_raw=include_raw,
@@ -1056,6 +1062,7 @@ async def netlicensing_create_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    custom_properties: dict[str, str] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Create a license template.
@@ -1076,6 +1083,7 @@ async def netlicensing_create_license_template(
         max_sessions: Concurrent sessions allowed (FLOATING type)
         quantity: Usage quota (QUANTITY / PayPerUse type)
         grace_period: Allow grace period after expiry (Subscription model)
+        custom_properties: Additional properties as key-value pairs (e.g. skus for PricingTable, description)
         include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
     try:
@@ -1096,6 +1104,7 @@ async def netlicensing_create_license_template(
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
+                custom_properties=custom_properties,
             ),
             "LicenseTemplate",
             include_raw=include_raw,
@@ -1158,6 +1167,7 @@ async def netlicensing_update_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    custom_properties: dict[str, str] | None = None,
     confirm_token: str = "",
     include_raw: bool = False,
 ) -> str:
@@ -1180,6 +1190,7 @@ async def netlicensing_update_license_template(
         max_sessions: Concurrent sessions — FLOATING type (omit to keep current)
         quantity: Usage quota — QUANTITY / PayPerUse type (omit to keep current)
         grace_period: Grace period after expiry — Subscription model (omit to keep current)
+        custom_properties: Additional properties to set or update as key-value pairs
         confirm_token: Confirmation token (required when price, currency, or active change)
         include_raw: When true, include the original NetLicensing API payload under 'raw'
     """
@@ -1232,6 +1243,7 @@ async def netlicensing_update_license_template(
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
+                custom_properties=custom_properties,
             ),
             "LicenseTemplate",
             include_raw=include_raw,

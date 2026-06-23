@@ -50,6 +50,7 @@ async def create_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str | None = None,
+    custom_properties: dict[str, str] | None = None,
 ) -> dict:
     """
     Create a product module with the specified licensing model.
@@ -63,6 +64,8 @@ async def create_product_module(
       yellow_threshold: Remaining time volume for yellow level (Rental).
       red_threshold: Remaining time volume for red level (Rental).
       node_secret_mode: PREDEFINED | CLIENT (NodeLocked).
+
+    custom_properties: Optional dict of additional properties (e.g., skudef for PricingTable).
     """
     data: dict[str, str] = {
         "productNumber": product_number,
@@ -79,6 +82,8 @@ async def create_product_module(
         data["redThreshold"] = str(red_threshold)
     if node_secret_mode:
         data["nodeSecretMode"] = node_secret_mode
+    if custom_properties:
+        data.update(custom_properties)
     return await nl_post("/productmodule", data)
 
 
@@ -90,6 +95,7 @@ async def update_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str | None = None,
+    custom_properties: dict[str, str] | None = None,
 ) -> dict:
     """Update a product module's properties.
 
@@ -98,6 +104,8 @@ async def update_product_module(
       yellow_threshold: Remaining time volume for yellow level (Rental).
       red_threshold: Remaining time volume for red level (Rental).
       node_secret_mode: PREDEFINED | CLIENT (NodeLocked).
+
+    custom_properties: Optional dict of additional properties to set or update.
     """
     data: dict[str, str] = {}
     if name is not None:
@@ -112,6 +120,8 @@ async def update_product_module(
         data["redThreshold"] = str(red_threshold)
     if node_secret_mode is not None:
         data["nodeSecretMode"] = node_secret_mode
+    if custom_properties:
+        data.update(custom_properties)
     return await nl_post(f"/productmodule/{module_number}", data)
 
 

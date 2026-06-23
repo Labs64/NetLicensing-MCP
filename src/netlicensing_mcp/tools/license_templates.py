@@ -56,6 +56,7 @@ async def create_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    custom_properties: dict[str, str] | None = None,
 ) -> dict:
     """
     Create a license template.
@@ -68,6 +69,8 @@ async def create_license_template(
       max_sessions: concurrent sessions allowed (FLOATING).
       quantity: usage quota (QUANTITY / PayPerUse).
       grace_period: allow grace period after expiry (Subscription).
+
+    custom_properties: Optional dict of additional properties (e.g., skus for PricingTable, description).
     """
     data: dict[str, str] = {
         "productModuleNumber": module_number,
@@ -92,6 +95,8 @@ async def create_license_template(
         data["quantity"] = str(quantity)
     if grace_period is not None:
         data["gracePeriod"] = str(grace_period).lower()
+    if custom_properties:
+        data.update(custom_properties)
     return await nl_post("/licensetemplate", data)
 
 
@@ -109,6 +114,7 @@ async def update_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    custom_properties: dict[str, str] | None = None,
 ) -> dict:
     """Update a license template.
 
@@ -118,6 +124,8 @@ async def update_license_template(
       max_sessions: concurrent sessions allowed (FLOATING).
       quantity: usage quota (QUANTITY / PayPerUse).
       grace_period: allow grace period after expiry (Subscription).
+
+    custom_properties: Optional dict of additional properties to set or update.
     """
     data: dict[str, str] = {}
     if name is not None:
@@ -144,6 +152,8 @@ async def update_license_template(
         data["quantity"] = str(quantity)
     if grace_period is not None:
         data["gracePeriod"] = str(grace_period).lower()
+    if custom_properties:
+        data.update(custom_properties)
     return await nl_post(f"/licensetemplate/{template_number}", data)
 
 
