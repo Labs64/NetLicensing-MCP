@@ -509,6 +509,22 @@ async def test_create_product_module_all_fields(module_response):
 
 
 @pytest.mark.asyncio
+async def test_create_product_module_custom_properties_conflict():
+    from netlicensing_mcp.client import NetLicensingError
+    from netlicensing_mcp.tools.product_modules import create_product_module
+
+    with pytest.raises(NetLicensingError) as exc_info:
+        await create_product_module(
+            "P001",
+            "M01",
+            "Subscription Module",
+            "Subscription",
+            custom_properties={"licensingModel": "Floating"},
+        )
+    assert "licensingModel" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
 async def test_update_product_module(module_response):
     with patch(
         "netlicensing_mcp.tools.product_modules.nl_post",
@@ -545,6 +561,20 @@ async def test_update_product_module_all_fields(module_response):
         assert call_data["redThreshold"] == "3"
         assert call_data["nodeSecretMode"] == "CLIENT"
         assert call_data["skudef"] == "SKU-002"
+
+
+@pytest.mark.asyncio
+async def test_update_product_module_custom_properties_conflict():
+    from netlicensing_mcp.client import NetLicensingError
+    from netlicensing_mcp.tools.product_modules import update_product_module
+
+    with pytest.raises(NetLicensingError) as exc_info:
+        await update_product_module(
+            "M01",
+            name="Updated Module",
+            custom_properties={"name": "Sneaky Override"},
+        )
+    assert "name" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -666,6 +696,22 @@ async def test_create_license_template_all_fields(template_response):
 
 
 @pytest.mark.asyncio
+async def test_create_license_template_custom_properties_conflict():
+    from netlicensing_mcp.client import NetLicensingError
+    from netlicensing_mcp.tools.license_templates import create_license_template
+
+    with pytest.raises(NetLicensingError) as exc_info:
+        await create_license_template(
+            "M01",
+            "LT01",
+            "Sub Template",
+            "TIMEVOLUME",
+            custom_properties={"licenseType": "QUANTITY"},
+        )
+    assert "licenseType" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
 async def test_update_license_template(template_response):
     with patch(
         "netlicensing_mcp.tools.license_templates.nl_post",
@@ -714,6 +760,20 @@ async def test_update_license_template_all_fields(template_response):
         assert call_data["quantity"] == "200"
         assert call_data["gracePeriod"] == "false"
         assert call_data["skus"] == "SKU-200"
+
+
+@pytest.mark.asyncio
+async def test_update_license_template_custom_properties_conflict():
+    from netlicensing_mcp.client import NetLicensingError
+    from netlicensing_mcp.tools.license_templates import update_license_template
+
+    with pytest.raises(NetLicensingError) as exc_info:
+        await update_license_template(
+            "LT01",
+            price=29.99,
+            custom_properties={"price": "0.01"},
+        )
+    assert "price" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -1371,6 +1431,38 @@ async def test_update_transaction_all_fields(transaction_response):
         assert call_data["name"] == "Cancelled Order"
         assert call_data["dateClosed"] == "2025-03-01T00:00:00Z"
         assert call_data["paymentMethod"] == "PM002"
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def test_merge_custom_properties_coerces_values_to_str():
+    from netlicensing_mcp.tools.helpers import merge_custom_properties
+
+    data: dict[str, str] = {"number": "M01"}
+    merge_custom_properties(data, {"maxUsers": 5, "enabled": True})
+    assert data == {"number": "M01", "maxUsers": "5", "enabled": "True"}
+
+
+def test_merge_custom_properties_noop_when_empty():
+    from netlicensing_mcp.tools.helpers import merge_custom_properties
+
+    data = {"number": "M01"}
+    merge_custom_properties(data, None)
+    merge_custom_properties(data, {})
+    assert data == {"number": "M01"}
+
+
+def test_merge_custom_properties_rejects_conflict():
+    from netlicensing_mcp.client import NetLicensingError
+    from netlicensing_mcp.tools.helpers import merge_custom_properties
+
+    data = {"number": "M01", "active": "true"}
+    with pytest.raises(NetLicensingError) as exc_info:
+        merge_custom_properties(data, {"active": "false", "skudef": "SKU-1"})
+    assert "active" in str(exc_info.value)
+    # Reject before mutating, so unrelated keys aren't partially applied either.
+    assert data == {"number": "M01", "active": "true"}
 
 
 # ── Payment Methods ───────────────────────────────────────────────────────────

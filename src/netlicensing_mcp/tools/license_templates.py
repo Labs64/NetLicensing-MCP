@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
+from netlicensing_mcp.tools.helpers import merge_custom_properties
 
 
 async def list_license_templates(
@@ -95,8 +96,7 @@ async def create_license_template(
         data["quantity"] = str(quantity)
     if grace_period is not None:
         data["gracePeriod"] = str(grace_period).lower()
-    if custom_properties:
-        data.update(custom_properties)
+    merge_custom_properties(data, custom_properties)
     return await nl_post("/licensetemplate", data)
 
 
@@ -152,8 +152,7 @@ async def update_license_template(
         data["quantity"] = str(quantity)
     if grace_period is not None:
         data["gracePeriod"] = str(grace_period).lower()
-    if custom_properties:
-        data.update(custom_properties)
+    merge_custom_properties(data, custom_properties)
     return await nl_post(f"/licensetemplate/{template_number}", data)
 
 

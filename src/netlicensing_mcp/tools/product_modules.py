@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
+from netlicensing_mcp.tools.helpers import merge_custom_properties
 
 
 async def list_product_modules(
@@ -82,8 +83,7 @@ async def create_product_module(
         data["redThreshold"] = str(red_threshold)
     if node_secret_mode:
         data["nodeSecretMode"] = node_secret_mode
-    if custom_properties:
-        data.update(custom_properties)
+    merge_custom_properties(data, custom_properties)
     return await nl_post("/productmodule", data)
 
 
@@ -120,8 +120,7 @@ async def update_product_module(
         data["redThreshold"] = str(red_threshold)
     if node_secret_mode is not None:
         data["nodeSecretMode"] = node_secret_mode
-    if custom_properties:
-        data.update(custom_properties)
+    merge_custom_properties(data, custom_properties)
     return await nl_post(f"/productmodule/{module_number}", data)
 
 
