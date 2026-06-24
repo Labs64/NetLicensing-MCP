@@ -494,6 +494,7 @@ async def test_create_product_module_all_fields(module_response):
             yellow_threshold=10,
             red_threshold=5,
             node_secret_mode="PREDEFINED",
+            custom_properties={"skudef": "SKU-001"},
         )
         assert result["items"]["item"][0]["type"] == "ProductModule"
         call_data = mock_post.call_args[0][1]
@@ -504,6 +505,7 @@ async def test_create_product_module_all_fields(module_response):
         assert call_data["yellowThreshold"] == "10"
         assert call_data["redThreshold"] == "5"
         assert call_data["nodeSecretMode"] == "PREDEFINED"
+        assert call_data["skudef"] == "SKU-001"
 
 
 @pytest.mark.asyncio
@@ -532,6 +534,7 @@ async def test_update_product_module_all_fields(module_response):
             yellow_threshold=15,
             red_threshold=3,
             node_secret_mode="CLIENT",
+            custom_properties={"skudef": "SKU-002"},
         )
         assert result["items"]["item"][0]["type"] == "ProductModule"
         call_data = mock_put.call_args[0][1]
@@ -541,6 +544,7 @@ async def test_update_product_module_all_fields(module_response):
         assert call_data["yellowThreshold"] == "15"
         assert call_data["redThreshold"] == "3"
         assert call_data["nodeSecretMode"] == "CLIENT"
+        assert call_data["skudef"] == "SKU-002"
 
 
 @pytest.mark.asyncio
@@ -641,6 +645,7 @@ async def test_create_license_template_all_fields(template_response):
             max_sessions=5,
             quantity=100,
             grace_period=True,
+            custom_properties={"skus": "SKU-100"},
         )
         assert result["items"]["item"][0]["type"] == "LicenseTemplate"
         call_data = mock_post.call_args[0][1]
@@ -657,6 +662,7 @@ async def test_create_license_template_all_fields(template_response):
         assert call_data["maxSessions"] == "5"
         assert call_data["quantity"] == "100"
         assert call_data["gracePeriod"] == "true"
+        assert call_data["skus"] == "SKU-100"
 
 
 @pytest.mark.asyncio
@@ -691,6 +697,7 @@ async def test_update_license_template_all_fields(template_response):
             max_sessions=10,
             quantity=200,
             grace_period=False,
+            custom_properties={"skus": "SKU-200"},
         )
         assert result["items"]["item"][0]["type"] == "LicenseTemplate"
         call_data = mock_put.call_args[0][1]
@@ -706,6 +713,7 @@ async def test_update_license_template_all_fields(template_response):
         assert call_data["maxSessions"] == "10"
         assert call_data["quantity"] == "200"
         assert call_data["gracePeriod"] == "false"
+        assert call_data["skus"] == "SKU-200"
 
 
 @pytest.mark.asyncio
