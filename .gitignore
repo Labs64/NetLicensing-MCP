@@ -213,3 +213,6 @@ __marimo__/
 # graphify knowledge-graph output (local exploration aid, regenerable)
 graphify-out/cache
 graphify-out/cost.json
+
+# symlink to claude-desktop config file (local, regenerable)
+claude_desktop_config.json

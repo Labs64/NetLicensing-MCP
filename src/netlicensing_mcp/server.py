@@ -41,6 +41,7 @@ from netlicensing_mcp.tools import (
     transactions,
     utilities,
 )
+from netlicensing_mcp.tools.helpers import CustomPropertyValue
 
 # Configure logging to output to stdout
 logging.basicConfig(
@@ -120,7 +121,7 @@ online license and entitlements management system for software vendors.
   Use when the operator asks "why is this license failing / nearly expired / over quota".
   READ-ONLY — never consumes floating sessions, quota, or node-lock slots.
 
-Both tools support `include_raw=True` to surface the upstream NetLicensing payloads.
+Both tools support `include_raw=True` to surface the sanitized upstream NetLicensing API response(s).
 
 ## Safety rules
 
@@ -150,9 +151,9 @@ Both tools support `include_raw=True` to surface the upstream NetLicensing paylo
 - List responses have the shape
   ``{"type": "list", "kind": "...", "count": N, "items": [...]}``;
   single-entity responses are flat dicts.
-- Pass ``include_raw=true`` to any tool to receive the original
-  NetLicensing API payload nested under the ``"raw"`` key alongside the
-  normalized envelope.
+- Pass ``include_raw=true`` to any tool to receive the sanitized
+  NetLicensing API *response* nested under the ``"raw"`` key, alongside
+  the normalized envelope built from it.
 """,
     host=os.getenv("MCP_HOST", "127.0.0.1"),
     port=int(os.getenv("MCP_PORT", "8000")),
@@ -205,7 +206,8 @@ def _wrap_json(entity: dict, kind: str, *, include_raw: bool = False) -> str:
     Args:
         entity:      Raw (stripped) NetLicensing API response.
         kind:        Entity type hint (e.g. ``"Licensee"``).
-        include_raw: When ``True``, embed the original payload under ``"raw"``.
+        include_raw: When ``True``, embed the sanitized upstream API
+                     response (the input *entity*) under ``"raw"``.
     """
     wrapped = wrap(entity, kind, raw=entity if include_raw else None)
     return _json(wrapped)
@@ -312,7 +314,7 @@ async def netlicensing_list_products(filter: str = "", include_raw: bool = False
 
     Args:
         filter: Optional server-side filter expression (e.g. 'active=true')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -330,7 +332,7 @@ async def netlicensing_get_product(product_number: str, include_raw: bool = Fals
 
     Args:
         product_number: Product identifier (e.g. 'P001')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -365,7 +367,7 @@ async def netlicensing_create_product(
         licensee_auto_create: Auto-create licensees on first validation attempt
         vat_mode: GROSS or NET (leave empty to use account default)
         licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty for default)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -452,7 +454,7 @@ async def netlicensing_update_product(
         vat_mode: GROSS or NET (leave empty to keep current)
         licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty to keep current)
         confirm_token: Confirmation token (required when licenseeAutoCreate or vatMode change)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         sensitive = licensee_auto_create is not None or bool(vat_mode)
@@ -593,7 +595,7 @@ async def netlicensing_list_bundles(include_raw: bool = False) -> str:
     """List all bundles in the NetLicensing account.
 
     Args:
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(await bundles.list_bundles(), "Bundle", include_raw=include_raw)
@@ -607,7 +609,7 @@ async def netlicensing_get_bundle(bundle_number: str, include_raw: bool = False)
 
     Args:
         bundle_number: Bundle identifier (e.g. 'B001')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -638,7 +640,7 @@ async def netlicensing_create_bundle(
         price: Optional bundle price
         currency: ISO 4217 currency code (e.g. EUR, USD — leave empty for account default)
         description: Optional bundle description
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -679,7 +681,7 @@ async def netlicensing_update_bundle(
         price: New price (omit to keep current)
         currency: New currency code (leave empty to keep current)
         description: New description (leave empty to keep current)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -778,7 +780,7 @@ async def netlicensing_obtain_bundle(
     Args:
         bundle_number: Bundle to obtain
         licensee_number: Customer (licensee) who receives the licenses
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -804,7 +806,7 @@ async def netlicensing_list_product_modules(
     Args:
         product_number: Product whose modules to list
         filter: Optional server-side filter expression (e.g. 'active=true')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -825,7 +827,7 @@ async def netlicensing_get_product_module(module_number: str, include_raw: bool 
 
     Args:
         module_number: Module identifier
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -848,6 +850,7 @@ async def netlicensing_create_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Create a product module with a licensing model.
@@ -863,7 +866,8 @@ async def netlicensing_create_product_module(
         yellow_threshold: Remaining time volume for yellow warning (Rental model)
         red_threshold: Remaining time volume for red warning (Rental model)
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        custom_properties: Additional properties as key-value pairs (e.g. skudef for PricingTable)
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -877,6 +881,7 @@ async def netlicensing_create_product_module(
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
                 node_secret_mode=node_secret_mode or None,
+                custom_properties=custom_properties,
             ),
             "ProductModule",
             include_raw=include_raw,
@@ -894,6 +899,7 @@ async def netlicensing_update_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Update a product module's properties.
@@ -906,7 +912,8 @@ async def netlicensing_update_product_module(
         yellow_threshold: Remaining time volume for yellow warning (Rental model, omit to keep current)
         red_threshold: Remaining time volume for red warning (Rental model, omit to keep current)
         node_secret_mode: PREDEFINED or CLIENT (NodeLocked model, leave empty to keep current)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        custom_properties: Additional properties to set or update as key-value pairs
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -918,6 +925,7 @@ async def netlicensing_update_product_module(
                 yellow_threshold=yellow_threshold,
                 red_threshold=red_threshold,
                 node_secret_mode=node_secret_mode or None,
+                custom_properties=custom_properties,
             ),
             "ProductModule",
             include_raw=include_raw,
@@ -1006,7 +1014,7 @@ async def netlicensing_list_license_templates(
     Args:
         module_number: Module whose templates to list
         filter: Optional server-side filter expression (e.g. 'active=true')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1027,7 +1035,7 @@ async def netlicensing_get_license_template(template_number: str, include_raw: b
 
     Args:
         template_number: Template identifier
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1056,6 +1064,7 @@ async def netlicensing_create_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Create a license template.
@@ -1076,7 +1085,8 @@ async def netlicensing_create_license_template(
         max_sessions: Concurrent sessions allowed (FLOATING type)
         quantity: Usage quota (QUANTITY / PayPerUse type)
         grace_period: Allow grace period after expiry (Subscription model)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        custom_properties: Additional properties as key-value pairs (e.g. skus for PricingTable, description)
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1096,6 +1106,7 @@ async def netlicensing_create_license_template(
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
+                custom_properties=custom_properties,
             ),
             "LicenseTemplate",
             include_raw=include_raw,
@@ -1158,6 +1169,7 @@ async def netlicensing_update_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     confirm_token: str = "",
     include_raw: bool = False,
 ) -> str:
@@ -1180,8 +1192,9 @@ async def netlicensing_update_license_template(
         max_sessions: Concurrent sessions — FLOATING type (omit to keep current)
         quantity: Usage quota — QUANTITY / PayPerUse type (omit to keep current)
         grace_period: Grace period after expiry — Subscription model (omit to keep current)
+        custom_properties: Additional properties to set or update as key-value pairs
         confirm_token: Confirmation token (required when price, currency, or active change)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         sensitive = price is not None or bool(currency) or active is not None
@@ -1232,6 +1245,7 @@ async def netlicensing_update_license_template(
                 max_sessions=max_sessions,
                 quantity=quantity,
                 grace_period=grace_period,
+                custom_properties=custom_properties,
             ),
             "LicenseTemplate",
             include_raw=include_raw,
@@ -1330,7 +1344,7 @@ async def netlicensing_list_licensees(
     Args:
         product_number: Product to list customers for
         filter: Optional server-side filter expression (e.g. 'active=true')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1351,7 +1365,7 @@ async def netlicensing_get_licensee(licensee_number: str, include_raw: bool = Fa
 
     Args:
         licensee_number: Licensee identifier (e.g. 'I001')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1382,7 +1396,7 @@ async def netlicensing_create_licensee(
         active: Whether the licensee is active
         marked_for_transfer: Mark licensee for license transfer
         licensee_secret: Secret for licensee identification (when product licenseeSecretMode is PREDEFINED)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1418,7 +1432,7 @@ async def netlicensing_update_licensee(
         active: New active state (omit to keep current)
         marked_for_transfer: Mark for license transfer (omit to keep current)
         licensee_secret: Secret for licensee identification (leave empty to keep current)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1521,7 +1535,7 @@ async def netlicensing_validate_licensee(
         action: Floating model — 'checkOut' or 'checkIn'
         product_module_number: NodeLocked model — target product module
         node_secret: NodeLocked model — unique device/node secret
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1552,7 +1566,7 @@ async def netlicensing_transfer_licenses(
     Args:
         from_licensee_number: Source licensee
         to_licensee_number: Destination licensee
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1581,7 +1595,7 @@ async def netlicensing_list_licenses(
     Args:
         licensee_number: Customer whose licenses to list
         filter: Optional server-side filter expression (e.g. 'active=true')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1602,7 +1616,7 @@ async def netlicensing_get_license(license_number: str, include_raw: bool = Fals
 
     Args:
         license_number: License identifier
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1647,7 +1661,7 @@ async def netlicensing_create_license(
         quantity: Usage quota — mandatory for PayPerUse / NodeLocked models
         parent_feature: Parent feature — mandatory for TIMEVOLUME + Rental model
         hidden: Hide license from end customer in Shop (omit to inherit)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1704,7 +1718,7 @@ async def netlicensing_update_license(
         used_quantity: Used count — PayPerUse model (leave empty to keep current)
         parent_feature: Parent feature — Rental model (leave empty to keep current)
         hidden: Visibility in Shop (omit to keep current)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -1811,7 +1825,7 @@ async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) 
 
     Args:
         filter: Optional server-side filter expression (e.g. 'tokenType=SHOP')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json_token_read(
@@ -1828,7 +1842,7 @@ async def netlicensing_get_token(token_number: str, include_raw: bool = False) -
 
     Args:
         token_number: Token identifier
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json_token_read(
@@ -1860,7 +1874,7 @@ async def netlicensing_create_shop_token(
         cancel_url: Optional URL to redirect to if customer cancels
         success_url_title: Optional button/link label for success redirect
         cancel_url_title: Optional button/link label for cancel redirect
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         raw = await tokens.create_shop_token(
@@ -1890,7 +1904,7 @@ async def netlicensing_create_api_token(
         api_key_role: ROLE_APIKEY_LICENSEE | ROLE_APIKEY_ANALYTICS |
               ROLE_APIKEY_OPERATION | ROLE_APIKEY_MAINTENANCE | ROLE_APIKEY_ADMIN
         licensee_number: Optional — scope token to a specific licensee
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         raw = await tokens.create_api_token(api_key_role, licensee_number or None)
@@ -1981,7 +1995,7 @@ async def netlicensing_list_transactions(filter: str = "", include_raw: bool = F
 
     Args:
         filter: Optional server-side filter expression (e.g. 'status=CLOSED')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2001,7 +2015,7 @@ async def netlicensing_get_transaction(transaction_number: str, include_raw: boo
 
     Args:
         transaction_number: Transaction identifier
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2038,7 +2052,7 @@ async def netlicensing_create_transaction(
         date_created: Optional ISO 8601 creation timestamp
         date_closed: Optional ISO 8601 close timestamp
         payment_method: Optional payment method number
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2079,7 +2093,7 @@ async def netlicensing_update_transaction(
         name: Human-readable name (leave empty to keep current)
         date_closed: ISO 8601 close timestamp (leave empty to keep current)
         payment_method: Payment method number (leave empty to keep current)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2109,7 +2123,7 @@ async def netlicensing_list_payment_methods(filter: str = "", include_raw: bool 
 
     Args:
         filter: Optional server-side filter expression (e.g. 'active=true')
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2131,7 +2145,7 @@ async def netlicensing_get_payment_method(
 
     Args:
         payment_method_number: Payment method identifier
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2194,7 +2208,7 @@ async def netlicensing_update_payment_method(
         active: Enable or disable the payment method
         paypal_subject: PayPal account e-mail address
         confirm_token: Confirmation token (required when active changes)
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         if active is not None:
@@ -2241,7 +2255,7 @@ async def netlicensing_list_licensing_models(include_raw: bool = False) -> str:
     """List all licensing models supported by the NetLicensing service.
 
     Args:
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2256,7 +2270,7 @@ async def netlicensing_list_license_types(include_raw: bool = False) -> str:
     """List all license types supported by the NetLicensing service.
 
     Args:
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
@@ -2271,7 +2285,7 @@ async def netlicensing_list_countries(include_raw: bool = False) -> str:
     """List all countries available for VAT and localization settings.
 
     Args:
-        include_raw: When true, include the original NetLicensing API payload under 'raw'
+        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(await utilities.list_countries(), "Country", include_raw=include_raw)
@@ -2304,8 +2318,9 @@ async def netlicensing_get_customer_health(
         refresh_warning_level: When True, runs a dry-run validate_licensee to
                                get live warning levels and quota/session info.
                                Slightly slower but more accurate.
-        include_raw:           When True, include the original NetLicensing
-                               API payloads under 'raw'.
+        include_raw:           When True, include the sanitized upstream
+                               NetLicensing API responses (licensee, licenses,
+                               validation) under 'raw'.
     """
     try:
         licensee = await licensees.get_licensee(licensee_number)
@@ -2349,8 +2364,8 @@ async def netlicensing_explain_validation(
         module_parameters: Optional per-module overrides. Each dict may
                            contain: product_module_number, node_secret,
                            session_id, action.
-        include_raw:       When True, include the original validation payload
-                           under 'raw'.
+        include_raw:       When True, include the sanitized upstream
+                           validate_licensee API response under 'raw'.
     """
     from netlicensing_mcp.workflows import validation_explain as _val_explain
 
