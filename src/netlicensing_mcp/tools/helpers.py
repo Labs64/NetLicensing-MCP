@@ -12,8 +12,21 @@ from netlicensing_mcp.client import NetLicensingError
 # on the NetLicensing server side.
 STRIP_OUTPUT_FIELDS: frozenset[str] = frozenset({"logo"})
 
+# JSON scalar types MCP clients may send for a custom property value.
+CustomPropertyValue = str | int | float | bool
 
-def merge_custom_properties(data: dict[str, str], custom_properties: dict[str, str] | None) -> None:
+
+def _coerce_form_value(value: CustomPropertyValue) -> str:
+    """Stringify *value* for a form-encoded request, matching the convention
+    used elsewhere in the tools layer (lowercase ``"true"``/``"false"``)."""
+    if isinstance(value, bool):
+        return str(value).lower()
+    return str(value)
+
+
+def merge_custom_properties(
+    data: dict[str, str], custom_properties: dict[str, CustomPropertyValue] | None
+) -> None:
     """Merge *custom_properties* into the request payload *data* in place.
 
     Raises ``NetLicensingError`` instead of silently overwriting a reserved
@@ -29,7 +42,7 @@ def merge_custom_properties(data: dict[str, str], custom_properties: dict[str, s
             400,
             f"custom_properties conflicts with reserved field(s): {', '.join(conflicts)}",
         )
-    data.update({k: str(v) for k, v in custom_properties.items()})
+    data.update({k: _coerce_form_value(v) for k, v in custom_properties.items()})
 
 
 def strip_output_fields(data: Any, fields: frozenset[str] = STRIP_OUTPUT_FIELDS) -> Any:

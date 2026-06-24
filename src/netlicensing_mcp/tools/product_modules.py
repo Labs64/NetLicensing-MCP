@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import merge_custom_properties
+from netlicensing_mcp.tools.helpers import CustomPropertyValue, merge_custom_properties
 
 
 async def list_product_modules(
@@ -51,7 +51,7 @@ async def create_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str | None = None,
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
 ) -> dict:
     """
     Create a product module with the specified licensing model.
@@ -95,7 +95,7 @@ async def update_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str | None = None,
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
 ) -> dict:
     """Update a product module's properties.
 

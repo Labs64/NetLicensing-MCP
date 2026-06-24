@@ -41,6 +41,7 @@ from netlicensing_mcp.tools import (
     transactions,
     utilities,
 )
+from netlicensing_mcp.tools.helpers import CustomPropertyValue
 
 # Configure logging to output to stdout
 logging.basicConfig(
@@ -849,7 +850,7 @@ async def netlicensing_create_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Create a product module with a licensing model.
@@ -898,7 +899,7 @@ async def netlicensing_update_product_module(
     yellow_threshold: int | None = None,
     red_threshold: int | None = None,
     node_secret_mode: str = "",
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Update a product module's properties.
@@ -1063,7 +1064,7 @@ async def netlicensing_create_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     include_raw: bool = False,
 ) -> str:
     """Create a license template.
@@ -1168,7 +1169,7 @@ async def netlicensing_update_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
     confirm_token: str = "",
     include_raw: bool = False,
 ) -> str:

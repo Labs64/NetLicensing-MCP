@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import merge_custom_properties
+from netlicensing_mcp.tools.helpers import CustomPropertyValue, merge_custom_properties
 
 
 async def list_license_templates(
@@ -57,7 +57,7 @@ async def create_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
 ) -> dict:
     """
     Create a license template.
@@ -114,7 +114,7 @@ async def update_license_template(
     max_sessions: int | None = None,
     quantity: int | None = None,
     grace_period: bool | None = None,
-    custom_properties: dict[str, str] | None = None,
+    custom_properties: dict[str, CustomPropertyValue] | None = None,
 ) -> dict:
     """Update a license template.
 

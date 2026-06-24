@@ -1441,7 +1441,7 @@ def test_merge_custom_properties_coerces_values_to_str():
 
     data: dict[str, str] = {"number": "M01"}
     merge_custom_properties(data, {"maxUsers": 5, "enabled": True})
-    assert data == {"number": "M01", "maxUsers": "5", "enabled": "True"}
+    assert data == {"number": "M01", "maxUsers": "5", "enabled": "true"}
 
 
 def test_merge_custom_properties_noop_when_empty():
