@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+import netlicensing_mcp.server as server
 from netlicensing_mcp.workflows.validation_explain import explain_validation
 
 FIXTURES_CH = Path(__file__).parent / "fixtures" / "customer_health"
@@ -251,9 +252,7 @@ async def test_tool_sends_dry_run_true(monkeypatch):
     mock_post = AsyncMock(return_value=validation_payload)
 
     with patch("netlicensing_mcp.tools.licensees.nl_post", new=mock_post):
-        from netlicensing_mcp.server import netlicensing_explain_validation
-
-        await netlicensing_explain_validation("CUST-ACME")
+        await server.netlicensing_explain_validation("CUST-ACME")
 
     call_data = mock_post.call_args[0][1]
     assert call_data.get("dryRun") == "true"
@@ -265,7 +264,6 @@ def test_suggested_actions_name_only_registered_tools():
     from pathlib import Path
 
     import netlicensing_mcp
-    import netlicensing_mcp.server as server
 
     registered = {t.name for t in server.mcp._tool_manager.list_tools()}
     src = Path(netlicensing_mcp.__file__).parent / "workflows"

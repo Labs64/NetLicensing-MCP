@@ -13,7 +13,7 @@ from unittest.mock import patch
 import httpx
 
 import netlicensing_mcp.server as server
-from netlicensing_mcp.client import _log_path, api_key_ctx
+from netlicensing_mcp.client import _log_path, api_key_ctx, nl_get
 
 _HEADERS = {"accept": "application/json, text/event-stream", "content-type": "application/json"}
 
@@ -70,18 +70,16 @@ async def test_debug_log_does_not_contain_token_number(caplog):
     import logging
     from unittest.mock import AsyncMock
 
-    import netlicensing_mcp.client as client
-
     fake = AsyncMock()
     fake.get.return_value = httpx.Response(200, json={})
-    tok = client.api_key_ctx.set("k")
+    tok = api_key_ctx.set("k")
     try:
         with (
             patch("netlicensing_mcp.client._get_client", return_value=fake),
             caplog.at_level(logging.DEBUG, logger="netlicensing_mcp.client"),
         ):
-            await client.nl_get("/token/SUPER-SECRET-KEY")
+            await nl_get("/token/SUPER-SECRET-KEY")
     finally:
-        client.api_key_ctx.reset(tok)
+        api_key_ctx.reset(tok)
     assert "SUPER-SECRET-KEY" not in caplog.text
     assert "/token/****" in caplog.text

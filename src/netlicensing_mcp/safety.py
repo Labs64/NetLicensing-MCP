@@ -10,7 +10,7 @@ Pattern:
 
 from __future__ import annotations
 
-import hashlib
+import hmac
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
@@ -23,14 +23,19 @@ TOKEN_TTL = timedelta(minutes=5)
 _SUFFIX_LENGTH = 10
 
 # token_str → (operation, target, expires_at, owner)
-# *owner* is a digest of the caller's API key, so in a shared HTTP deployment one
-# tenant cannot consume or invalidate another tenant's confirmation token.
+# *owner* is a keyed digest of the caller's API key, so in a shared HTTP deployment
+# one tenant cannot consume or invalidate another tenant's confirmation token.
 _store: dict[str, tuple[str, str, datetime, str]] = {}
+
+# Random per-process key for the owner digest. The digest is only compared inside
+# this process and dies with it, so it is a keyed MAC used as an opaque identity
+# label, not a stored password hash.
+_OWNER_MAC_KEY = secrets.token_bytes(32)
 
 
 def _owner() -> str:
-    """Return a digest identifying the current caller's API key (never the key)."""
-    return hashlib.sha256(api_key_ctx.get().encode()).hexdigest()
+    """Return an opaque label for the current caller's API key (never the key)."""
+    return hmac.new(_OWNER_MAC_KEY, api_key_ctx.get().encode(), "sha256").hexdigest()
 
 
 def _purge_expired() -> None:
@@ -51,7 +56,7 @@ def issue_token(operation: str, target: str) -> tuple[str, datetime]:
     stale = [
         k
         for k, (op, tgt, _, own) in _store.items()
-        if op == operation and tgt == target and own == owner
+        if op == operation and tgt == target and hmac.compare_digest(own, owner)
     ]
     for k in stale:
         del _store[k]
@@ -79,7 +84,7 @@ def validate_and_consume(token: str, operation: str, target: str) -> None:
     """
     entry = _store.get(token)
     # A token issued under a different API key is reported as unknown.
-    if entry is not None and entry[3] != _owner():
+    if entry is not None and not hmac.compare_digest(entry[3], _owner()):
         entry = None
     if entry is None:
         raise ValueError(f"Invalid or already used confirmation token: {token!r}")

@@ -9,7 +9,6 @@ import httpx
 import pytest
 
 import netlicensing_mcp.client as client
-from netlicensing_mcp.client import NetLicensingError
 
 
 @pytest.fixture
@@ -41,7 +40,7 @@ async def _call(helper: str):
 async def test_transport_errors_become_netlicensing_error(helper, exc, status, fake_http):
     method = helper.removeprefix("nl_")
     getattr(fake_http, method).side_effect = exc
-    with pytest.raises(NetLicensingError) as e:
+    with pytest.raises(client.NetLicensingError) as e:
         await _call(helper)
     assert e.value.status_code == status
     assert "secret-path" not in e.value.detail
@@ -52,7 +51,7 @@ async def test_transport_errors_become_netlicensing_error(helper, exc, status, f
 async def test_bad_2xx_body_becomes_502(helper, body, fake_http):
     method = helper.removeprefix("nl_")
     getattr(fake_http, method).return_value = httpx.Response(200, content=body)
-    with pytest.raises(NetLicensingError) as e:
+    with pytest.raises(client.NetLicensingError) as e:
         await _call(helper)
     assert e.value.status_code == 502
 
