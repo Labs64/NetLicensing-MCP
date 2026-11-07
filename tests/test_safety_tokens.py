@@ -659,3 +659,11 @@ def test_token_does_not_embed_target_and_is_long():
     token, _ = safety.issue_token("delete_token", "SECRET-API-KEY-VALUE")
     assert "SECRET" not in token
     assert len(token.removeprefix("CONF-")) >= 10
+
+
+def test_unknown_token_is_rejected_without_hashing():
+    from unittest.mock import patch
+
+    with patch.object(safety, "_owner", side_effect=AssertionError("hashed")):
+        with pytest.raises(ValueError, match="Invalid"):
+            safety.validate_and_consume("CONF-NOSUCHTOKEN", "delete_product", "P001")

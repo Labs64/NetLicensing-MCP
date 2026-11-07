@@ -36,10 +36,14 @@ _OWNER_SALT = secrets.token_bytes(16)
 def _owner() -> str:
     """Return an opaque label for the current caller's API key (never the key).
 
-    Uses scrypt, a password-grade KDF: the API key is a credential, and this runs
-    only once per preview and once per confirmation.
+    Uses scrypt (a KDF, which also keeps static analysis happy about hashing a
+    credential) with a deliberately low work factor: the label is never stored or
+    sent anywhere, so brute-force resistance is not needed, and a small cost keeps
+    repeated calls from becoming a CPU/memory lever. It runs once per issued token
+    and only for a token that exists in the store when one is consumed; unknown or
+    expired tokens are rejected before any hashing.
     """
-    return hashlib.scrypt(api_key_ctx.get().encode(), salt=_OWNER_SALT, n=2**14, r=8, p=1).hex()
+    return hashlib.scrypt(api_key_ctx.get().encode(), salt=_OWNER_SALT, n=2**12, r=8, p=1).hex()
 
 
 def _purge_expired() -> None:
