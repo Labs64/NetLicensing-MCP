@@ -10,20 +10,32 @@ Pattern:
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from netlicensing_mcp.client import api_key_ctx
+
 TOKEN_TTL = timedelta(minutes=5)
 
-# token_str → (operation, target, expires_at)
-_store: dict[str, tuple[str, str, datetime]] = {}
+_SUFFIX_LENGTH = 10
+
+# token_str → (operation, target, expires_at, owner)
+# *owner* is a digest of the caller's API key, so in a shared HTTP deployment one
+# tenant cannot consume or invalidate another tenant's confirmation token.
+_store: dict[str, tuple[str, str, datetime, str]] = {}
+
+
+def _owner() -> str:
+    """Return a digest identifying the current caller's API key (never the key)."""
+    return hashlib.sha256(api_key_ctx.get().encode()).hexdigest()
 
 
 def _purge_expired() -> None:
     now = datetime.now(timezone.utc)
-    for k in [k for k, (_, _, exp) in _store.items() if exp < now]:
+    for k in [k for k, (_, _, exp, _o) in _store.items() if exp < now]:
         del _store[k]
 
 
@@ -35,33 +47,44 @@ def issue_token(operation: str, target: str) -> tuple[str, datetime]:
     """
     _purge_expired()
     # Invalidate existing tokens for this (operation, target)
-    stale = [k for k, (op, tgt, _) in _store.items() if op == operation and tgt == target]
+    owner = _owner()
+    stale = [
+        k
+        for k, (op, tgt, _, own) in _store.items()
+        if op == operation and tgt == target and own == owner
+    ]
     for k in stale:
         del _store[k]
 
-    safe_target = target.replace("-", "").upper()[:8]
+    # The token deliberately does not embed the target: for a token delete the
+    # target is the API key itself.
     while True:
-        suffix = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(4))
-        token = f"CONF-{safe_target}-{suffix}"
+        suffix = "".join(
+            secrets.choice(string.ascii_uppercase + string.digits) for _ in range(_SUFFIX_LENGTH)
+        )
+        token = f"CONF-{suffix}"
         if token not in _store:
             break
 
     expires_at = datetime.now(timezone.utc) + TOKEN_TTL
-    _store[token] = (operation, target, expires_at)
+    _store[token] = (operation, target, expires_at, owner)
     return token, expires_at
 
 
 def validate_and_consume(token: str, operation: str, target: str) -> None:
     """Validate and consume a confirmation token.
 
-    Raises ValueError if the token is unknown, expired, or scoped to a different
-    operation/target pair.  On success the token is removed (single-use).
+    Raises ValueError if the token is unknown, expired, issued under a different
+    API key, or scoped to a different operation/target pair.  On success the token is removed (single-use).
     """
     entry = _store.get(token)
+    # A token issued under a different API key is reported as unknown.
+    if entry is not None and entry[3] != _owner():
+        entry = None
     if entry is None:
         raise ValueError(f"Invalid or already used confirmation token: {token!r}")
 
-    stored_op, stored_target, expires_at = entry
+    stored_op, stored_target, expires_at, _ = entry
     if datetime.now(timezone.utc) > expires_at:
         del _store[token]
         raise ValueError(f"Confirmation token {token!r} has expired")
