@@ -127,6 +127,18 @@ def _fully_unquote(segment: str) -> str:
     raise NetLicensingError(400, "Invalid identifier: excessive percent-encoding")
 
 
+def _log_path(path: str) -> str:
+    """Return *path* with the identifier of ``/token/<number>`` masked.
+
+    For APIKEY tokens the number is the API key itself, so it must not be
+    written to logs.
+    """
+    parts = path.split("/")
+    if len(parts) > 2 and parts[1] == "token":
+        parts[2:] = ["****"] * (len(parts) - 2)
+    return "/".join(parts)
+
+
 # ── Auth header ──────────────────────────────────────────────────────────────
 
 
@@ -194,7 +206,7 @@ async def close_client() -> None:
 async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
-    logger.debug("GET %s params_present=%s", url, bool(params))
+    logger.debug("GET %s%s params_present=%s", BASE_URL, _log_path(path), bool(params))
     r = await client.get(url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
@@ -204,7 +216,7 @@ async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, A
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
-    logger.debug("POST %s data_present=%s", url, bool(data))
+    logger.debug("POST %s%s data_present=%s", BASE_URL, _log_path(path), bool(data))
     r = await client.post(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
@@ -218,7 +230,7 @@ async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, An
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
     client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
-    logger.debug("PUT %s data_present=%s", url, bool(data))
+    logger.debug("PUT %s%s data_present=%s", BASE_URL, _log_path(path), bool(data))
     r = await client.put(
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
@@ -233,7 +245,7 @@ async def nl_delete(path: str, params: dict[str, str] | None = None) -> int:
     """Delete a resource. Returns HTTP status code (200 or 204)."""
     client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
-    logger.debug("DELETE %s params_present=%s", url, bool(params))
+    logger.debug("DELETE %s%s params_present=%s", BASE_URL, _log_path(path), bool(params))
     r = await client.delete(url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
