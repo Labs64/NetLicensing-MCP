@@ -113,13 +113,14 @@ Once deployed, configure your MCP client to use the public URL with the
 
 ### Claude Desktop / VS Code
 
-To securely invoke the remote MCP server for a specific vendor account, pass your NetLicensing API Key using the `apikey` query parameter:
+To securely invoke the remote MCP server for a specific vendor account, pass your NetLicensing API Key in the `X-NetLicensing-API-Key` header (or `Authorization: Bearer`):
 
 ```json
 {
   "mcpServers": {
     "netlicensing": {
-      "url": "https://your-alb-dns.us-east-1.elb.amazonaws.com/mcp?apikey=YOUR_API_KEY"
+      "url": "https://your-alb-dns.us-east-1.elb.amazonaws.com/mcp",
+      "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" }
     }
   }
 }
@@ -127,14 +128,12 @@ To securely invoke the remote MCP server for a specific vendor account, pass you
 
 ### Generic streamable-http client
 
-Pass the API key dynamically per client via HTTP headers or in the URL string:
+Pass the API key dynamically per client via HTTP headers:
 
 ```python
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
-# You can pass the key in the URL: "https://your-endpoint/mcp?apikey=foo"
-# Or natively with headers:
 headers = {"X-NetLicensing-API-Key": "YOUR_API_KEY"}
 
 async with streamablehttp_client("https://your-endpoint/mcp", headers=headers) as (read, write, _):

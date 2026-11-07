@@ -151,7 +151,7 @@ docker run -i --rm \
 
 > **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode) or return `503 Service Unavailable` for all tool calls (HTTP mode). This prevents accidental use of demo credentials in production.
 
-> **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header, or `?apikey=<key>` query parameter.
+> **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header. Query-parameter keys are not supported, because URLs are logged by proxies and load balancers.
 
 ---
  
@@ -341,21 +341,22 @@ cd deploy/aws
 
 #### Connect MCP clients to the public URL
 
-To use a shared, remote deployment, do not bake the `NETLICENSING_API_KEY` into the remote server settings. Instead, pass the API key from the client side using query parameters or HTTP headers.
+To use a shared, remote deployment, do not bake the `NETLICENSING_API_KEY` into the remote server settings. Instead, pass the API key from the client side in an HTTP header.
 
-For example, using the URL configuration in your MCP client with a query parameter:
+For example, in your MCP client configuration:
 
 ```json
 {
   "mcpServers": {
     "netlicensing": {
-      "url": "https://your-endpoint.us-east-1.elb.amazonaws.com/mcp?apikey=YOUR_API_KEY"
+      "url": "https://your-endpoint.us-east-1.elb.amazonaws.com/mcp",
+      "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" }
     }
   }
 }
 ```
 
-If you use a client or tool that supports passing HTTP headers directly, you can alternatively provide the key via `X-NetLicensing-API-Key: YOUR_API_KEY` or `Authorization: Bearer YOUR_API_KEY`.
+You can alternatively send `Authorization: Bearer YOUR_API_KEY`.
 
 📖 Full instructions, architecture diagrams, and cost estimates: **[deploy/aws/README.md](deploy/aws/README.md)**
 

@@ -1,3 +1,12 @@
+# Stage 1: export the locked runtime dependencies (with hashes) from uv.lock,
+# so the image runs exactly the versions CI and pip-audit saw.
+FROM python:3.12-slim AS requirements
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /usr/local/bin/uv
+WORKDIR /build
+COPY pyproject.toml uv.lock ./
+RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt
+
+# Stage 2: runtime image
 FROM python:3.12-slim
 
 # Consolidated labels (single layer)
@@ -9,11 +18,10 @@ LABEL org.opencontainers.image.title="netlicensing-mcp" \
 WORKDIR /app
 
 # 1. Install dependencies first (layer-cached)
-COPY pyproject.toml README.md ./
-RUN pip install --no-cache-dir "mcp[cli]>=1.7.0" httpx python-dotenv
+COPY --from=requirements /build/requirements.txt ./
+RUN pip install --no-cache-dir --require-hashes -r requirements.txt
 
-# 2. Copy source and install package (non-editable for production)
-COPY src/ ./src/
+# 2. Install the pre-built wheel (run `hatch build --target wheel` first)
 COPY dist/*.whl ./
 RUN pip install --no-cache-dir --no-deps \
     $(ls netlicensing_mcp-*.whl | sort -V | tail -1)
@@ -33,6 +41,11 @@ USER appuser
 #   docker run ... image -v           → verbose stdio
 #   docker run ... image http -v      → verbose HTTP
 # Or use env vars: MCP_TRANSPORT=http  MCP_VERBOSE=true
+COPY healthcheck.py /usr/local/bin/healthcheck.py
+# Probes /health in HTTP mode; reports healthy in stdio mode, which has no port.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["python", "/usr/local/bin/healthcheck.py"]
+
 EXPOSE 8000
 ENTRYPOINT ["netlicensing-mcp"]
 CMD []

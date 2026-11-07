@@ -77,6 +77,7 @@ def test_validate_expired():
         "delete_product",
         "P001",
         datetime.now(timezone.utc) - timedelta(seconds=1),
+        safety._owner(),
     )
     with pytest.raises(ValueError, match="expired"):
         safety.validate_and_consume(token, "delete_product", "P001")
@@ -599,3 +600,62 @@ async def test_update_license_template_non_sensitive_executes_directly():
 
         result = json.loads(await netlicensing_update_license_template("LT01", name="New Name"))
         assert "confirmation_token" not in result
+
+
+# ─── Ownership and token shape (review issue #7) ──────────────────────────────
+
+
+def _as_key(key: str):
+    from netlicensing_mcp.client import api_key_ctx
+
+    return api_key_ctx.set(key)
+
+
+def test_token_cannot_be_consumed_under_another_api_key():
+    from netlicensing_mcp.client import api_key_ctx
+
+    t = _as_key("TENANT-A")
+    try:
+        token, _ = safety.issue_token("delete_product", "P001")
+    finally:
+        api_key_ctx.reset(t)
+
+    t = _as_key("TENANT-B")
+    try:
+        with pytest.raises(ValueError, match="Invalid"):
+            safety.validate_and_consume(token, "delete_product", "P001")
+    finally:
+        api_key_ctx.reset(t)
+
+    # Tenant A's token is still valid: B's attempt did not consume it.
+    t = _as_key("TENANT-A")
+    try:
+        safety.validate_and_consume(token, "delete_product", "P001")
+    finally:
+        api_key_ctx.reset(t)
+
+
+def test_other_tenant_issue_does_not_invalidate_token():
+    from netlicensing_mcp.client import api_key_ctx
+
+    t = _as_key("TENANT-A")
+    try:
+        token_a, _ = safety.issue_token("delete_product", "P001")
+    finally:
+        api_key_ctx.reset(t)
+    t = _as_key("TENANT-B")
+    try:
+        safety.issue_token("delete_product", "P001")
+    finally:
+        api_key_ctx.reset(t)
+    t = _as_key("TENANT-A")
+    try:
+        safety.validate_and_consume(token_a, "delete_product", "P001")
+    finally:
+        api_key_ctx.reset(t)
+
+
+def test_token_does_not_embed_target_and_is_long():
+    token, _ = safety.issue_token("delete_token", "SECRET-API-KEY-VALUE")
+    assert "SECRET" not in token
+    assert len(token.removeprefix("CONF-")) >= 10

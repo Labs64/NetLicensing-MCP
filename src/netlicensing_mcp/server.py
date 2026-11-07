@@ -53,6 +53,11 @@ logger = logging.getLogger(__name__)
 
 mcp = FastMCP(
     "netlicensing-mcp",
+    # Stateless HTTP: every request gets a fresh transport and context, so the
+    # per-request API key set by ApiKeyMiddleware is the one the tool uses. In
+    # stateful mode the SDK runs a session in the task of the request that
+    # created it, which pins that request's key for the whole session.
+    stateless_http=True,
     instructions="""
 You are connected to the Labs64 NetLicensing REST API — a cloud-based
 online license and entitlements management system for software vendors.

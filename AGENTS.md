@@ -54,7 +54,7 @@ Three layers, top-down:
 
 ### API key resolution (`api_key_ctx`)
 
-API key is held in a **`contextvars.ContextVar`** (`client.api_key_ctx`), defaulted from `NETLICENSING_API_KEY`. In HTTP mode, `ApiKeyMiddleware` in `server.py` reads the key per-request from (in priority order) `X-NetLicensing-API-Key` header → `Authorization: Bearer …` → `?apikey=` query param, then `.set()`s the ContextVar for the duration of the request and resets it after. This means a single shared HTTP deployment can serve many tenants without baking a key into the server. Falls back to `demo:demo` credentials (sandbox) if no key is present.
+API key is held in a **`contextvars.ContextVar`** (`client.api_key_ctx`), defaulted from `NETLICENSING_API_KEY`. In HTTP mode, `ApiKeyMiddleware` in `server.py` reads the key per-request from (in priority order) `X-NetLicensing-API-Key` header → `Authorization: Bearer …` (no query-parameter form: URLs get logged), then `.set()`s the ContextVar for the duration of the request and resets it after. The server runs FastMCP with `stateless_http=True`; in stateful mode the SDK pins the session-creating request's key to every later call. This means a single shared HTTP deployment can serve many tenants without baking a key into the server. Falls back to `demo:demo` credentials (sandbox) if no key is present.
 
 ### Response shape conventions
 
