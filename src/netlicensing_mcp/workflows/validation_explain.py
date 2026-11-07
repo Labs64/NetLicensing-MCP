@@ -191,8 +191,8 @@ def _actions_for(row: dict[str, Any], licensee_number: str) -> list[str]:
                 )
             elif days <= WARN_DAYS:
                 actions.append(
-                    f"Send a renewal token: netlicensing_create_token("
-                    f'licensee_number="{licensee_number}", token_type="SHOP").'
+                    f"Send a SHOP renewal token: netlicensing_create_shop_token("
+                    f'licensee_number="{licensee_number}").'
                 )
 
     if "pay-per-use" in model_lower or "pay per use" in model_lower:

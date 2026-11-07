@@ -200,53 +200,75 @@ async def close_client() -> None:
         _client = None
 
 
+async def _send(method: str, url: str, **kwargs: Any) -> httpx.Response:
+    """Send a request, converting transport failures to ``NetLicensingError``.
+
+    The error text is fixed so it never carries the request URL.
+    """
+    try:
+        return await getattr(_get_client(), method)(url, **kwargs)
+    except httpx.TimeoutException as exc:
+        raise NetLicensingError(504, "NetLicensing API request timed out") from exc
+    except httpx.HTTPError as exc:
+        raise NetLicensingError(502, "Could not reach the NetLicensing API") from exc
+
+
+def _json_body(response: httpx.Response) -> dict[str, Any]:
+    """Parse a 2xx body as a JSON object, or raise ``NetLicensingError(502)``."""
+    try:
+        body = response.json()
+    except ValueError as exc:
+        raise NetLicensingError(502, "NetLicensing API returned a non-JSON response") from exc
+    if not isinstance(body, dict):
+        raise NetLicensingError(502, "NetLicensing API returned an unexpected response")
+    return body
+
+
 # ── Public helpers ───────────────────────────────────────────────────────────
 
 
 async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
-    client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("GET %s%s params_present=%s", BASE_URL, _log_path(path), bool(params))
-    r = await client.get(url, headers=_headers(), params=params or {})
+    r = await _send("get", url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
-    return r.json()
+    return _json_body(r)
 
 
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
-    client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("POST %s%s data_present=%s", BASE_URL, _log_path(path), bool(data))
-    r = await client.post(
+    r = await _send(
+        "post",
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
         data=data or {},
     )
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
-    return r.json()
+    return _json_body(r)
 
 
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
-    client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("PUT %s%s data_present=%s", BASE_URL, _log_path(path), bool(data))
-    r = await client.put(
+    r = await _send(
+        "put",
         url,
         headers=_headers({"Content-Type": "application/x-www-form-urlencoded"}),
         data=data,
     )
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
-    return r.json()
+    return _json_body(r)
 
 
 async def nl_delete(path: str, params: dict[str, str] | None = None) -> int:
     """Delete a resource. Returns HTTP status code (200 or 204)."""
-    client = _get_client()
     url = f"{BASE_URL}{_validated_path(path)}"
     logger.debug("DELETE %s%s params_present=%s", BASE_URL, _log_path(path), bool(params))
-    r = await client.delete(url, headers=_headers(), params=params or {})
+    r = await _send("delete", url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
     return r.status_code
