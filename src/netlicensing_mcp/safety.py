@@ -10,6 +10,7 @@ Pattern:
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import secrets
 import string
@@ -27,15 +28,18 @@ _SUFFIX_LENGTH = 10
 # one tenant cannot consume or invalidate another tenant's confirmation token.
 _store: dict[str, tuple[str, str, datetime, str]] = {}
 
-# Random per-process key for the owner digest. The digest is only compared inside
-# this process and dies with it, so it is a keyed MAC used as an opaque identity
-# label, not a stored password hash.
-_OWNER_MAC_KEY = secrets.token_bytes(32)
+# Random per-process salt for the owner label. The label is only compared inside
+# this process and dies with it.
+_OWNER_SALT = secrets.token_bytes(16)
 
 
 def _owner() -> str:
-    """Return an opaque label for the current caller's API key (never the key)."""
-    return hmac.new(_OWNER_MAC_KEY, api_key_ctx.get().encode(), "sha256").hexdigest()
+    """Return an opaque label for the current caller's API key (never the key).
+
+    Uses scrypt, a password-grade KDF: the API key is a credential, and this runs
+    only once per preview and once per confirmation.
+    """
+    return hashlib.scrypt(api_key_ctx.get().encode(), salt=_OWNER_SALT, n=2**14, r=8, p=1).hex()
 
 
 def _purge_expired() -> None:
