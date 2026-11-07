@@ -87,19 +87,44 @@ def _validated_path(path: str) -> str:
     ``/token`` — silently redirecting the request to an unintended endpoint and
     bypassing endpoint-specific redaction (e.g. token APIKEY masking).
 
-    Validate every segment before the request is built. ``unquote`` is applied
-    first because httpx does not decode ``%2f``/``%2e``, so percent-encoded
-    separators would otherwise reach the upstream untouched.
+    Validate every segment before the request is built. Each segment is
+    percent-decoded *repeatedly until stable* because httpx does not decode
+    ``%2f``/``%2e``, so encoded separators reach the upstream untouched — and
+    any layer in front of the backend that decodes more than once would turn
+    ``%252e%252e`` into ``..`` (GHSA-cwqx-x2qh-6mrx).
+
+    Servlet-style path parameters (``;…``) are stripped before the dot-segment
+    check, since Java containers resolve ``..;x`` as ``..``.
     """
     if not path.startswith("/"):
         raise NetLicensingError(400, "Internal error: upstream path must start with '/'")
     for segment in path.split("/"):
-        decoded = unquote(segment)
-        if decoded in {".", ".."} or "/" in decoded or "\\" in decoded:
+        decoded = _fully_unquote(segment)
+        if "/" in decoded or "\\" in decoded:
             raise NetLicensingError(400, "Invalid identifier: path separators are not allowed")
-        if any(ord(ch) < 32 for ch in decoded):
+        if decoded.split(";", 1)[0] in {".", ".."}:
+            raise NetLicensingError(400, "Invalid identifier: path separators are not allowed")
+        if any(ord(ch) < 32 or ord(ch) == 127 for ch in decoded):
             raise NetLicensingError(400, "Invalid identifier: control characters are not allowed")
     return path
+
+
+_MAX_DECODE_PASSES = 8
+
+
+def _fully_unquote(segment: str) -> str:
+    """Percent-decode *segment* until it stops changing.
+
+    Raises ``NetLicensingError`` if the encoding is nested deeper than
+    ``_MAX_DECODE_PASSES`` — no legitimate identifier needs that.
+    """
+    current = segment
+    for _ in range(_MAX_DECODE_PASSES):
+        decoded = unquote(current)
+        if decoded == current:
+            return decoded
+        current = decoded
+    raise NetLicensingError(400, "Invalid identifier: excessive percent-encoding")
 
 
 # ── Auth header ──────────────────────────────────────────────────────────────

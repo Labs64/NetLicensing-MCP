@@ -53,6 +53,19 @@ def test_legitimate_paths_pass(path):
         "/product/.",
         "/product/x\\y",  # backslash separator
         "/product/a%2fb",  # encoded separator inside a segment
+        # GHSA-cwqx-x2qh-6mrx — multi-layer percent-encoding
+        "/product/%252e%252e/token",  # double-encoded dot-dot (advisory PoC)
+        "/product/%25252e%25252e/token",  # triple-encoded dot-dot
+        "/product/..%252ftoken",  # double-encoded slash
+        "/product/a%255cb",  # double-encoded backslash
+        "/product/foo%2500bar",  # double-encoded control character
+        # Servlet-container path parameters (";…") are stripped before routing,
+        # so "..;x" is resolved as ".." by Tomcat-style backends.
+        "/product/..;/token",
+        "/product/..;jsessionid=x/token",
+        "/product/.;x",
+        "/product/..%3b/token",  # encoded ';'
+        "/product/..%253b/token",  # double-encoded ';'
     ],
 )
 def test_traversal_and_separator_paths_rejected(path):
@@ -66,6 +79,28 @@ def test_control_characters_rejected():
         _validated_path("/product/foo\nbar")
     assert exc.value.status_code == 400
     assert "control characters" in exc.value.detail
+
+
+def test_excessive_percent_encoding_rejected():
+    """Encoding nested deeper than the decode limit is rejected outright."""
+    segment = ".."
+    for _ in range(20):
+        segment = segment.replace("%", "%25").replace(".", "%2e")
+    with pytest.raises(NetLicensingError) as exc:
+        _validated_path(f"/product/{segment}/token")
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/product/P%2D001",  # benign encoded char still allowed
+        "/product/a;b",  # ';' inside an ordinary identifier is not traversal
+        "/product/..a",  # dots that are not a dot-segment
+    ],
+)
+def test_benign_encoded_and_dotted_identifiers_pass(path):
+    assert _validated_path(path) == path
 
 
 def test_non_rooted_path_rejected():
@@ -113,5 +148,16 @@ async def test_get_product_traversal_does_not_leak_token(mock_http_client):
 
     with pytest.raises(NetLicensingError):
         await get_product("../token")
+
+    mock_http_client.get.assert_not_called()
+
+
+@pytest.mark.parametrize("payload", ["%252e%252e/token", "..;/token"])
+async def test_get_product_encoded_traversal_does_not_leak_token(payload, mock_http_client):
+    """GHSA-cwqx-x2qh-6mrx: double-encoded / path-parameter variants must raise."""
+    from netlicensing_mcp.tools.products import get_product
+
+    with pytest.raises(NetLicensingError):
+        await get_product(payload)
 
     mock_http_client.get.assert_not_called()
