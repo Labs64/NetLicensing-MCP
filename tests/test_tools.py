@@ -448,7 +448,7 @@ async def test_list_product_modules_with_filter(module_response):
         assert result["items"]["item"][0]["type"] == "ProductModule"
         mock_get.assert_called_once_with(
             "/productmodule",
-            {"productNumber": "P001", "filter": "active=true"},
+            {"filter": "productNumber=P001;active=true"},
         )
 
 
@@ -623,7 +623,7 @@ async def test_list_license_templates_with_filter(template_response):
         assert result["items"]["item"][0]["type"] == "LicenseTemplate"
         mock_get.assert_called_once_with(
             "/licensetemplate",
-            {"productModuleNumber": "M01", "filter": "active=true"},
+            {"filter": "productModuleNumber=M01;active=true"},
         )
 
 
@@ -823,7 +823,7 @@ async def test_list_licensees_with_filter(licensee_response):
         assert result["items"]["item"][0]["type"] == "Licensee"
         mock_get.assert_called_once_with(
             "/licensee",
-            {"productNumber": "P001", "filter": "active=true"},
+            {"filter": "productNumber=P001;active=true"},
         )
 
 
@@ -996,7 +996,8 @@ async def test_transfer_licenses(licensee_response):
         from netlicensing_mcp.tools.licensees import transfer_licenses
 
         result = await transfer_licenses("I001", "I002")
-        assert "item" in result["items"]
+        assert result["transferred"] is True
+        assert result["to_licensee_number"] == "I002"
         mock_post.assert_called_once_with(
             "/licensee/I002/transfer",
             {"sourceLicenseeNumber": "I001"},
@@ -1027,7 +1028,7 @@ async def test_list_licenses_with_filter(license_response):
         assert result["items"]["item"][0]["type"] == "License"
         mock_get.assert_called_once_with(
             "/license",
-            {"licenseeNumber": "I001", "filter": "active=true"},
+            {"filter": "licenseeNumber=I001;active=true"},
         )
 
 
@@ -1230,7 +1231,8 @@ async def test_create_shop_token_all_fields(shop_token_response):
         call_data = mock_post.call_args[0][1]
         assert call_data["tokenType"] == "SHOP"
         assert call_data["licenseeNumber"] == "I001"
-        assert call_data["productNumber"] == "P001"
+        # M5: the API rejects productNumber together with licenseeNumber.
+        assert "productNumber" not in call_data
         assert call_data["licenseTemplateNumber"] == "LT01"
         assert call_data["successURL"] == "https://example.com/success"
         assert call_data["cancelURL"] == "https://example.com/cancel"

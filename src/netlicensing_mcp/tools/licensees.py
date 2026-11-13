@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from netlicensing_mcp.client import nl_delete, nl_get, nl_post
+from netlicensing_mcp.tools.helpers import scoped_filter
+from netlicensing_mcp.client import NetLicensingError, nl_delete, nl_get, nl_post
 
 
 async def list_licensees(
@@ -14,25 +15,17 @@ async def list_licensees(
     """List all licensees (customers) for a product.
 
     filter_str: optional server-side filter expression (e.g. 'active=true').
-    page / items_per_page: when provided, embeds all criteria (including
-        productNumber) into the ``filter`` query parameter using the
+    page / items_per_page: optional paging. All criteria (including
+        productNumber) go into the ``filter`` query parameter using the
         semicolon-separated format required by the NetLicensing API for
-        accurate pagination and total-item counts
+        scoping, pagination and total-item counts — a bare
+        query parameter is ignored by the API
         (e.g. ``filter=productNumber=P001;page=0;items=100``).
     """
-    if page is not None or items_per_page is not None:
-        parts = [f"productNumber={product_number}"]
-        if page is not None:
-            parts.append(f"page={page}")
-        if items_per_page is not None:
-            parts.append(f"items={items_per_page}")
-        if filter_str:
-            parts.append(filter_str)
-        return await nl_get("/licensee", {"filter": ";".join(parts)})
-    params: dict[str, str] = {"productNumber": product_number}
-    if filter_str:
-        params["filter"] = filter_str
-    return await nl_get("/licensee", params)
+    return await nl_get(
+        "/licensee",
+        scoped_filter("productNumber", product_number, filter_str, page, items_per_page),
+    )
 
 
 async def get_licensee(licensee_number: str) -> dict:
@@ -121,13 +114,29 @@ async def validate_licensee(
     Parameters:
       product_number: scope validation to a specific product.
       licensee_name: human-readable name for auto-created licensees.
-      product_module_number: for Node-Locked model — target module.
+      product_module_number: module that session_id / action / node_secret
+          apply to; required when any of them is given.
       node_secret: for Node-Locked model — unique device secret.
       session_id: for Floating model — unique session identifier.
       action: for Floating model — 'checkOut' or 'checkIn'.
       dry_run: when True, sends dryRun=true so the call has no side effects
                (does not consume quota, check out floating sessions, etc.).
     """
+    # The API applies sessionId / action / nodeSecret to the module named by
+    # productModuleNumber and silently ignores them otherwise — fail loudly.
+    module_params = [
+        n
+        for n, v in (("session_id", session_id), ("action", action), ("node_secret", node_secret))
+        if v
+    ]
+    if module_params and not product_module_number:
+        raise NetLicensingError(
+            400,
+            f"{', '.join(module_params)} requires product_module_number "
+            "(the module these parameters apply to)",
+        )
+    if action and action not in ("checkOut", "checkIn"):
+        raise NetLicensingError(400, "action must be 'checkOut' or 'checkIn'")
     data: dict[str, str] = {}
     if product_number:
         data["productNumber"] = product_number
@@ -150,8 +159,21 @@ async def transfer_licenses(
     from_licensee_number: str,
     to_licensee_number: str,
 ) -> dict:
-    """Transfer all licenses from one licensee to another."""
-    return await nl_post(
+    """Transfer all licenses from one licensee to another.
+
+    The API answers ``204 No Content`` on success. The source licensee must be
+    marked for transfer and both licensees must be active.
+    """
+    await nl_post(
         f"/licensee/{to_licensee_number}/transfer",
         {"sourceLicenseeNumber": from_licensee_number},
     )
+    return {
+        "transferred": True,
+        "from_licensee_number": from_licensee_number,
+        "to_licensee_number": to_licensee_number,
+        "detail": (
+            f"All licenses moved from {from_licensee_number} to {to_licensee_number}. "
+            f"Call netlicensing_list_licenses on {to_licensee_number} to see them."
+        ),
+    }

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from netlicensing_mcp.client import nl_delete, nl_get, nl_post
+from netlicensing_mcp.client import NetLicensingError, nl_delete, nl_get, nl_post
 
 
 async def list_tokens(filter_str: str | None = None) -> dict:
@@ -22,7 +22,7 @@ async def get_token(token_number: str) -> dict:
 
 
 async def create_shop_token(
-    licensee_number: str,
+    licensee_number: str | None,
     product_number: str | None = None,
     license_template_number: str | None = None,
     success_url: str | None = None,
@@ -34,16 +34,19 @@ async def create_shop_token(
     Generate a NetLicensing Shop one-time checkout URL for a customer.
     Returns a token containing the shopURL property.
 
-    product_number: scope shop to a specific product.
+    product_number: only used when *licensee_number* is empty. The API takes
+        the product from the licensee and rejects both together ("not allowed
+        simultaneously"), so it is dropped when a licensee is given.
     license_template_number: pre-select a specific license template.
     success_url / cancel_url: redirect URLs after checkout.
     """
-    data: dict[str, str] = {
-        "tokenType": "SHOP",
-        "licenseeNumber": licensee_number,
-    }
-    if product_number:
+    data: dict[str, str] = {"tokenType": "SHOP"}
+    if licensee_number:
+        data["licenseeNumber"] = licensee_number
+    elif product_number:
         data["productNumber"] = product_number
+    else:
+        raise NetLicensingError(400, "Either licensee_number or product_number is required")
     if license_template_number:
         data["licenseTemplateNumber"] = license_template_number
     if success_url:

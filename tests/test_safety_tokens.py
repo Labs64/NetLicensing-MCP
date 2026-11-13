@@ -125,6 +125,21 @@ def test_make_update_preview_shape():
 # ─── Acceptance: server-level delete behavior ────────────────────────────────
 
 
+@pytest.fixture(autouse=True)
+def entity_exists():
+    """Delete previews first GET the target (M7); make every target exist."""
+    one = {"items": {"item": [{"type": "Entity", "property": []}]}}
+    with (
+        patch("netlicensing_mcp.tools.products.get_product", AsyncMock(return_value=one)),
+        patch(
+            "netlicensing_mcp.tools.product_modules.get_product_module",
+            AsyncMock(return_value=one),
+        ),
+        patch("netlicensing_mcp.tools.licensees.get_licensee", AsyncMock(return_value=one)),
+    ):
+        yield
+
+
 @pytest.fixture
 def empty_items():
     return {"items": {"item": []}}

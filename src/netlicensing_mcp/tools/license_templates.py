@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import CustomPropertyValue, merge_custom_properties
+from netlicensing_mcp.tools.helpers import (
+    CustomPropertyValue,
+    first_item_property,
+    merge_custom_properties,
+    scoped_filter,
+)
 
 
 async def list_license_templates(
@@ -15,25 +20,17 @@ async def list_license_templates(
     """List all license templates for a product module.
 
     filter_str: optional server-side filter expression (e.g. 'active=true').
-    page / items_per_page: when provided, embeds all criteria (including
-        productModuleNumber) into the ``filter`` query parameter using the
+    page / items_per_page: optional paging. All criteria (including
+        productModuleNumber) go into the ``filter`` query parameter using the
         semicolon-separated format required by the NetLicensing API for
-        accurate pagination and total-item counts
+        scoping, pagination and total-item counts — a bare
+        query parameter is ignored by the API
         (e.g. ``filter=productModuleNumber=M01;page=0;items=100``).
     """
-    if page is not None or items_per_page is not None:
-        parts = [f"productModuleNumber={module_number}"]
-        if page is not None:
-            parts.append(f"page={page}")
-        if items_per_page is not None:
-            parts.append(f"items={items_per_page}")
-        if filter_str:
-            parts.append(filter_str)
-        return await nl_get("/licensetemplate", {"filter": ";".join(parts)})
-    params: dict[str, str] = {"productModuleNumber": module_number}
-    if filter_str:
-        params["filter"] = filter_str
-    return await nl_get("/licensetemplate", params)
+    return await nl_get(
+        "/licensetemplate",
+        scoped_filter("productModuleNumber", module_number, filter_str, page, items_per_page),
+    )
 
 
 async def get_license_template(template_number: str) -> dict:
@@ -126,6 +123,9 @@ async def update_license_template(
       grace_period: allow grace period after expiry (Subscription).
 
     custom_properties: Optional dict of additional properties to set or update.
+
+    A new price without a currency keeps the template's current currency,
+    because NetLicensing rejects a price on its own.
     """
     data: dict[str, str] = {}
     if name is not None:
@@ -153,6 +153,13 @@ async def update_license_template(
     if grace_period is not None:
         data["gracePeriod"] = str(grace_period).lower()
     merge_custom_properties(data, custom_properties)
+    if "price" in data and "currency" not in data:
+        # NetLicensing rejects a price without a currency; keep the current one.
+        current = first_item_property(
+            await nl_get(f"/licensetemplate/{template_number}"), "currency"
+        )
+        if current:
+            data["currency"] = current
     return await nl_post(f"/licensetemplate/{template_number}", data)
 
 

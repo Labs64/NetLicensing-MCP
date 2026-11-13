@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import strip_output_fields
+from netlicensing_mcp.tools.helpers import first_item_property, strip_output_fields
 
 
 async def list_bundles() -> dict:
@@ -41,7 +41,7 @@ async def create_bundle(
         "active": str(active).lower(),
     }
     if license_template_numbers:
-        data["licenseTemplateNumber"] = ",".join(license_template_numbers)
+        data["licenseTemplateNumbers"] = ",".join(license_template_numbers)
     if description:
         data["description"] = description
     if price is not None:
@@ -63,7 +63,8 @@ async def update_bundle(
     """Update fields of an existing bundle.
 
     Note: 'logo' is intentionally not passed — omitting it preserves the
-    existing bundle logo on the NetLicensing server.
+    existing bundle logo on the NetLicensing server. A new price without a
+    currency keeps the bundle's current currency.
     """
     data: dict[str, str] = {}
     if name is not None:
@@ -71,13 +72,18 @@ async def update_bundle(
     if active is not None:
         data["active"] = str(active).lower()
     if license_template_numbers is not None:
-        data["licenseTemplateNumber"] = ",".join(license_template_numbers)
+        data["licenseTemplateNumbers"] = ",".join(license_template_numbers)
     if price is not None:
         data["price"] = str(price)
     if currency is not None:
         data["currency"] = currency
     if description is not None:
         data["description"] = description
+    if "price" in data and "currency" not in data:
+        # NetLicensing rejects a price without a currency; keep the current one.
+        current = first_item_property(await nl_get(f"/bundle/{bundle_number}"), "currency")
+        if current:
+            data["currency"] = current
     return strip_output_fields(await nl_post(f"/bundle/{bundle_number}", data))
 
 

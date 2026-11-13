@@ -142,6 +142,43 @@ def _redact_property(prop: Any, fields: frozenset[str], mode: str) -> Any:
     return prop
 
 
+# ── Payment-method masking (allowlist) ───────────────────────────────────────
+
+#: PaymentMethod properties that are safe to return in clear text. Everything
+#: else is a vendor-defined custom property (Stripe access/refresh tokens,
+#: publishable keys, PayPal account e-mails, …) and is masked.
+PAYMENT_METHOD_CLEAR: frozenset[str] = frozenset({"number", "active"})
+
+
+def redact_payment_method(response: Any) -> Any:
+    """Mask every PaymentMethod property except ``number`` and ``active``.
+
+    The API documents PaymentMethod items as ``number``, ``active`` *plus
+    custom properties*, and in practice those custom properties hold provider
+    credentials. A denylist cannot keep up with arbitrary names, so this is an
+    allowlist. Values keep their first 3 and last 4 characters (``sk_****1234``)
+    so the operator can still tell which key is configured.
+    """
+    if isinstance(response, list):
+        return [redact_payment_method(item) for item in response]
+    if not isinstance(response, dict):
+        return response
+    result: dict[str, Any] = {}
+    for k, v in response.items():
+        # Only ever applied to /paymentmethod responses, so every property
+        # array is a payment method's; not keying on ``type`` avoids failing open.
+        if k == "property" and isinstance(v, list):
+            result[k] = [
+                {**p, "value": _mask(str(p.get("value", "")))}
+                if isinstance(p, dict) and p.get("name") not in PAYMENT_METHOD_CLEAR
+                else p
+                for p in v
+            ]
+        else:
+            result[k] = redact_payment_method(v)
+    return result
+
+
 # ── One-time-display tagging (create_api_token / create_shop_token) ──────────
 
 

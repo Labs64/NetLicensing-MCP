@@ -50,7 +50,7 @@ Three layers, top-down:
 
 5. **`responses.py`** — normalized response envelope (P0.6). Exposes `wrap(entity, kind, summary=None, suggested_actions=None, raw=None)` and `console_url(kind, number)`. Single-item upstream responses become a flat dict with all properties promoted to top level, `active` coerced to a JSON bool, and a `console_url` deep link derived from `MCP_CONSOLE_BASE_URL` (default `https://ui.netlicensing.io/#`). List responses become `{"type": "list", "kind", "count", "items": [...]}` with `console_url` on each item. Every `@mcp.tool()` accepts `include_raw: bool = False`; when true the original NetLicensing payload is attached under `raw`. Server-layer helpers `_wrap_json()` / `_wrap_json_token_read()` apply the envelope before `_json()` redaction; for APIKEY tokens `_wrap_json_token_read()` drops `console_url` because the token `number` (used as the URL path) is itself the API key.
 
-6. **`redaction.py`** — redaction layer (P0.3). Exposes `redact(payload, fields, mode)`, `tag_one_time_display(response)`, and `redact_token_read(response)`. Default redact set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. Extendable via `MCP_REDACT_FIELDS`. Handles both plain dict keys and NetLicensing property arrays (`{"property": [{"name": "licenseeSecret", "value": "..."}]}`). `mode="mask"` (default) produces a partial mask (`s3c****ecret`); `mode="remove"` drops the field.
+6. **`redaction.py`** — redaction layer (P0.3). Exposes `redact(payload, fields, mode)`, `tag_one_time_display(response)`, and `redact_token_read(response)`. Default redact set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. Extendable via `MCP_REDACT_FIELDS`. Handles both plain dict keys and NetLicensing property arrays (`{"property": [{"name": "licenseeSecret", "value": "..."}]}`). `mode="mask"` (default) produces a partial mask (`s3c****ecret`); `mode="remove"` drops the field. `redact_payment_method()` is an **allowlist**: every PaymentMethod property except `number`/`active` is masked, because providers store credentials (Stripe tokens, PayPal e-mails) as arbitrary custom properties. It is applied in `tools/payment_methods.py`, so every payment-method path is covered.
 
 ### API key resolution (`api_key_ctx`)
 
@@ -59,6 +59,10 @@ API key is held in a **`contextvars.ContextVar`** (`client.api_key_ctx`), defaul
 ### Response shape conventions
 
 NetLicensing returns properties as `{"property": [{"name": "...", "value": "..."}, ...]}` arrays. The client does not flatten these — tool outputs preserve the upstream shape. `strip_output_fields` (in `tools/helpers.py`) recursively removes bulky fields (`logo`) from both plain-dict keys AND `property` arrays — keep this in sync if more bulky fields show up. Importantly, **create/update calls deliberately omit `logo`**, since omission preserves the existing server-side value; never add it back to write paths.
+
+### List scoping
+
+NetLicensing list endpoints **ignore** a bare `?productNumber=X` query parameter and return the whole vendor account. Parent scope (and paging) must go inside the single `filter` parameter: `filter=productNumber=X;page=0;items=100`. Always build it with `scoped_filter()` from `tools/helpers.py`, which also rejects `;`/`=` in the scope value and a user `filter` that tries to override the scope key. Max page size is 100; use `licenses.list_all_licenses()` when every item is needed.
 
 ### Booleans and "leave unchanged" semantics
 

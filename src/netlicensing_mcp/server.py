@@ -308,6 +308,34 @@ def _extract_props(response: dict) -> dict[str, str]:
     }
 
 
+def _price_active_diff(
+    current: dict[str, str], price: float | None, currency: str, active: bool | None
+) -> list[dict]:
+    """Diff rows for a price / currency / active update preview.
+
+    NetLicensing rejects a price without a currency, so a price-only change
+    sends the current currency along; the preview shows that row too, and
+    warns when there is no currency to carry over.
+    """
+    diff: list[dict] = []
+    if price is not None:
+        diff.append({"field": "price", "from": current.get("price"), "to": str(price)})
+    if currency:
+        diff.append({"field": "currency", "from": current.get("currency"), "to": currency})
+    elif price is not None:
+        cur = current.get("currency")
+        row: dict = {"field": "currency", "from": cur, "to": cur}
+        row["note"] = (
+            "unchanged; sent with the new price because NetLicensing requires it"
+            if cur
+            else "no current currency: pass currency explicitly or the update will fail"
+        )
+        diff.append(row)
+    if active is not None:
+        diff.append({"field": "active", "from": current.get("active"), "to": str(active).lower()})
+    return diff
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PRODUCTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -526,6 +554,7 @@ async def netlicensing_preview_delete_product(product_number: str) -> str:
         # the API metadata (``totalitems``), not just the current page.
         # items=1 for modules — only total count is needed, no samples.
         # items=100 for licensees — fetch enough to also extract samples.
+        await products.get_product(product_number)  # raises if it does not exist
         modules_resp = await product_modules.list_product_modules(
             product_number, page=0, items_per_page=1
         )
@@ -569,6 +598,7 @@ async def netlicensing_delete_product(
             return await products.delete_product(product_number, force_cascade)
 
         # No token — always show preview; deletion is never allowed without confirmation.
+        await products.get_product(product_number)  # raises if it does not exist
         modules_resp = await product_modules.list_product_modules(
             product_number, page=0, items_per_page=1
         )
@@ -949,6 +979,7 @@ async def netlicensing_preview_delete_product_module(module_number: str) -> str:
         module_number: Module to preview deletion for
     """
     try:
+        await product_modules.get_product_module(module_number)  # raises if missing
         templates_resp = await license_templates.list_license_templates(
             module_number, page=0, items_per_page=100
         )
@@ -988,6 +1019,7 @@ async def netlicensing_delete_product_module(
             return await product_modules.delete_product_module(module_number, force_cascade)
 
         # No token — always show preview; deletion is never allowed without confirmation.
+        await product_modules.get_product_module(module_number)  # raises if missing
         templates_resp = await license_templates.list_license_templates(
             module_number, page=0, items_per_page=100
         )
@@ -1140,20 +1172,7 @@ async def netlicensing_preview_update_license_template(
     """
     try:
         current_resp = await license_templates.get_license_template(template_number)
-        current = _extract_props(current_resp)
-        diff: list[dict] = []
-        if price is not None:
-            diff.append({"field": "price", "from": current.get("price"), "to": str(price)})
-        if currency:
-            diff.append({"field": "currency", "from": current.get("currency"), "to": currency})
-        if active is not None:
-            diff.append(
-                {
-                    "field": "active",
-                    "from": current.get("active"),
-                    "to": str(active).lower(),
-                }
-            )
+        diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
         return _json(safety.make_update_preview("update_license_template", template_number, diff))
     except NetLicensingError as exc:
         return _error(exc)
@@ -1211,26 +1230,7 @@ async def netlicensing_update_license_template(
                 )
             else:
                 current_resp = await license_templates.get_license_template(template_number)
-                current = _extract_props(current_resp)
-                diff: list[dict] = []
-                if price is not None:
-                    diff.append({"field": "price", "from": current.get("price"), "to": str(price)})
-                if currency:
-                    diff.append(
-                        {
-                            "field": "currency",
-                            "from": current.get("currency"),
-                            "to": currency,
-                        }
-                    )
-                if active is not None:
-                    diff.append(
-                        {
-                            "field": "active",
-                            "from": current.get("active"),
-                            "to": str(active).lower(),
-                        }
-                    )
+                diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
                 return _json(
                     safety.make_update_preview("update_license_template", template_number, diff)
                 )
@@ -1465,6 +1465,7 @@ async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
         licensee_number: Licensee to preview deletion for
     """
     try:
+        await licensees.get_licensee(licensee_number)  # raises if it does not exist
         licenses_resp = await licenses.list_licenses(licensee_number, page=0, items_per_page=100)
         return _json(
             safety.make_delete_preview(
@@ -1502,6 +1503,7 @@ async def netlicensing_delete_licensee(
             return await licensees.delete_licensee(licensee_number, force_cascade)
 
         # No token — always show preview; deletion is never allowed without confirmation.
+        await licensees.get_licensee(licensee_number)  # raises if it does not exist
         licenses_resp = await licenses.list_licenses(licensee_number, page=0, items_per_page=100)
         return _json(
             safety.make_delete_preview(
@@ -1536,10 +1538,11 @@ async def netlicensing_validate_licensee(
         licensee_number: Customer to validate
         product_number: Optional — scope validation to a specific product
         licensee_name: Human-readable name for auto-created licensees (when licenseeAutoCreate is enabled)
-        session_id: Floating model — unique session identifier
-        action: Floating model — 'checkOut' or 'checkIn'
-        product_module_number: NodeLocked model — target product module
-        node_secret: NodeLocked model — unique device/node secret
+        session_id: Floating model — unique session identifier (needs product_module_number)
+        action: Floating model — 'checkOut' or 'checkIn' (needs product_module_number)
+        product_module_number: Module that session_id / action / node_secret apply to;
+            required when any of them is given
+        node_secret: NodeLocked model — unique device/node secret (needs product_module_number)
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
@@ -1568,20 +1571,16 @@ async def netlicensing_transfer_licenses(
 ) -> str:
     """Transfer all licenses from one licensee to another.
 
+    The source licensee must be marked for transfer (markedForTransfer=true)
+    and both licensees must be active. The source licensee is consumed.
+
     Args:
         from_licensee_number: Source licensee
         to_licensee_number: Destination licensee
-        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
+        include_raw: Accepted for consistency; the API returns no body (204)
     """
     try:
-        return _wrap_json(
-            await licensees.transfer_licenses(
-                from_licensee_number,
-                to_licensee_number,
-            ),
-            "Licensee",
-            include_raw=include_raw,
-        )
+        return _json(await licensees.transfer_licenses(from_licensee_number, to_licensee_number))
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -1860,7 +1859,7 @@ async def netlicensing_get_token(token_number: str, include_raw: bool = False) -
 
 @mcp.tool()
 async def netlicensing_create_shop_token(
-    licensee_number: str,
+    licensee_number: str = "",
     product_number: str = "",
     license_template_number: str = "",
     success_url: str = "",
@@ -1872,8 +1871,10 @@ async def netlicensing_create_shop_token(
     """Generate a NetLicensing Shop one-time checkout URL for a customer.
 
     Args:
-        licensee_number: Customer to generate the shop URL for
-        product_number: Optional — scope shop to a specific product
+        licensee_number: Customer to generate the shop URL for (the product is
+            taken from the licensee)
+        product_number: Only used when licensee_number is not given; ignored
+            otherwise, since NetLicensing rejects both together
         license_template_number: Optional — pre-select a specific license template
         success_url: Optional URL to redirect to after successful purchase
         cancel_url: Optional URL to redirect to if customer cancels
@@ -1883,7 +1884,7 @@ async def netlicensing_create_shop_token(
     """
     try:
         raw = await tokens.create_shop_token(
-            licensee_number,
+            licensee_number or None,
             product_number=product_number or None,
             license_template_number=license_template_number or None,
             success_url=success_url or None,
@@ -2329,7 +2330,7 @@ async def netlicensing_get_customer_health(
     """
     try:
         licensee = await licensees.get_licensee(licensee_number)
-        licenses_payload = await licenses.list_licenses(licensee_number)
+        licenses_payload = await licenses.list_all_licenses(licensee_number)
         validation = None
         if refresh_warning_level:
             validation = await licensees.validate_licensee(licensee_number, dry_run=True)

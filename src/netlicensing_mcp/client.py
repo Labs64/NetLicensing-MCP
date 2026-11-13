@@ -214,7 +214,13 @@ async def _send(method: str, url: str, **kwargs: Any) -> httpx.Response:
 
 
 def _json_body(response: httpx.Response) -> dict[str, Any]:
-    """Parse a 2xx body as a JSON object, or raise ``NetLicensingError(502)``."""
+    """Parse a 2xx body as a JSON object, or raise ``NetLicensingError(502)``.
+
+    An empty body (``204 No Content``, e.g. ``POST /licensee/{n}/transfer``)
+    is a success with nothing to return, so it yields ``{}``.
+    """
+    if response.status_code == 204 or not response.content.strip():
+        return {}
     try:
         body = response.json()
     except ValueError as exc:

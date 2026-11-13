@@ -1,8 +1,14 @@
-"""Tools: Payment Methods — vendor payment configuration."""
+"""Tools: Payment Methods — vendor payment configuration.
+
+Every response is passed through :func:`redact_payment_method`: payment
+methods carry provider credentials (Stripe tokens and keys, PayPal account
+e-mails) as custom properties, and those must never reach the MCP client.
+"""
 
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_get, nl_post
+from netlicensing_mcp.redaction import redact_payment_method
 
 
 async def list_payment_methods(filter_str: str | None = None) -> dict:
@@ -13,12 +19,12 @@ async def list_payment_methods(filter_str: str | None = None) -> dict:
     params: dict[str, str] = {}
     if filter_str:
         params["filter"] = filter_str
-    return await nl_get("/paymentmethod", params or None)
+    return redact_payment_method(await nl_get("/paymentmethod", params or None))
 
 
 async def get_payment_method(payment_method_number: str) -> dict:
     """Get a specific payment method by number."""
-    return await nl_get(f"/paymentmethod/{payment_method_number}")
+    return redact_payment_method(await nl_get(f"/paymentmethod/{payment_method_number}"))
 
 
 async def update_payment_method(
@@ -36,4 +42,4 @@ async def update_payment_method(
         data["active"] = str(active).lower()
     if paypal_subject is not None:
         data["paypal.subject"] = paypal_subject
-    return await nl_post(f"/paymentmethod/{payment_method_number}", data)
+    return redact_payment_method(await nl_post(f"/paymentmethod/{payment_method_number}", data))

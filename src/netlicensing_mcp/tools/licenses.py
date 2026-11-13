@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from netlicensing_mcp.tools.helpers import first_item_property, scoped_filter
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 
 
@@ -14,25 +15,43 @@ async def list_licenses(
     """List all licenses for a specific licensee.
 
     filter_str: optional server-side filter expression (e.g. 'active=true').
-    page / items_per_page: when provided, embeds all criteria (including
-        licenseeNumber) into the ``filter`` query parameter using the
+    page / items_per_page: optional paging. All criteria (including
+        licenseeNumber) go into the ``filter`` query parameter using the
         semicolon-separated format required by the NetLicensing API for
-        accurate pagination and total-item counts
+        scoping, pagination and total-item counts — a bare
+        query parameter is ignored by the API
         (e.g. ``filter=licenseeNumber=I001;page=0;items=100``).
     """
-    if page is not None or items_per_page is not None:
-        parts = [f"licenseeNumber={licensee_number}"]
-        if page is not None:
-            parts.append(f"page={page}")
-        if items_per_page is not None:
-            parts.append(f"items={items_per_page}")
-        if filter_str:
-            parts.append(filter_str)
-        return await nl_get("/license", {"filter": ";".join(parts)})
-    params: dict[str, str] = {"licenseeNumber": licensee_number}
-    if filter_str:
-        params["filter"] = filter_str
-    return await nl_get("/license", params)
+    return await nl_get(
+        "/license",
+        scoped_filter("licenseeNumber", licensee_number, filter_str, page, items_per_page),
+    )
+
+
+_MAX_PAGES = 50  # 100 items per page (API maximum) → up to 5,000 licenses
+
+
+async def list_all_licenses(licensee_number: str) -> dict:
+    """List every license of a licensee, following pagination.
+
+    Returns the first page's envelope with ``items.item`` holding all pages.
+    """
+    first = await list_licenses(licensee_number, page=0, items_per_page=100)
+    items_obj = first.get("items")
+    if not isinstance(items_obj, dict):
+        return first
+    collected = list(items_obj.get("item") or [])
+    try:
+        total_pages = int(items_obj.get("totalpages", 1))
+    except (TypeError, ValueError):
+        total_pages = 1
+    for page in range(1, min(total_pages, _MAX_PAGES)):
+        resp = await list_licenses(licensee_number, page=page, items_per_page=100)
+        page_items = (resp.get("items") or {}).get("item") or []
+        if not page_items:
+            break
+        collected.extend(page_items)
+    return {**first, "items": {**items_obj, "item": collected}}
 
 
 async def get_license(license_number: str) -> dict:
@@ -123,6 +142,8 @@ async def update_license(
     quantity / used_quantity: for PayPerUse model.
     parent_feature: for TIMEVOLUME + Rental model.
     hidden: visibility in Shop.
+
+    A new price without a currency keeps the license's current currency.
     """
     data: dict[str, str] = {}
     if active is not None:
@@ -147,6 +168,11 @@ async def update_license(
         data["parentfeature"] = parent_feature
     if hidden is not None:
         data["hidden"] = str(hidden).lower()
+    if "price" in data and "currency" not in data:
+        # NetLicensing rejects a price without a currency; keep the current one.
+        current = first_item_property(await nl_get(f"/license/{license_number}"), "currency")
+        if current:
+            data["currency"] = current
     return await nl_post(f"/license/{license_number}", data)
 
 

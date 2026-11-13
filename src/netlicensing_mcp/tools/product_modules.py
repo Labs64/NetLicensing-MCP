@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import CustomPropertyValue, merge_custom_properties
+from netlicensing_mcp.tools.helpers import (
+    CustomPropertyValue,
+    merge_custom_properties,
+    scoped_filter,
+)
 
 
 async def list_product_modules(
@@ -15,25 +19,17 @@ async def list_product_modules(
     """List all modules for a product.
 
     filter_str: optional server-side filter expression (e.g. 'active=true').
-    page / items_per_page: when provided, embeds all criteria (including
-        productNumber) into the ``filter`` query parameter using the
+    page / items_per_page: optional paging. All criteria (including
+        productNumber) go into the ``filter`` query parameter using the
         semicolon-separated format required by the NetLicensing API for
-        accurate pagination and total-item counts
+        scoping, pagination and total-item counts — a bare
+        query parameter is ignored by the API
         (e.g. ``filter=productNumber=P001;page=0;items=1``).
     """
-    if page is not None or items_per_page is not None:
-        parts = [f"productNumber={product_number}"]
-        if page is not None:
-            parts.append(f"page={page}")
-        if items_per_page is not None:
-            parts.append(f"items={items_per_page}")
-        if filter_str:
-            parts.append(filter_str)
-        return await nl_get("/productmodule", {"filter": ";".join(parts)})
-    params: dict[str, str] = {"productNumber": product_number}
-    if filter_str:
-        params["filter"] = filter_str
-    return await nl_get("/productmodule", params)
+    return await nl_get(
+        "/productmodule",
+        scoped_filter("productNumber", product_number, filter_str, page, items_per_page),
+    )
 
 
 async def get_product_module(module_number: str) -> dict:

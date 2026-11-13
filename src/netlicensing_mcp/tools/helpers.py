@@ -45,6 +45,53 @@ def merge_custom_properties(
     data.update({k: _coerce_form_value(v) for k, v in custom_properties.items()})
 
 
+def first_item_property(response: dict[str, Any], name: str) -> str | None:
+    """Return property *name* of the first item in a NetLicensing response."""
+    items = response.get("items", {}).get("item", [])
+    if not items or not isinstance(items[0], dict):
+        return None
+    for p in items[0].get("property", []):
+        if isinstance(p, dict) and p.get("name") == name:
+            value = p.get("value")
+            return str(value) if value is not None else None
+    return None
+
+
+def scoped_filter(
+    scope_key: str,
+    scope_value: str,
+    filter_str: str | None = None,
+    page: int | None = None,
+    items_per_page: int | None = None,
+) -> dict[str, str]:
+    """Build the ``filter`` query parameter for a list scoped to a parent entity.
+
+    The NetLicensing list endpoints ignore a bare ``?productNumber=X`` query
+    parameter and return the whole vendor account. The parent scope only takes
+    effect inside the single ``filter`` parameter, as ``;``-separated
+    ``key=value`` pairs (e.g. ``filter=productNumber=P001;page=0;items=100``).
+
+    Raises ``NetLicensingError(400)`` when the scope value could break out of
+    its pair, or when *filter_str* tries to set the scope key itself, so a
+    caller can never widen the scope it asked for.
+    """
+    if not scope_value or any(ch in scope_value for ch in ";="):
+        raise NetLicensingError(400, f"Invalid {scope_key}: must be non-empty without ';' or '='")
+    parts = [f"{scope_key}={scope_value}"]
+    if page is not None:
+        parts.append(f"page={page}")
+    if items_per_page is not None:
+        parts.append(f"items={items_per_page}")
+    if filter_str:
+        keys = {p.split("=", 1)[0].strip() for p in filter_str.split(";") if p.strip()}
+        if scope_key in keys:
+            raise NetLicensingError(
+                400, f"filter must not set {scope_key}; it is taken from the tool argument"
+            )
+        parts.append(filter_str)
+    return {"filter": ";".join(parts)}
+
+
 def strip_output_fields(data: Any, fields: frozenset[str] = STRIP_OUTPUT_FIELDS) -> Any:
     """Recursively remove large/binary fields from a NetLicensing API response.
 
