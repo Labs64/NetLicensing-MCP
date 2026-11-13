@@ -61,15 +61,22 @@ def _effective_fields(fields: frozenset[str]) -> frozenset[str]:
     return fields | _extra_fields()
 
 
+#: Values shorter than this are masked completely. Showing 7 of a 15-character
+#: secret reveals most of it; at 16+ characters the 3 + 4 kept characters are a
+#: small enough share to identify which key is configured without leaking it.
+_MASK_MIN_PARTIAL_LEN = 16
+
+
 def _mask(value: str) -> str:
-    """Partially mask *value*, keeping the first 3 and last 4 characters.
+    """Mask *value*; values of 16+ characters keep their first 3 and last 4.
 
     Examples::
 
-        _mask("s3cret")          → "****"
-        _mask("apikey-abc12345") → "api****2345"
+        _mask("s3cret")                → "****"
+        _mask("apikey-abc12345")       → "****"   (15 characters)
+        _mask("pk_live_51H8xYzW3Od")   → "pk_****W3Od"
     """
-    if len(value) <= 8:
+    if len(value) < _MASK_MIN_PARTIAL_LEN:
         return "****"
     return f"{value[:3]}****{value[-4:]}"
 
@@ -156,8 +163,9 @@ def redact_payment_method(response: Any) -> Any:
     The API documents PaymentMethod items as ``number``, ``active`` *plus
     custom properties*, and in practice those custom properties hold provider
     credentials. A denylist cannot keep up with arbitrary names, so this is an
-    allowlist. Values keep their first 3 and last 4 characters (``sk_****1234``)
-    so the operator can still tell which key is configured.
+    allowlist. Values of 16 or more characters keep their first 3 and last 4
+    characters (``sk_****1234``) so the operator can still tell which key is
+    configured; shorter values (including e-mail addresses) become ``****``.
     """
     if isinstance(response, list):
         return [redact_payment_method(item) for item in response]

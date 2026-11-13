@@ -564,7 +564,7 @@ async def test_update_license_template_sensitive_field_requires_confirmation(
         assert "changes" in result
         price_change = next((c for c in result["changes"] if c["field"] == "price"), None)
         assert price_change is not None
-        assert price_change["to"] == "19.99"
+        assert price_change["to"] == "19.99 EUR"
         assert "confirmation_token" in result
 
 

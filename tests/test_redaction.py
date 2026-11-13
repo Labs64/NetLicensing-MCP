@@ -39,8 +39,10 @@ def test_mask_exactly_8_chars():
 
 
 def test_mask_long_value():
-    result = _mask("apikey-abc12345")
-    assert result == "api****2345"
+    # 15 characters: below the 16-character threshold, fully masked (N4).
+    assert _mask("apikey-abc12345") == "****"
+    result = _mask("apikey-abc123456")
+    assert result == "api****3456"
     assert "apikey" not in result
 
 

@@ -377,4 +377,5 @@ async def test_m8_validate_with_module_sends_params():
 
         await validate_licensee("I1", product_module_number="M1", session_id="s1", action="checkIn")
     data = mock_post.call_args.args[1]
-    assert data == {"productModuleNumber": "M1", "sessionId": "s1", "action": "checkIn"}
+    # Indexed form, like the Java reference client (REPORT_v1.1 N1).
+    assert data == {"productModuleNumber0": "M1", "sessionId0": "s1", "action0": "checkIn"}

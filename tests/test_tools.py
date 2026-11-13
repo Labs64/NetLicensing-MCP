@@ -872,10 +872,10 @@ async def test_validate_licensee_all_params(validation_response):
         call_data = mock_post.call_args[0][1]
         assert call_data["productNumber"] == "P001"
         assert call_data["licenseeName"] == "ACME Corp"
-        assert call_data["productModuleNumber"] == "M01"
-        assert call_data["nodeSecret"] == "secret123"
-        assert call_data["sessionId"] == "sess-42"
-        assert call_data["action"] == "checkOut"
+        assert call_data["productModuleNumber0"] == "M01"
+        assert call_data["nodeSecret0"] == "secret123"
+        assert call_data["sessionId0"] == "sess-42"
+        assert call_data["action0"] == "checkOut"
 
 
 @pytest.mark.asyncio

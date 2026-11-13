@@ -130,7 +130,7 @@ def test_status_invalid_no_red():
         }
     }
     result = explain_validation(payload, now=NOW)
-    assert result["overall_status"] == "invalid"
+    assert result["overall_status"] == "critical"  # invalid counts as critical (N3)
 
 
 def test_unknown_model_fallback():

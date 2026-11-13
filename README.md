@@ -57,8 +57,9 @@ Once connected, you can talk to NetLicensing in plain language:
 | **Tokens** | list, get, create shop URL, create API token, revoke |
 | **Transactions** | list, get, create, update |
 | **Payment Methods** | list, get, update |
-| **Utilities** | list licensing models, list license types |
+| **Utilities** | list licensing models, list license types, list countries, server info (version, API host, demo mode) |
 | **Audit Prompts** | full account, single customer, expiry sweep, cleanup, anomaly detection |
+| **Response shape** | list tools and `validate_licensee` always return `{"type": "list", "count", "items": [...]}`, even for 0 or 1 item; get / create / update return a single object |
 | **Delete Safety** | `force_cascade` option on all delete tools |
 | **Redaction** | secrets (`apiKey`, `licenseeSecret`, `nodeSecret`, …) masked in all responses and logs |
 
@@ -69,7 +70,7 @@ Once connected, you can talk to NetLicensing in plain language:
 The server is designed to be safe by default:
 
 - **No silent credential fallback** — if `NETLICENSING_API_KEY` is not set and `NETLICENSING_ALLOW_DEMO` is not explicitly enabled, the server refuses to start (stdio) or returns `503` (HTTP) rather than silently using demo credentials.
-- **Redaction layer** — every tool response passes through a redaction filter. Sensitive fields (`apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`) are masked to a partial form (e.g. `s3c****ecret`). The set is extendable via `MCP_REDACT_FIELDS`.
+- **Redaction layer** — every tool response passes through a redaction filter. Sensitive fields (`apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`) are masked: values shorter than 16 characters become `****`, longer ones keep only their first 3 and last 4 characters (e.g. `pk_****W3Od`). The set is extendable via `MCP_REDACT_FIELDS`.
 - **One-time credentials** — `create_api_token` and `create_shop_token` tag their response with `"shown_once": true` so clients know the credential will not be visible in full again. Subsequent `get_token` / `list_tokens` calls return masked values.
 - **Delete confirmation** — all destructive operations require a two-step confirmation token flow; nothing is silently cascaded.
  

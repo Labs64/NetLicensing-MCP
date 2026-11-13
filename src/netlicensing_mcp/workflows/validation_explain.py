@@ -231,15 +231,14 @@ def _actions_for(row: dict[str, Any], licensee_number: str) -> list[str]:
     return actions
 
 
-def _overall_status(blocks: list[dict[str, Any]]) -> str:
+def _overall_status(blocks: list[dict[str, Any]], infos: list[str] | None = None) -> str:
+    # An invalid module is as serious as RED — same rule as get_customer_health.
     has_red = any(b.get("warning_level") == "RED" for b in blocks)
     has_invalid = any(not b.get("valid", True) for b in blocks)
     has_yellow = any(b.get("warning_level") == "YELLOW" for b in blocks)
-    if has_red:
+    if has_red or has_invalid:
         return "critical"
-    if has_invalid:
-        return "invalid"
-    if has_yellow:
+    if has_yellow or infos:
         return "warning"
     return "ok"
 
@@ -254,21 +253,40 @@ def _dedupe(actions: list[str]) -> list[str]:
     return result
 
 
+def _validation_infos(payload: dict) -> list[str]:
+    """ERROR / WARNING ``infos`` messages from a validate response."""
+    infos = payload.get("infos")
+    info_list = infos.get("info", []) if isinstance(infos, dict) else []
+    if not isinstance(info_list, list):
+        return []
+    return [
+        str(i.get("value", ""))
+        for i in info_list
+        if isinstance(i, dict)
+        and str(i.get("type", "")).upper() in ("ERROR", "WARNING")
+        and i.get("value")
+    ]
+
+
 def _summary_line(modules: list[dict[str, Any]], overall_status: str) -> str:
     if not modules:
         return "Licensee has no licensed modules."
     n = len(modules)
-    if overall_status == "ok":
+    invalid = [m.get("module_number", "") for m in modules if not m.get("valid", True)]
+    if overall_status == "ok" and not invalid:
         return f"Validation passed for all {n} module{'s' if n != 1 else ''}."
     issues = sum(
         1
         for m in modules
         if not m.get("valid", True) or m.get("warning_level") in ("YELLOW", "RED")
     )
-    return (
+    line = (
         f"Validation passed for {n - issues} module{'s' if n - issues != 1 else ''}; "
         f"{issues} module{'s' if issues != 1 else ''} need{'s' if issues == 1 else ''} attention."
     )
+    if invalid:
+        line += f" Invalid: {', '.join(invalid)}."
+    return line
 
 
 def explain_validation(
@@ -298,9 +316,17 @@ def explain_validation(
         all_actions.extend(module_actions)
         modules.append(row)
 
-    overall = _overall_status(modules)
+    infos = _validation_infos(payload)
+    overall = _overall_status(modules, infos)
     top_actions = _dedupe(all_actions)
-    warnings = [m["explanation"] for m in modules if m.get("warning_level") in ("YELLOW", "RED")]
+    warnings = [
+        m["explanation"]
+        for m in modules
+        if m.get("warning_level") in ("YELLOW", "RED") or not m.get("valid", True)
+    ]
+    for info in infos:
+        if info not in warnings:
+            warnings.append(info)
 
     envelope: dict[str, Any] = {
         "type": "ValidationExplanation",

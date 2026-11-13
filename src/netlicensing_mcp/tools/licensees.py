@@ -111,16 +111,23 @@ async def validate_licensee(
 
     Returns per-module validity, type, expiry, and usage information.
 
+    One call addresses at most **one** module with module-scoped parameters.
+    Those are sent in the indexed form the reference client
+    (NetLicensingClient-java) uses — ``productModuleNumber0``, ``sessionId0``,
+    ``action0``, ``nodeSecret0`` — while global parameters (``productNumber``,
+    ``licenseeName``, ``dryRun``) stay unindexed.
+
     Parameters:
       product_number: scope validation to a specific product.
       licensee_name: human-readable name for auto-created licensees.
       product_module_number: module that session_id / action / node_secret
           apply to; required when any of them is given.
       node_secret: for Node-Locked model — unique device secret.
-      session_id: for Floating model — unique session identifier.
+      session_id: for Floating model — unique session identifier; required
+          with action.
       action: for Floating model — 'checkOut' or 'checkIn'.
       dry_run: when True, sends dryRun=true so the call has no side effects
-               (does not consume quota, check out floating sessions, etc.).
+               (never checks out, checks in or consumes anything).
     """
     # The API applies sessionId / action / nodeSecret to the module named by
     # productModuleNumber and silently ignores them otherwise — fail loudly.
@@ -137,19 +144,27 @@ async def validate_licensee(
         )
     if action and action not in ("checkOut", "checkIn"):
         raise NetLicensingError(400, "action must be 'checkOut' or 'checkIn'")
+    if action and not session_id:
+        raise NetLicensingError(
+            400,
+            f"action '{action}' requires session_id (the Floating session to "
+            f"{'check out' if action == 'checkOut' else 'check in'})",
+        )
     data: dict[str, str] = {}
     if product_number:
         data["productNumber"] = product_number
     if licensee_name:
         data["licenseeName"] = licensee_name
     if product_module_number:
-        data["productModuleNumber"] = product_module_number
-    if node_secret:
-        data["nodeSecret"] = node_secret
-    if session_id:
-        data["sessionId"] = session_id
-    if action:
-        data["action"] = action
+        # Indexed per-module parameters, exactly as ValidationService in the
+        # Java reference client sends them.
+        data["productModuleNumber0"] = product_module_number
+        if node_secret:
+            data["nodeSecret0"] = node_secret
+        if session_id:
+            data["sessionId0"] = session_id
+        if action:
+            data["action0"] = action
     if dry_run:
         data["dryRun"] = "true"
     return await nl_post(f"/licensee/{licensee_number}/validate", data)

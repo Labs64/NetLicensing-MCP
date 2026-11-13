@@ -6,6 +6,7 @@ upstream payloads and passes them here.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -157,7 +158,40 @@ def _module_row(
     return row
 
 
+def _invalid_modules(modules: list[dict]) -> list[str]:
+    """Module numbers whose validation result is ``valid: false``."""
+    return [m.get("module_number", "") for m in modules if m.get("valid") is False]
+
+
+def _validation_infos(validation: dict | None) -> list[str]:
+    """ERROR / WARNING ``infos`` messages from a validate response."""
+    if not validation:
+        return []
+    infos = validation.get("infos")
+    info_list = infos.get("info", []) if isinstance(infos, dict) else []
+    if not isinstance(info_list, list):
+        return []
+    return [
+        str(i.get("value", ""))
+        for i in info_list
+        if isinstance(i, dict)
+        and str(i.get("type", "")).upper() in ("ERROR", "WARNING")
+        and i.get("value")
+    ]
+
+
+_MODULE_IN_INFO = re.compile(r"[Pp]roduct module '([^']+)'")
+
+
+def _info_warning(msg: str) -> str:
+    """Prefix an API info with its module number when the message names one."""
+    m = _MODULE_IN_INFO.search(msg)
+    return f"Module {m.group(1)}: {msg}" if m else msg
+
+
 def _overall_status_from_validation(modules: list[dict]) -> str:
+    if _invalid_modules(modules):
+        return "critical"
     has_red = any(m.get("warning_level") == "RED" for m in modules)
     has_yellow = any(m.get("warning_level") == "YELLOW" for m in modules)
     if has_red:
@@ -183,10 +217,12 @@ def _overall_status_from_heuristics(modules: list[dict], licensee_active: bool) 
     return "ok"
 
 
-def _build_warnings(modules: list[dict]) -> list[str]:
+def _build_warnings(modules: list[dict], infos: list[str] | None = None) -> list[str]:
     msgs = []
     for m in modules:
         mno = m.get("module_number", "")
+        if m.get("valid") is False:
+            msgs.append(f"Module {mno}: validation result is invalid.")
         days = m.get("expires_in_days")
         if days is not None and days <= WARN_DAYS:
             if days < 0:
@@ -200,6 +236,10 @@ def _build_warnings(modules: list[dict]) -> list[str]:
         active_s = m.get("active_sessions")
         if max_s is not None and active_s is not None and active_s >= max_s:
             msgs.append(f"Module {mno}: floating sessions saturated ({active_s}/{max_s}).")
+    for info in infos or []:
+        msg = _info_warning(info)
+        if msg not in msgs and info not in msgs:
+            msgs.append(msg)
     return msgs
 
 
@@ -213,6 +253,10 @@ def _build_suggested_actions(
         actions.append(f"Re-activate licensee {licensee_number}.")
     for m in modules:
         mno = m.get("module_number", "")
+        if m.get("valid") is False:
+            actions.append(
+                f"Run netlicensing_explain_validation for {licensee_number} (module {mno})."
+            )
         days = m.get("expires_in_days")
         if days is not None:
             if days < 0:
@@ -239,9 +283,14 @@ def _summary_line(
 ) -> str:
     if not licensee_active:
         return f"Licensee is inactive — {counts['total_licenses']} licenses on record."
-    if overall_status == "ok":
+    invalid = _invalid_modules(modules)
+    if overall_status == "ok" and not invalid:
         return f"All {counts['modules']} modules are healthy."
     parts = []
+    if len(invalid) == 1:
+        parts.append(f"Module {invalid[0]} is invalid")
+    elif invalid:
+        parts.append(f"Modules {', '.join(invalid)} are invalid")
     for m in modules:
         days = m.get("expires_in_days")
         mno = m.get("module_number", "")
@@ -257,7 +306,8 @@ def _summary_line(
         if max_s is not None and active_s is not None and active_s >= max_s:
             parts.append(f"floating sessions saturated (module {mno})")
     if parts:
-        return "; ".join(p.capitalize() for p in parts) + "."
+        # Not str.capitalize(): it lowercases the rest, mangling module numbers.
+        return "; ".join(p[:1].upper() + p[1:] for p in parts) + "."
     return f"{counts['modules']} modules active."
 
 
@@ -325,12 +375,17 @@ def build_health(
 
     # Overall status.
     has_warning_levels = any("warning_level" in m for m in modules)
-    if has_warning_levels:
+    if has_warning_levels or _invalid_modules(modules):
         overall_status = _overall_status_from_validation(modules)
     else:
         overall_status = _overall_status_from_heuristics(modules, licensee_active)
 
-    warnings = _build_warnings(modules)
+    infos = _validation_infos(validation)
+    if infos and overall_status == "ok":
+        # An API ERROR/WARNING on the validation call is never "healthy".
+        overall_status = "warning"
+
+    warnings = _build_warnings(modules, infos)
     suggested_actions = _build_suggested_actions(modules, licensee_number, licensee_active)
     summary = _summary_line(modules, counts, licensee_active, overall_status)
 

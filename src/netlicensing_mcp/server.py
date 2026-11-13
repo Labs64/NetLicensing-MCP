@@ -24,10 +24,14 @@ from starlette.responses import JSONResponse
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from urllib.parse import urlsplit
+
+from netlicensing_mcp import client as _client
 from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp import safety
 from netlicensing_mcp.redaction import redact, redact_token_read, tag_one_time_display
-from netlicensing_mcp.responses import wrap
+from netlicensing_mcp.responses import DEFAULT_WARN_INFO_TYPES, wrap
 from netlicensing_mcp.prompts.audit import register_audit_prompts
 from netlicensing_mcp.tools import (
     bundles,
@@ -98,9 +102,14 @@ online license and entitlements management system for software vendors.
 2. **Onboard a customer:**
    create_licensee → create_license (from a template) → validate_licensee.
 3. **Check compliance:**
-   validate_licensee returns per-module validity, expiry, and quota.
-   For Floating models pass `session_id` + `action` (checkOut/checkIn).
-   For NodeLocked models pass `product_module_number` + `node_secret`.
+   validate_licensee returns per-module validity, expiry, and quota (always
+   as a list envelope, one item per module).
+   Module-scoped parameters require `product_module_number`, and one call
+   addresses ONE module:
+   - Floating: `product_module_number` + `session_id` + `action` (checkOut/checkIn).
+   - NodeLocked: `product_module_number` + `node_secret`.
+   Pass `dry_run=true` to validate without side effects — it never checks out,
+   checks in, binds a node or consumes anything.
 4. **Sell via shop:**
    create_shop_token generates a one-time checkout URL for a licensee.
 5. **Provision a bundle:**
@@ -153,9 +162,9 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
   at the entity in the NetLicensing Console UI.  When ``console_url`` is
   present, render the entity ``number`` as a Markdown link:
   ``[{number}]({console_url})``.
-- List responses have the shape
-  ``{"type": "list", "kind": "...", "count": N, "items": [...]}``;
-  single-entity responses are flat dicts.
+- List tools and validate_licensee always return
+  ``{"type": "list", "kind": "...", "count": N, "items": [...]}``, also
+  for zero or one item; get / create / update responses are flat dicts.
 - Pass ``include_raw=true`` to any tool to receive the sanitized
   NetLicensing API *response* nested under the ``"raw"`` key, alongside
   the normalized envelope built from it.
@@ -201,7 +210,14 @@ def _json_token_read(obj: object) -> str:
     return json.dumps(obj, indent=2)
 
 
-def _wrap_json(entity: dict, kind: str, *, include_raw: bool = False) -> str:
+def _wrap_json(
+    entity: dict,
+    kind: str,
+    *,
+    include_raw: bool = False,
+    as_list: bool = False,
+    warn_info_types: tuple[str, ...] = DEFAULT_WARN_INFO_TYPES,
+) -> str:
     """Normalize *entity* into the response envelope then serialize.
 
     Calls :func:`wrap` to produce a flat envelope with ``console_url``,
@@ -213,8 +229,15 @@ def _wrap_json(entity: dict, kind: str, *, include_raw: bool = False) -> str:
         kind:        Entity type hint (e.g. ``"Licensee"``).
         include_raw: When ``True``, embed the sanitized upstream API
                      response (the input *entity*) under ``"raw"``.
+        as_list:     Always return the list envelope (list tools, validate).
     """
-    wrapped = wrap(entity, kind, raw=entity if include_raw else None)
+    wrapped = wrap(
+        entity,
+        kind,
+        raw=entity if include_raw else None,
+        as_list=as_list,
+        warn_info_types=warn_info_types,
+    )
     return _json(wrapped)
 
 
@@ -240,7 +263,7 @@ def _scrub_apikey_console_url(env: dict) -> None:
         _scrub(env)
 
 
-def _wrap_json_token_read(entity: dict, *, include_raw: bool = False) -> str:
+def _wrap_json_token_read(entity: dict, *, include_raw: bool = False, as_list: bool = False) -> str:
     """Normalize a token *read* response with extra credential masking.
 
     Applies :func:`redact_token_read` (masks APIKEY ``number`` and SHOP
@@ -249,7 +272,7 @@ def _wrap_json_token_read(entity: dict, *, include_raw: bool = False) -> str:
     ``console_url`` is dropped — see :func:`_scrub_apikey_console_url`.
     """
     token_safe = redact_token_read(entity) if isinstance(entity, (dict, list)) else entity
-    wrapped = wrap(token_safe, "Token", raw=token_safe if include_raw else None)
+    wrapped = wrap(token_safe, "Token", raw=token_safe if include_raw else None, as_list=as_list)
     _scrub_apikey_console_url(wrapped)
     return _json(wrapped)
 
@@ -308,6 +331,21 @@ def _extract_props(response: dict) -> dict[str, str]:
     }
 
 
+def _fmt_price(price: object, currency: str | None = None) -> str | None:
+    """Format a price with two decimals and the currency next to it.
+
+    ``60`` / ``"60.0"`` → ``"60.00"``; with currency ``"EUR"`` → ``"60.00 EUR"``.
+    Values that are not numbers are returned unchanged; ``None``/``""`` → ``None``.
+    """
+    if price is None or price == "":
+        return None
+    try:
+        text = f"{float(str(price)):.2f}"
+    except ValueError:
+        text = str(price)
+    return f"{text} {currency}" if currency else text
+
+
 def _price_active_diff(
     current: dict[str, str], price: float | None, currency: str, active: bool | None
 ) -> list[dict]:
@@ -319,7 +357,14 @@ def _price_active_diff(
     """
     diff: list[dict] = []
     if price is not None:
-        diff.append({"field": "price", "from": current.get("price"), "to": str(price)})
+        cur_currency = current.get("currency")
+        diff.append(
+            {
+                "field": "price",
+                "from": _fmt_price(current.get("price"), cur_currency),
+                "to": _fmt_price(price, currency or cur_currency),
+            }
+        )
     if currency:
         diff.append({"field": "currency", "from": current.get("currency"), "to": currency})
     elif price is not None:
@@ -354,6 +399,7 @@ async def netlicensing_list_products(filter: str = "", include_raw: bool = False
             await products.list_products(filter_str=filter or None),
             "Product",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -633,7 +679,9 @@ async def netlicensing_list_bundles(include_raw: bool = False) -> str:
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        return _wrap_json(await bundles.list_bundles(), "Bundle", include_raw=include_raw)
+        return _wrap_json(
+            await bundles.list_bundles(), "Bundle", include_raw=include_raw, as_list=True
+        )
     except NetLicensingError as exc:
         return _error(exc)
 
@@ -756,7 +804,10 @@ async def netlicensing_preview_delete_bundle(bundle_number: str) -> str:
                 affected={
                     "license_templates": "referenced only — will NOT be deleted",
                 },
-                samples={"bundle_name": props.get("name", "")},
+                samples={
+                    "bundle_name": props.get("name", ""),
+                    "price": _fmt_price(props.get("price"), props.get("currency")) or "",
+                },
             )
         )
     except NetLicensingError as exc:
@@ -794,7 +845,10 @@ async def netlicensing_delete_bundle(
                 "delete_bundle",
                 bundle_number,
                 affected={"license_templates": "referenced only — will NOT be deleted"},
-                samples={"bundle_name": props.get("name", "")},
+                samples={
+                    "bundle_name": props.get("name", ""),
+                    "price": _fmt_price(props.get("price"), props.get("currency")) or "",
+                },
             )
         )
     except ValueError as exc:
@@ -822,6 +876,7 @@ async def netlicensing_obtain_bundle(
             await bundles.obtain_bundle(bundle_number, licensee_number),
             "License",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -851,6 +906,7 @@ async def netlicensing_list_product_modules(
             ),
             "ProductModule",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1061,6 +1117,7 @@ async def netlicensing_list_license_templates(
             ),
             "LicenseTemplate",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1284,7 +1341,7 @@ async def netlicensing_preview_delete_license_template(template_number: str) -> 
                 },
                 samples={
                     "template_name": props.get("name", ""),
-                    "price": props.get("price", ""),
+                    "price": _fmt_price(props.get("price"), props.get("currency")) or "",
                 },
             )
         )
@@ -1325,7 +1382,7 @@ async def netlicensing_delete_license_template(
                 },
                 samples={
                     "template_name": props.get("name", ""),
-                    "price": props.get("price", ""),
+                    "price": _fmt_price(props.get("price"), props.get("currency")) or "",
                 },
             )
         )
@@ -1359,6 +1416,7 @@ async def netlicensing_list_licensees(
             ),
             "Licensee",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1528,21 +1586,33 @@ async def netlicensing_validate_licensee(
     action: str = "",
     product_module_number: str = "",
     node_secret: str = "",
+    dry_run: bool = False,
     include_raw: bool = False,
 ) -> str:
     """Validate a customer's licenses across all product modules.
 
-    Returns per-module validity, type, expiry dates, and usage counts.
+    Returns the list envelope with one ProductModuleValidation item per module
+    (validity, type, expiry, usage; Floating expirationTimestamp and session data
+    are kept), even when only one module is validated. API infos (ERROR, WARNING,
+    INFO — e.g. "No free floating licenses found.") appear in 'warnings'.
+
+    Module-scoped parameters (session_id, action, node_secret) require
+    product_module_number, and one call addresses ONE module. A call that is not
+    a dry run still validates every module of the product, so other Floating or
+    NodeLocked modules may report their own missing-parameter errors.
 
     Args:
         licensee_number: Customer to validate
         product_number: Optional — scope validation to a specific product
         licensee_name: Human-readable name for auto-created licensees (when licenseeAutoCreate is enabled)
-        session_id: Floating model — unique session identifier (needs product_module_number)
-        action: Floating model — 'checkOut' or 'checkIn' (needs product_module_number)
+        session_id: Floating model — unique session identifier (needs product_module_number;
+            required with action)
+        action: Floating model — 'checkOut' or 'checkIn' (needs product_module_number and session_id)
         product_module_number: Module that session_id / action / node_secret apply to;
             required when any of them is given
         node_secret: NodeLocked model — unique device/node secret (needs product_module_number)
+        dry_run: When true, validate without side effects: never checks out, checks in,
+            binds a node or consumes anything. Default false.
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
@@ -1555,9 +1625,12 @@ async def netlicensing_validate_licensee(
                 action=action or None,
                 product_module_number=product_module_number or None,
                 node_secret=node_secret or None,
+                dry_run=dry_run,
             ),
             "ProductModuleValidation",
             include_raw=include_raw,
+            as_list=True,
+            warn_info_types=("ERROR", "WARNING", "INFO"),
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1609,6 +1682,7 @@ async def netlicensing_list_licenses(
             ),
             "License",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -1768,6 +1842,7 @@ async def netlicensing_preview_delete_license(license_number: str) -> str:
                 samples={
                     "licensee": props.get("licenseeNumber", ""),
                     "template": props.get("licenseTemplateNumber", ""),
+                    "price": _fmt_price(props.get("price"), props.get("currency")) or "",
                 },
             )
         )
@@ -1809,6 +1884,7 @@ async def netlicensing_delete_license(
                 samples={
                     "licensee": props.get("licenseeNumber", ""),
                     "template": props.get("licenseTemplateNumber", ""),
+                    "price": _fmt_price(props.get("price"), props.get("currency")) or "",
                 },
             )
         )
@@ -1835,6 +1911,7 @@ async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) 
         return _wrap_json_token_read(
             await tokens.list_tokens(filter_str=filter or None),
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -2010,6 +2087,7 @@ async def netlicensing_list_transactions(filter: str = "", include_raw: bool = F
             ),
             "Transaction",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -2138,6 +2216,7 @@ async def netlicensing_list_payment_methods(filter: str = "", include_raw: bool 
             ),
             "PaymentMethod",
             include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -2265,7 +2344,10 @@ async def netlicensing_list_licensing_models(include_raw: bool = False) -> str:
     """
     try:
         return _wrap_json(
-            await utilities.list_licensing_models(), "LicensingModel", include_raw=include_raw
+            await utilities.list_licensing_models(),
+            "LicensingModel",
+            include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -2280,7 +2362,10 @@ async def netlicensing_list_license_types(include_raw: bool = False) -> str:
     """
     try:
         return _wrap_json(
-            await utilities.list_license_types(), "LicenseType", include_raw=include_raw
+            await utilities.list_license_types(),
+            "LicenseType",
+            include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc)
@@ -2294,9 +2379,35 @@ async def netlicensing_list_countries(include_raw: bool = False) -> str:
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        return _wrap_json(await utilities.list_countries(), "Country", include_raw=include_raw)
+        return _wrap_json(
+            await utilities.list_countries(), "Country", include_raw=include_raw, as_list=True
+        )
     except NetLicensingError as exc:
         return _error(exc)
+
+
+def _server_version() -> str:
+    """Installed package version (from package metadata, not a literal)."""
+    try:
+        return _pkg_version("netlicensing-mcp")
+    except PackageNotFoundError:
+        return "unknown"
+
+
+@mcp.tool()
+async def netlicensing_server_info() -> str:
+    """Return this MCP server's version, NetLicensing API host and demo-mode flag.
+
+    Read-only; makes no API call and returns no secrets.
+    """
+    return json.dumps(
+        {
+            "version": _server_version(),
+            "base_url": urlsplit(_client.BASE_URL).hostname or "",
+            "demo_mode": is_demo_mode(),
+        },
+        indent=2,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

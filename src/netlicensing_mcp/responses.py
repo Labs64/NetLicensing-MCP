@@ -13,8 +13,18 @@ envelope that:
 * Optionally includes the original raw NetLicensing payload under ``"raw"``
   when ``include_raw=True`` is requested at the tool level.
 
-Single-item responses (get / create / update) return a flat dict; list
-responses return ``{"type": "list", "kind": "...", "count": N, "items": [...]}``.
+Contract:
+
+* **List tools and validate always return the list envelope**
+  ``{"type": "list", "kind": "...", "count": N, "items": [...]}`` — also for
+  zero or one item (they call :func:`wrap` with ``as_list=True``).
+* **get / create / update return a single envelope** — a flat dict.
+
+Nested ``list`` groups inside an item (e.g. the per-session data Core returns
+for a Floating ``ProductModuleValidation``) are kept, flattened the same way,
+under their ``name``.  Upstream ``infos`` of type ERROR / WARNING (plus INFO
+for validate) are copied into ``warnings`` so callers see API messages without
+``include_raw``.
 
 Usage::
 
@@ -82,6 +92,52 @@ def _props_to_dict(item: dict) -> dict[str, str]:
     }
 
 
+def _flatten_list_group(group: dict) -> dict[str, Any]:
+    """Flatten a nested NetLicensing ``list`` group (``{"name", "property", "list"}``)."""
+    out: dict[str, Any] = dict(_props_to_dict(group))
+    _merge_nested_lists(out, group)
+    return out
+
+
+def _merge_nested_lists(target: dict[str, Any], item: dict) -> None:
+    """Copy nested ``list`` groups of *item* into *target*, keyed by group name.
+
+    A name that occurs once maps to a dict; repeated names map to a list of
+    dicts. Existing keys in *target* (entity properties) are never overwritten.
+    """
+    groups = item.get("list", [])
+    if not isinstance(groups, list):
+        return
+    collected: dict[str, list[dict[str, Any]]] = {}
+    for g in groups:
+        if isinstance(g, dict):
+            collected.setdefault(str(g.get("name", "")), []).append(_flatten_list_group(g))
+    for name, values in collected.items():
+        key = name or "list"
+        if key in target:
+            continue
+        target[key] = values[0] if len(values) == 1 else values
+
+
+#: ``infos`` types copied into ``warnings`` by default.
+DEFAULT_WARN_INFO_TYPES: tuple[str, ...] = ("ERROR", "WARNING")
+
+
+def _info_warnings(
+    meta: dict[str, Any], types: tuple[str, ...] = DEFAULT_WARN_INFO_TYPES
+) -> list[str]:
+    """Return ``infos`` messages of the given *types* from an upstream response."""
+    infos = meta.get("infos")
+    info_list = infos.get("info", []) if isinstance(infos, dict) else []
+    if not isinstance(info_list, list):
+        return []
+    return [
+        str(i.get("value", ""))
+        for i in info_list
+        if isinstance(i, dict) and str(i.get("type", "")).upper() in types and i.get("value")
+    ]
+
+
 def _wrap_item(
     item: dict,
     *,
@@ -100,6 +156,8 @@ def _wrap_item(
 
     # Build the envelope starting from all entity properties.
     envelope: dict[str, Any] = dict(props)
+    # Keep nested groups (e.g. Floating session data on a validation result).
+    _merge_nested_lists(envelope, item)
 
     # Overwrite/inject well-known typed fields.
     envelope["type"] = kind
@@ -136,11 +194,15 @@ def wrap(
     summary: str | None = None,
     suggested_actions: list[str] | None = None,
     raw: dict | None = None,
+    as_list: bool = False,
+    warn_info_types: tuple[str, ...] = DEFAULT_WARN_INFO_TYPES,
 ) -> dict[str, Any]:
     """Normalise a NetLicensing API response into a flat envelope with console_url.
 
     Handles both single-entity responses (get / create / update — exactly one
-    item in ``items.item``) and list responses (zero or more items).
+    item in ``items.item``) and list responses (zero or more items).  List
+    tools and validate pass ``as_list=True`` so the list envelope is returned
+    for any item count, including 0 and 1.
 
     * **Single-item response** — returns a flat dict with all entity properties
       at the top level, plus ``console_url``, ``warnings``, and
@@ -170,6 +232,11 @@ def wrap(
                            envelope.
         suggested_actions: List of suggested follow-up actions.
         raw:               When not ``None``, attached as ``envelope["raw"]``.
+        as_list:           Always return the list envelope, even for one item.
+        warn_info_types:   Upstream ``infos`` types copied into ``warnings``.
+                           Validate adds ``INFO``: Core reports a refused
+                           checkOut (``NoFreeSessions``) or node binding
+                           (``NoFreeNodes``) as INFO.
     """
     items_obj = entity.get("items", {})
     item_list = items_obj.get("item", []) if isinstance(items_obj, dict) else []
@@ -187,7 +254,7 @@ def wrap(
     if not effective_kind and item_list:
         effective_kind = item_list[0].get("type", "") if isinstance(item_list[0], dict) else ""
 
-    if len(item_list) == 1:
+    if len(item_list) == 1 and not as_list:
         # Single entity (get / create / update path).
         envelope = _wrap_item(
             item_list[0],
@@ -215,6 +282,10 @@ def wrap(
             envelope["summary"] = summary
         for k, v in meta.items():
             envelope.setdefault(k, v)
+
+    for msg in _info_warnings(meta, warn_info_types):
+        if msg not in envelope["warnings"]:
+            envelope["warnings"].append(msg)
 
     if raw is not None:
         envelope["raw"] = raw
