@@ -251,6 +251,25 @@ async def test_filter_list_tools_emit_next_page_hint(tool, patch_target, kind, a
     assert _hinted_filter(out["next_page_hint"]) == "active=true;page=1;items=2"
 
 
+async def test_next_page_hint_keeps_non_ascii_filter_readable():
+    from netlicensing_mcp.app import to_call_tool_result
+
+    resp = _page("Licensee", 2, **FIRST_OF_NINE)
+    with patch("netlicensing_mcp.server.licensees.list_licensees", AsyncMock(return_value=resp)):
+        text = await server.netlicensing_list_licensees("P1", filter="name=Müller")
+    result = to_call_tool_result(text)
+    hint = json.loads(text)["next_page_hint"]
+    assert 'filter="name=Müller;page=1;items=2"' in hint
+    # _json() may escape ü once (valid JSON); a double escape means the hint
+    # itself carried the literal text "ü".
+    assert "\\\\u00fc" not in text
+    assert result.structuredContent is not None
+    assert result.structuredContent["next_page_hint"] == hint
+    assert _hinted_filter(result.structuredContent["next_page_hint"]) == (
+        "name=Müller;page=1;items=2"
+    )
+
+
 async def test_list_payment_methods_reports_metadata_without_hint():
     # Upstream /paymentmethod ignores page/items (null metadata on the sandbox),
     # so the tool never suggests paging, even if metadata showed up.
