@@ -1,0 +1,23 @@
+name: netlicensing-mcp
+image: labs64/netlicensing-mcp
+type: server
+meta:
+  category: ecommerce
+  tags:
+    - licensing
+    - license-management
+    - saas
+    - labs64
+about:
+  title: NetLicensing
+  description: Manage software licenses with Labs64 NetLicensing - products, modules, license templates, licensees, licenses, bundles, tokens and transactions - plus audit prompts.
+  icon: https://avatars.githubusercontent.com/u/1461983?s=200&v=4
+source:
+  project: https://github.com/Labs64/NetLicensing-MCP
+  commit: 74fdcd75ae6f4bede2471d7cd9a291a95701e2eb
+config:
+  description: Configure access to your NetLicensing vendor account
+  secrets:
+    - name: netlicensing-mcp.api_key
+      env: NETLICENSING_API_KEY
+      example: <NETLICENSING_API_KEY>

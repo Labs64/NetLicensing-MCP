@@ -17,8 +17,9 @@
       "environmentVariables": [
         {
           "name": "NETLICENSING_API_KEY",
-          "description": "Your NetLicensing API key (leave empty to use demo credentials)",
-          "required": false
+          "description": "Your NetLicensing API key (required)",
+          "required": true,
+          "isSecret": true
         },
         {
           "name": "NETLICENSING_BASE_URL",
