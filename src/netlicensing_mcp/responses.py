@@ -41,6 +41,7 @@ Usage::
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -276,7 +277,7 @@ def _paging_fields(items_obj: dict, paging_filter: str | None) -> dict[str, Any]
         nxt = next_page_filter(paging_filter, page + 1, page_size)
         fields["next_page_hint"] = (
             f"More items available: call this tool again with the same other "
-            f"arguments and filter='{nxt}' (page is 0-based)."
+            f"arguments and filter={json.dumps(nxt)} (page is 0-based)."
         )
     return fields
 

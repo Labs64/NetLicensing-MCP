@@ -1573,9 +1573,14 @@
     {
       "name": "netlicensing_list_bundles",
       "title": "List bundles",
-      "description": "List all bundles in the NetLicensing account.\n\nArgs:\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
+      "description": "List all bundles in the NetLicensing account.\n\nArgs:\n    filter: Optional server-side filter expression (e.g. 'active=true')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
+          "filter": {
+            "default": "",
+            "title": "Filter",
+            "type": "string"
+          },
           "include_raw": {
             "default": false,
             "title": "Include Raw",

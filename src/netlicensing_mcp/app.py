@@ -145,6 +145,11 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
 - List tools and validate_licensee always return
   ``{"type": "list", "kind": "...", "count": N, "items": [...]}``, also
   for zero or one item; get / create / update responses are flat dicts.
+- Besides ``count`` (items in that response), list results carry the
+  paging data NetLicensing reports (``total``, ``page`` (0-based),
+  ``total_pages``, ``page_size``, ``has_more``, ``next_page_hint``); to
+  fetch the next page, pass the value quoted in ``next_page_hint`` as
+  ``filter`` with the other arguments unchanged.
 - Every tool result also carries ``structuredContent``: the same JSON
   object as the text (a non-object result as ``{"result": ...}``); failed
   calls (``{"error": true, ...}``) are flagged with ``isError``.

@@ -33,7 +33,6 @@ async def netlicensing_list_payment_methods(filter: str = "", include_raw: bool 
             "PaymentMethod",
             include_raw=include_raw,
             as_list=True,
-            paging_filter=filter,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_payment_methods")

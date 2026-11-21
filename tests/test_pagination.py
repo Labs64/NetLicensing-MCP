@@ -19,6 +19,15 @@ import pytest
 from netlicensing_mcp import server
 from netlicensing_mcp.responses import next_page_filter, wrap
 
+
+def _hinted_filter(hint: str) -> str:
+    """Decode the JSON-quoted ``filter=...`` value inside a ``next_page_hint``."""
+    start = hint.index("filter=") + len("filter=")
+    value, _ = json.JSONDecoder().raw_decode(hint[start:])
+    assert isinstance(value, str)
+    return value
+
+
 PAGING_KEYS = ("total", "page", "total_pages", "page_size", "has_more", "next_page_hint")
 
 
@@ -127,9 +136,18 @@ def test_unparseable_values_are_skipped():
 
 
 def test_count_is_items_in_this_response_not_total():
-    env = wrap(_page("Transaction", 100, **{**FIRST_OF_NINE, "itemsnumber": "100"}), "Transaction")
+    # GET /transaction on the demo sandbox (default page size 100).
+    meta = {
+        "pagenumber": "0",
+        "itemsnumber": "100",
+        "totalpages": "4",
+        "totalitems": "381",
+        "hasnext": "true",
+    }
+    env = wrap(_page("Transaction", 100, **meta), "Transaction")
     assert env["count"] == 100
-    assert env["total"] == 18
+    assert env["total"] == 381
+    assert env["page_size"] == 100
 
 
 def test_single_entity_envelope_gets_no_paging_fields():
@@ -149,14 +167,15 @@ def test_raw_keeps_upstream_metadata():
 
 
 def test_next_page_hint_only_when_tool_pages_through_filter():
-    env = wrap(_page("Bundle", 2, **FIRST_OF_NINE), "Bundle", as_list=True)
+    env = wrap(_page("Product", 2, **FIRST_OF_NINE), "Product", as_list=True)
     assert env["has_more"] is True
     assert "next_page_hint" not in env
 
 
 def test_next_page_hint_with_empty_filter():
     env = wrap(_page("Product", 2, **FIRST_OF_NINE), "Product", as_list=True, paging_filter="")
-    assert "filter='page=1;items=2'" in env["next_page_hint"]
+    assert 'filter="page=1;items=2"' in env["next_page_hint"]
+    assert _hinted_filter(env["next_page_hint"]) == "page=1;items=2"
 
 
 def test_next_page_hint_keeps_user_filter_and_replaces_paging():
@@ -166,7 +185,19 @@ def test_next_page_hint_keeps_user_filter_and_replaces_paging():
         as_list=True,
         paging_filter=" active=true ; page=4;items=2",
     )
-    assert "filter='active=true;page=5;items=2'" in env["next_page_hint"]
+    assert _hinted_filter(env["next_page_hint"]) == "active=true;page=5;items=2"
+
+
+def test_next_page_hint_quotes_filter_unambiguously():
+    env = wrap(
+        _page("Licensee", 2, **FIRST_OF_NINE),
+        "Licensee",
+        as_list=True,
+        paging_filter='name=O\'Brien "Ltd"',
+    )
+    hint = env["next_page_hint"]
+    assert 'filter="name=O\'Brien \\"Ltd\\";page=1;items=2"' in hint
+    assert _hinted_filter(hint) == 'name=O\'Brien "Ltd";page=1;items=2'
 
 
 @pytest.mark.parametrize(
@@ -206,12 +237,7 @@ def test_next_page_filter(user_filter, expected):
         ),
         ("netlicensing_list_tokens", "tokens.list_tokens", "Token", ()),
         ("netlicensing_list_transactions", "transactions.list_transactions", "Transaction", ()),
-        (
-            "netlicensing_list_payment_methods",
-            "payment_methods.list_payment_methods",
-            "PaymentMethod",
-            (),
-        ),
+        ("netlicensing_list_bundles", "bundles.list_bundles", "Bundle", ()),
     ],
 )
 async def test_filter_list_tools_emit_next_page_hint(tool, patch_target, kind, args):
@@ -222,16 +248,54 @@ async def test_filter_list_tools_emit_next_page_hint(tool, patch_target, kind, a
     assert out["count"] == 2
     assert out["total"] == 18
     assert out["has_more"] is True
-    assert "filter='active=true;page=1;items=2'" in out["next_page_hint"]
+    assert _hinted_filter(out["next_page_hint"]) == "active=true;page=1;items=2"
 
 
-async def test_list_bundles_reports_metadata_without_hint():
-    resp = _page("Bundle", 2, **FIRST_OF_NINE)
-    with patch("netlicensing_mcp.server.bundles.list_bundles", AsyncMock(return_value=resp)):
-        out = json.loads(await server.netlicensing_list_bundles())
+async def test_list_payment_methods_reports_metadata_without_hint():
+    # Upstream /paymentmethod ignores page/items (null metadata on the sandbox),
+    # so the tool never suggests paging, even if metadata showed up.
+    resp = _page("PaymentMethod", 2, **FIRST_OF_NINE)
+    with patch(
+        "netlicensing_mcp.server.payment_methods.list_payment_methods",
+        AsyncMock(return_value=resp),
+    ):
+        out = json.loads(await server.netlicensing_list_payment_methods(filter="active=true"))
     assert out["total"] == 18
     assert out["has_more"] is True
     assert "next_page_hint" not in out
+
+
+async def test_scoped_tool_hint_round_trip_keeps_scope_and_replaces_paging():
+    """Feeding the hinted filter back goes through scoped_filter unchanged."""
+    page0 = _page("Licensee", 2, **{**FIRST_OF_NINE, "totalpages": "2", "totalitems": "4"})
+    page1 = _page(
+        "Licensee",
+        2,
+        pagenumber="1",
+        itemsnumber="2",
+        totalpages="2",
+        totalitems="4",
+        hasnext="false",
+    )
+    nl_get = AsyncMock(side_effect=[page0, page1])
+    with patch("netlicensing_mcp.tools.licensees.nl_get", new=nl_get):
+        first = json.loads(
+            await server.netlicensing_list_licensees("P1", filter="active=true;page=0;items=2")
+        )
+        hinted = _hinted_filter(first["next_page_hint"])
+        second = json.loads(await server.netlicensing_list_licensees("P1", filter=hinted))
+    assert hinted == "active=true;page=1;items=2"
+    assert nl_get.await_args_list[0].args == (
+        "/licensee",
+        {"filter": "productNumber=P1;active=true;page=0;items=2"},
+    )
+    assert nl_get.await_args_list[1].args == (
+        "/licensee",
+        {"filter": "productNumber=P1;active=true;page=1;items=2"},
+    )
+    assert second["page"] == 1
+    assert second["has_more"] is False
+    assert "next_page_hint" not in second
 
 
 async def test_list_licensing_models_null_metadata_adds_nothing():

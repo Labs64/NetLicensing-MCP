@@ -21,15 +21,20 @@ from netlicensing_mcp.tools import bundles
 
 
 @tool(title="List bundles", annotations=_READONLY)
-async def netlicensing_list_bundles(include_raw: bool = False) -> str:
+async def netlicensing_list_bundles(filter: str = "", include_raw: bool = False) -> str:
     """List all bundles in the NetLicensing account.
 
     Args:
+        filter: Optional server-side filter expression (e.g. 'active=true')
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
-            await bundles.list_bundles(), "Bundle", include_raw=include_raw, as_list=True
+            await bundles.list_bundles(filter_str=filter or None),
+            "Bundle",
+            include_raw=include_raw,
+            as_list=True,
+            paging_filter=filter,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_bundles")
