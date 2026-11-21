@@ -1,7 +1,7 @@
 """Golden snapshot of the public MCP surface (tools + prompts).
 
 Guards against accidental changes to what MCP clients see: tool names,
-titles, descriptions (docstrings), input schemas, annotations, the tool
+titles, descriptions (docstrings), input/output schemas, annotations, the tool
 registration order, and the registered prompts with their argument names.
 
 Regenerate the snapshot after an *intentional* change with::
@@ -33,6 +33,7 @@ async def _live_registry() -> dict:
                 "title": t.title,
                 "description": t.description,
                 "inputSchema": t.inputSchema,
+                "outputSchema": t.outputSchema,
                 "annotations": (
                     t.annotations.model_dump(mode="json") if t.annotations is not None else None
                 ),

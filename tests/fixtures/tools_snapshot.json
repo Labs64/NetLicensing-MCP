@@ -88,6 +88,19 @@
         "title": "netlicensing_create_api_tokenArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_api_tokenOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -156,6 +169,19 @@
           "license_template_numbers"
         ],
         "title": "netlicensing_create_bundleArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_bundleOutput",
         "type": "object"
       },
       "annotations": {
@@ -260,6 +286,19 @@
           "license_template_number"
         ],
         "title": "netlicensing_create_licenseArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_licenseOutput",
         "type": "object"
       },
       "annotations": {
@@ -418,6 +457,19 @@
         "title": "netlicensing_create_license_templateArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_license_templateOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -478,6 +530,19 @@
           "product_number"
         ],
         "title": "netlicensing_create_licenseeArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_licenseeOutput",
         "type": "object"
       },
       "annotations": {
@@ -555,6 +620,19 @@
           "name"
         ],
         "title": "netlicensing_create_productArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_productOutput",
         "type": "object"
       },
       "annotations": {
@@ -676,6 +754,19 @@
         "title": "netlicensing_create_product_moduleArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_product_moduleOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -732,6 +823,19 @@
           }
         },
         "title": "netlicensing_create_shop_tokenArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_shop_tokenOutput",
         "type": "object"
       },
       "annotations": {
@@ -804,6 +908,19 @@
         "title": "netlicensing_create_transactionArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_create_transactionOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -837,6 +954,19 @@
           "bundle_number"
         ],
         "title": "netlicensing_delete_bundleArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_delete_bundleOutput",
         "type": "object"
       },
       "annotations": {
@@ -874,6 +1004,19 @@
         "title": "netlicensing_delete_licenseArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_delete_licenseOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -907,6 +1050,19 @@
           "template_number"
         ],
         "title": "netlicensing_delete_license_templateArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_delete_license_templateOutput",
         "type": "object"
       },
       "annotations": {
@@ -944,6 +1100,19 @@
         "title": "netlicensing_delete_licenseeArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_delete_licenseeOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -977,6 +1146,19 @@
           "product_number"
         ],
         "title": "netlicensing_delete_productArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_delete_productOutput",
         "type": "object"
       },
       "annotations": {
@@ -1014,6 +1196,19 @@
         "title": "netlicensing_delete_product_moduleArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_delete_product_moduleOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -1042,6 +1237,19 @@
           "token_number"
         ],
         "title": "netlicensing_delete_tokenArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_delete_tokenOutput",
         "type": "object"
       },
       "annotations": {
@@ -1095,6 +1303,19 @@
         "title": "netlicensing_explain_validationArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_explain_validationOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1123,6 +1344,19 @@
           "bundle_number"
         ],
         "title": "netlicensing_get_bundleArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_bundleOutput",
         "type": "object"
       },
       "annotations": {
@@ -1160,6 +1394,19 @@
         "title": "netlicensing_get_customer_healthArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_customer_healthOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1188,6 +1435,19 @@
           "license_number"
         ],
         "title": "netlicensing_get_licenseArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_licenseOutput",
         "type": "object"
       },
       "annotations": {
@@ -1220,6 +1480,19 @@
         "title": "netlicensing_get_license_templateArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_license_templateOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1248,6 +1521,19 @@
           "licensee_number"
         ],
         "title": "netlicensing_get_licenseeArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_licenseeOutput",
         "type": "object"
       },
       "annotations": {
@@ -1280,6 +1566,19 @@
         "title": "netlicensing_get_payment_methodArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_payment_methodOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1308,6 +1607,19 @@
           "product_number"
         ],
         "title": "netlicensing_get_productArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_productOutput",
         "type": "object"
       },
       "annotations": {
@@ -1340,6 +1652,19 @@
         "title": "netlicensing_get_product_moduleArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_product_moduleOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1368,6 +1693,19 @@
           "token_number"
         ],
         "title": "netlicensing_get_tokenArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_tokenOutput",
         "type": "object"
       },
       "annotations": {
@@ -1400,6 +1738,19 @@
         "title": "netlicensing_get_transactionArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_get_transactionOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1423,6 +1774,19 @@
         "title": "netlicensing_list_bundlesArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_bundlesOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1444,6 +1808,19 @@
           }
         },
         "title": "netlicensing_list_countriesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_countriesOutput",
         "type": "object"
       },
       "annotations": {
@@ -1481,6 +1858,19 @@
         "title": "netlicensing_list_license_templatesArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_license_templatesOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1502,6 +1892,19 @@
           }
         },
         "title": "netlicensing_list_license_typesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_license_typesOutput",
         "type": "object"
       },
       "annotations": {
@@ -1539,6 +1942,19 @@
         "title": "netlicensing_list_licenseesArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_licenseesOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1574,6 +1990,19 @@
         "title": "netlicensing_list_licensesArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_licensesOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1595,6 +2024,19 @@
           }
         },
         "title": "netlicensing_list_licensing_modelsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_licensing_modelsOutput",
         "type": "object"
       },
       "annotations": {
@@ -1623,6 +2065,19 @@
           }
         },
         "title": "netlicensing_list_payment_methodsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_payment_methodsOutput",
         "type": "object"
       },
       "annotations": {
@@ -1660,6 +2115,19 @@
         "title": "netlicensing_list_product_modulesArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_product_modulesOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1686,6 +2154,19 @@
           }
         },
         "title": "netlicensing_list_productsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_productsOutput",
         "type": "object"
       },
       "annotations": {
@@ -1716,6 +2197,19 @@
         "title": "netlicensing_list_tokensArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_tokensOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1742,6 +2236,19 @@
           }
         },
         "title": "netlicensing_list_transactionsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_list_transactionsOutput",
         "type": "object"
       },
       "annotations": {
@@ -1779,6 +2286,19 @@
         "title": "netlicensing_obtain_bundleArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_obtain_bundleOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -1802,6 +2322,19 @@
           "bundle_number"
         ],
         "title": "netlicensing_preview_delete_bundleArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_delete_bundleOutput",
         "type": "object"
       },
       "annotations": {
@@ -1829,6 +2362,19 @@
         "title": "netlicensing_preview_delete_licenseArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_delete_licenseOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1852,6 +2398,19 @@
           "template_number"
         ],
         "title": "netlicensing_preview_delete_license_templateArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_delete_license_templateOutput",
         "type": "object"
       },
       "annotations": {
@@ -1879,6 +2438,19 @@
         "title": "netlicensing_preview_delete_licenseeArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_delete_licenseeOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1902,6 +2474,19 @@
           "product_number"
         ],
         "title": "netlicensing_preview_delete_productArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_delete_productOutput",
         "type": "object"
       },
       "annotations": {
@@ -1929,6 +2514,19 @@
         "title": "netlicensing_preview_delete_product_moduleArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_delete_product_moduleOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -1952,6 +2550,19 @@
           "token_number"
         ],
         "title": "netlicensing_preview_delete_tokenArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_delete_tokenOutput",
         "type": "object"
       },
       "annotations": {
@@ -2008,6 +2619,19 @@
         "title": "netlicensing_preview_update_license_templateArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_update_license_templateOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -2043,6 +2667,19 @@
           "payment_method_number"
         ],
         "title": "netlicensing_preview_update_payment_methodArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_update_payment_methodOutput",
         "type": "object"
       },
       "annotations": {
@@ -2087,6 +2724,19 @@
         "title": "netlicensing_preview_update_productArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_preview_update_productOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": true,
@@ -2102,6 +2752,19 @@
       "inputSchema": {
         "properties": {},
         "title": "netlicensing_server_infoArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_server_infoOutput",
         "type": "object"
       },
       "annotations": {
@@ -2137,6 +2800,19 @@
           "to_licensee_number"
         ],
         "title": "netlicensing_transfer_licensesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_transfer_licensesOutput",
         "type": "object"
       },
       "annotations": {
@@ -2221,6 +2897,19 @@
           "bundle_number"
         ],
         "title": "netlicensing_update_bundleArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_bundleOutput",
         "type": "object"
       },
       "annotations": {
@@ -2327,6 +3016,19 @@
           "license_number"
         ],
         "title": "netlicensing_update_licenseArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_licenseOutput",
         "type": "object"
       },
       "annotations": {
@@ -2515,6 +3217,19 @@
         "title": "netlicensing_update_license_templateArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_license_templateOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -2579,6 +3294,19 @@
         "title": "netlicensing_update_licenseeArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_licenseeOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -2629,6 +3357,19 @@
           "payment_method_number"
         ],
         "title": "netlicensing_update_payment_methodArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_payment_methodOutput",
         "type": "object"
       },
       "annotations": {
@@ -2718,6 +3459,19 @@
           "product_number"
         ],
         "title": "netlicensing_update_productArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_productOutput",
         "type": "object"
       },
       "annotations": {
@@ -2836,6 +3590,19 @@
         "title": "netlicensing_update_product_moduleArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_product_moduleOutput",
+        "type": "object"
+      },
       "annotations": {
         "title": null,
         "readOnlyHint": false,
@@ -2896,6 +3663,19 @@
           "transaction_number"
         ],
         "title": "netlicensing_update_transactionArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_update_transactionOutput",
         "type": "object"
       },
       "annotations": {
@@ -2961,6 +3741,19 @@
           "licensee_number"
         ],
         "title": "netlicensing_validate_licenseeArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "netlicensing_validate_licenseeOutput",
         "type": "object"
       },
       "annotations": {
