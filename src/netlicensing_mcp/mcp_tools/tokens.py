@@ -34,6 +34,7 @@ async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) 
             await tokens.list_tokens(filter_str=filter or None),
             include_raw=include_raw,
             as_list=True,
+            paging_filter=filter,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_tokens")

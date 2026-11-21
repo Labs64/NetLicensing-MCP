@@ -73,6 +73,7 @@ NetLicensing supports several licensing models, such as Try & Buy, Subscription,
 **Good to know**
 
 - List tools and `validate_licensee` always return `{"type": "list", "count": ..., "items": [...]}`, even for zero or one result. Get, create and update tools return a single object.
+- **Paging:** `count` is the number of items in this response. NetLicensing returns at most 100 items per page, so list results also carry what the API reports about paging: `total` (all matching items), `page` (0-based), `total_pages` and `has_more`. When `has_more` is `true` they also carry `page_size` and, for list tools with a `filter` parameter, a `next_page_hint` with the exact `filter` value for the next page (e.g. `filter='active=true;page=1;items=100'`). `netlicensing_list_bundles` has no `filter`, so it can only report that more bundles exist. Endpoints that send no paging data (payment methods, licensing models, license types, countries) get none of these fields.
 - Every tool accepts `include_raw=true` if you also want the original NetLicensing response.
 - **Response format:** every result is the JSON as text, plus the same object as `structuredContent` for clients that read structured output. A result that is not a JSON object (for example the message of a confirmed delete) comes as `{"result": ...}`. Failed calls are flagged with `isError`, and every tool declares an `outputSchema`.
 - Tools tell your client whether they only read data, write data, or are destructive, so clients can ask for approval at the right moments.

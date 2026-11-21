@@ -40,6 +40,7 @@ async def netlicensing_list_licenses(
             "License",
             include_raw=include_raw,
             as_list=True,
+            paging_filter=filter,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_licenses")

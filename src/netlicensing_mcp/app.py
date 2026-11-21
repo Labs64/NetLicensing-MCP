@@ -228,6 +228,7 @@ def _wrap_json(
     include_raw: bool = False,
     as_list: bool = False,
     warn_info_types: tuple[str, ...] = DEFAULT_WARN_INFO_TYPES,
+    paging_filter: str | None = None,
 ) -> str:
     """Normalize *entity* into the response envelope then serialize.
 
@@ -241,6 +242,8 @@ def _wrap_json(
         include_raw: When ``True``, embed the sanitized upstream API
                      response (the input *entity*) under ``"raw"``.
         as_list:     Always return the list envelope (list tools, validate).
+        paging_filter: The tool's ``filter`` argument, for list tools that
+                     page through ``filter`` (enables ``next_page_hint``).
     """
     wrapped = wrap(
         entity,
@@ -248,6 +251,7 @@ def _wrap_json(
         raw=entity if include_raw else None,
         as_list=as_list,
         warn_info_types=warn_info_types,
+        paging_filter=paging_filter,
     )
     return _json(wrapped)
 
@@ -274,7 +278,13 @@ def _scrub_apikey_console_url(env: dict) -> None:
         _scrub(env)
 
 
-def _wrap_json_token_read(entity: dict, *, include_raw: bool = False, as_list: bool = False) -> str:
+def _wrap_json_token_read(
+    entity: dict,
+    *,
+    include_raw: bool = False,
+    as_list: bool = False,
+    paging_filter: str | None = None,
+) -> str:
     """Normalize a token *read* response with extra credential masking.
 
     Applies :func:`redact_token_read` (masks APIKEY ``number`` and SHOP
@@ -283,7 +293,13 @@ def _wrap_json_token_read(entity: dict, *, include_raw: bool = False, as_list: b
     ``console_url`` is dropped — see :func:`_scrub_apikey_console_url`.
     """
     token_safe = redact_token_read(entity) if isinstance(entity, (dict, list)) else entity
-    wrapped = wrap(token_safe, "Token", raw=token_safe if include_raw else None, as_list=as_list)
+    wrapped = wrap(
+        token_safe,
+        "Token",
+        raw=token_safe if include_raw else None,
+        as_list=as_list,
+        paging_filter=paging_filter,
+    )
     _scrub_apikey_console_url(wrapped)
     return _json(wrapped)
 
