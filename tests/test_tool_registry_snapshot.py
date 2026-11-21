@@ -74,7 +74,7 @@ async def test_snapshot_covers_every_tool():
     assert len(data["tools"]) == len(data["tool_order"]) == 61
     assert sorted(data["tool_order"]) == [t["name"] for t in data["tools"]]
     assert all(t["name"].startswith("netlicensing_") for t in data["tools"])
-    assert len(data["prompts"]) == 5
+    assert len(data["prompts"]) == 11
 
 
 async def test_default_registry_has_61_tools():

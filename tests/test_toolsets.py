@@ -333,7 +333,7 @@ def test_env_is_applied_at_import_time():
     ]
     assert out["settings"] == {"toolsets": ["licenses"], "read_only": True, "tool_count": 4}
     assert "Read-only mode" in out["note"]
-    assert out["prompts"] == 5
+    assert out["prompts"] == 11
     # The warning goes to stderr; stdout carries only the probe's JSON.
     assert "bogus" in proc.stderr
     assert "bogus" not in proc.stdout

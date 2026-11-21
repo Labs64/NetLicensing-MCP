@@ -29,7 +29,7 @@ It works with Claude Desktop, Claude Code, GitHub Copilot (Agent mode), VS Code,
 - **Ask in plain language.** Create products, issue licenses, validate a customer and generate shop links without clicking through the console or writing API calls.
 - **The whole NetLicensing API.** 61 tools cover products, modules, license templates, licensees, licenses, bundles, tokens, transactions and payment methods. See the [NetLicensing REST API](https://netlicensing.io/wiki/restful-api) for the details behind them.
 - **Answers, not just data.** Two ready-made workflows check a customer's health and explain, in plain words, why a validation passed or failed.
-- **Built-in audits.** Five prompt templates run account audits, expiry sweeps, cleanups and anomaly checks.
+- **Built-in audits and guided workflows.** Eleven prompt templates run account audits, expiry sweeps, cleanups and anomaly checks, and walk you through setting up a subscription or a trial, onboarding or migrating a customer, troubleshooting a validation and issuing an API key.
 - **Safe by default.** Deleting requires a preview and a confirmation. Secrets are masked. There is no silent fallback to demo credentials.
 - **Quick to start.** Run it with `uvx` or Docker. You don't need a local Python setup.
 
@@ -69,6 +69,7 @@ NetLicensing supports several licensing models, such as Try & Buy, Subscription,
 | **Workflows** | `get_customer_health`, `explain_validation` (read-only) |
 | **Previews** | `preview_delete_*` and `preview_update_*` show what a change will affect before you confirm it |
 | **Audit prompts** | full account, single customer, expiry sweep, cleanup, anomaly detection |
+| **Setup and troubleshooting prompts** | subscription product, free trial, customer onboarding, customer migration, validation troubleshooting, API key |
 
 **Good to know**
 
@@ -203,7 +204,7 @@ When both are set, the toolset filter applies first, then the read-only filter. 
 MCP_TOOLSETS=licensees,licenses MCP_READ_ONLY=true NETLICENSING_API_KEY=your_key uvx netlicensing-mcp
 ```
 
-The audit prompts are always available. Some of their steps call tools that may not be registered (for example `audit_expiry` calls `netlicensing_create_shop_token`, which is not available in read-only mode or without the `tokens` toolset); the assistant then cannot run those steps.
+All prompts are always available. Some of their steps call tools that may not be registered (for example `audit_expiry` calls `netlicensing_create_shop_token`, which is not available in read-only mode or without the `tokens` toolset, and the setup prompts create entities, which read-only mode does not allow); the assistant then cannot run those steps.
 
 ---
 
@@ -315,17 +316,32 @@ Once the server is configured, ask your assistant to **run `netlicensing_server_
 
 ---
 
-## Audit Prompt Templates
+## Prompt Templates
 
-The server ships five prompt templates. Pick one in Copilot Agent or Claude Desktop and the assistant runs the whole audit for you:
+The server ships eleven prompt templates. Pick one in Copilot Agent or Claude Desktop, fill in its arguments, and the assistant runs the whole workflow for you with the matching tools.
 
-| Prompt | Purpose |
-|---|---|
-| `audit_full` | End-to-end account audit for a product |
-| `audit_customer` | Deep-dive on a single licensee |
-| `audit_expiry` | Find licenses expiring within N days and generate renewal URLs |
-| `audit_cleanup` | Identify inactive / orphaned licenses for cleanup |
-| `audit_anomaly` | Detect unusual usage patterns across all customers |
+**Audits:**
+
+| Prompt | Purpose | Example arguments |
+|---|---|---|
+| `audit_full` | End-to-end account audit for a product | `product_number=P001` |
+| `audit_customer` | Deep-dive on a single licensee | `licensee_number=I001` |
+| `audit_expiry` | Find licenses expiring within N days and generate renewal URLs | `product_number=P001`, `days_threshold=30` |
+| `audit_cleanup` | Identify inactive / orphaned licenses for cleanup | `product_number=P001` |
+| `audit_anomaly` | Detect unusual usage patterns across all customers | `product_number=P001` |
+
+**Setup and troubleshooting:**
+
+| Prompt | Purpose | Example arguments |
+|---|---|---|
+| `setup_subscription_product` | Create a product with a Subscription module and one TIMEVOLUME license template per plan | `product_name=Acme Cloud`, `plans=1 MONTH 9.99 EUR; 1 YEAR 99.00 EUR` |
+| `setup_trial` | Add a Try & Buy module to a product: a free, automatic TIMEVOLUME trial template and a FEATURE full-version template | `product_number=P001`, `trial_days=14` (default 14) |
+| `onboard_customer` | Create a licensee, assign a license from a template (or a bundle) and validate it with a dry run | `customer_name=Acme Corp`, `product_number=P001`; optional `licensee_number`, `module_number`, `license_template_number` |
+| `migrate_customer` | Preview both licensees and their licenses, then move all licenses with `netlicensing_transfer_licenses` | `from_licensee_number=I001`, `to_licensee_number=I002` |
+| `troubleshoot_validation` | Find out why a validation fails, without side effects: setup check, dry-run validation, plain-language explanation, customer health | `licensee_number=I001`; optional `product_number`, `product_module_number` |
+| `issue_api_key` | Pick the least-privilege API key role for a purpose and create the key, which is shown once | `purpose=license validation in our desktop app` |
+
+The setup prompts follow the server's safety rules: they show the plan and ask for confirmation before each write, never delete anything themselves (a removal goes through the `preview_delete_*` tool and never uses `force_cascade` unless you ask for it), prefer deactivating to deleting, and do not repeat secrets such as a new API key after showing it once.
 
 ---
 

@@ -100,6 +100,10 @@ online license and entitlements management system for software vendors.
    list_licensing_models and list_license_types for reference data.
 8. **Audit:** use the built-in audit prompt templates for full-account,
    single-customer, expiry-sweep, cleanup, or anomaly-detection audits.
+9. **Guided setup and troubleshooting:** the prompt templates
+   `setup_subscription_product`, `setup_trial`, `onboard_customer`,
+   `migrate_customer`, `troubleshoot_validation` and `issue_api_key` walk
+   through these tasks step by step, with previews and confirmations.
 
 ## High-level workflows (prefer these over chaining low-level CRUD)
 

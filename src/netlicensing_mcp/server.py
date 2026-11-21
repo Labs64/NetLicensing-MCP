@@ -10,7 +10,8 @@ Usage:
 
 The FastMCP instance and shared helpers live in ``netlicensing_mcp.app``; the
 tool wrappers live in ``netlicensing_mcp.mcp_tools.<entity>``. Importing this
-module registers every tool (in the order below) and the audit prompts, and
+module registers every tool (in the order below), the audit prompts and the
+setup / troubleshooting prompts, and
 re-exports the public names so ``from netlicensing_mcp.server import ...``
 keeps working.
 """
@@ -53,6 +54,7 @@ from netlicensing_mcp.app import (
 )
 from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp.prompts.audit import register_audit_prompts
+from netlicensing_mcp.prompts.setup import register_setup_prompts
 from netlicensing_mcp.readiness import register_ready_route
 from netlicensing_mcp.redaction import redact, redact_token_read, tag_one_time_display
 from netlicensing_mcp.responses import DEFAULT_WARN_INFO_TYPES, wrap
@@ -258,6 +260,7 @@ __all__ = [
     "api_key_ctx",
     "is_demo_mode",
     "register_audit_prompts",
+    "register_setup_prompts",
     "redact",
     "redact_token_read",
     "tag_one_time_display",
@@ -282,6 +285,7 @@ __all__ = [
 # ═══════════════════════════════════════════════════════════════════════════════
 
 register_audit_prompts(mcp)
+register_setup_prompts(mcp)
 
 # GET /ready (readiness); GET /health (liveness) is registered in app.py.
 register_ready_route(mcp, version=_server_version)

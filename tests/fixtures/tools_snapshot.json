@@ -3380,6 +3380,51 @@
       "arguments": [
         "product_number"
       ]
+    },
+    {
+      "name": "setup_subscription_product",
+      "arguments": [
+        "product_name",
+        "plans"
+      ]
+    },
+    {
+      "name": "setup_trial",
+      "arguments": [
+        "product_number",
+        "trial_days"
+      ]
+    },
+    {
+      "name": "onboard_customer",
+      "arguments": [
+        "customer_name",
+        "product_number",
+        "licensee_number",
+        "module_number",
+        "license_template_number"
+      ]
+    },
+    {
+      "name": "migrate_customer",
+      "arguments": [
+        "from_licensee_number",
+        "to_licensee_number"
+      ]
+    },
+    {
+      "name": "troubleshoot_validation",
+      "arguments": [
+        "licensee_number",
+        "product_number",
+        "product_module_number"
+      ]
+    },
+    {
+      "name": "issue_api_key",
+      "arguments": [
+        "purpose"
+      ]
     }
   ]
 }
