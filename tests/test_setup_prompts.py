@@ -314,6 +314,9 @@ async def test_issue_api_key_revocation_takes_the_full_key_from_the_user():
     assert "do not reuse the copy shown earlier in this\nconversation" in revoke
     assert "Pass the full key only as token_number to" in revoke
     assert "never\necho it, and never put it into any other tool call" in revoke
+    # Task 8b: the delete-token outputs mask the number; the prompt says so.
+    assert "Their results show the\nkey only masked" in revoke
+    assert "Their results contain" not in revoke
     assert (
         'netlicensing_preview_delete_token(token_number="<full API key from the user>")' in revoke
     )

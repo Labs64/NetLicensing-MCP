@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import NetLicensingError, nl_delete, nl_get, nl_post
+from netlicensing_mcp.redaction import mask_token_number
 
 
 async def list_tokens(filter_str: str | None = None) -> dict:
@@ -84,6 +85,9 @@ async def create_api_token(
 
 
 async def delete_token(token_number: str) -> str:
-    """Revoke / delete a token."""
+    """Revoke / delete a token.
+
+    The message masks the number: for APIKEY and SHOP tokens it is the credential.
+    """
     status = await nl_delete(f"/token/{token_number}")
-    return f"Token {token_number} deleted (HTTP {status})."
+    return f"Token {mask_token_number(token_number)} deleted (HTTP {status})."

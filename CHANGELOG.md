@@ -25,3 +25,7 @@ Release notes for each version are published on the [GitHub Releases page](https
 
 - `netlicensing_server_info` makes one API call by default (see Added); pass `check_connection=false` for the previous no-call behaviour.
 - `structuredContent` used to be the JSON *string* wrapped as `{"result": "..."}` (the MCP SDK default for tools that return `str`); it is now the parsed object. Error results (`{"error": true, ...}`) used to be sent with `isError: false`.
+
+### Security
+
+- Deleting a token no longer echoes the token number in full. For APIKEY tokens the number is the API key, for SHOP tokens the checkout credential; `get_token` / `list_tokens` already masked it, but the delete preview's `target` (`netlicensing_preview_delete_token`, and `netlicensing_delete_token` without `confirm_token`), the delete message (`Token <number> deleted (HTTP …)`) and the error for a confirmation token issued for another target showed it. They now show the read-path mask (`a1b****7890`; numbers under 16 characters become `****`) for every token type, since the type is not known on the delete and error paths without another API call. The confirmation token is still bound to the real token number. The `issue_api_key` prompt's revoke step now says these results show the key only masked.

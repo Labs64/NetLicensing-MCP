@@ -553,9 +553,9 @@ only masked. Ask the user to paste the full key or to copy it from the
 NetLicensing console; do not reuse the copy shown earlier in this
 conversation. Pass the full key only as token_number to
 `netlicensing_preview_delete_token` and `netlicensing_delete_token`, never
-echo it, and never put it into any other tool call. Their results contain
-the key (the preview's `target`, the delete message): do not quote them,
-report only the role and that the key was revoked.
+echo it, and never put it into any other tool call. Their results show the
+key only masked (the preview's `target`, the delete message); refer to it by
+that masked form and the role, and report only that the key was revoked.
 1. `netlicensing_preview_delete_token(token_number="<full API key from the user>")`
    and show the role and type it would revoke;
 2. after confirmation,

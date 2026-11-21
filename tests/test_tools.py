@@ -1287,7 +1287,9 @@ async def test_delete_token():
         from netlicensing_mcp.tools.tokens import delete_token
 
         result = await delete_token("TK001")
-        assert "TK001" in result
+        # Task 8b: the number is masked (short values become ****), never echoed.
+        assert "TK001" not in result
+        assert "Token ****" in result
         assert "204" in result
 
 

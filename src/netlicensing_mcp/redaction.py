@@ -81,6 +81,17 @@ def _mask(value: str) -> str:
     return f"{value[:3]}****{value[-4:]}"
 
 
+def mask_token_number(number: str) -> str:
+    """Mask a token number for display, with the same mask as the read paths.
+
+    For APIKEY and SHOP tokens the number is the credential. The delete-token
+    outputs (preview ``target``, delete message, confirm-token mismatch error)
+    cannot tell the type without another API call, so they mask every token
+    number with this helper. Display only: never use the result as an input.
+    """
+    return _mask(number)
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
