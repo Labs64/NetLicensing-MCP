@@ -23,7 +23,7 @@ from mcp.shared.memory import create_connected_server_and_client_session
 from mcp.types import CallToolResult, TextContent
 
 from netlicensing_mcp import server
-from netlicensing_mcp.app import OUTPUT_SCHEMA_FIELDS, to_call_tool_result
+from netlicensing_mcp.app import to_call_tool_result
 from netlicensing_mcp.client import NetLicensingError
 from netlicensing_mcp.server import mcp
 
@@ -184,11 +184,11 @@ async def test_every_tool_declares_the_shared_output_schema():
     assert schema["type"] == "object"
     assert schema["additionalProperties"] is True
     assert "required" not in schema
-    assert set(schema["properties"]) == set(OUTPUT_SCHEMA_FIELDS)
-    # Sent with every tool in tools/list: no type constraints, no per-field noise.
-    for prop in schema["properties"].values():
-        assert list(prop) == ["description"]
-    assert len(json.dumps(schema)) < 1100
+    # Sent with every tool in tools/list, so it stays minimal: no properties.
+    assert set(schema) == {"type", "additionalProperties", "title", "description"}
+    assert schema["title"] == "NetLicensingToolResult"
+    assert '{"result": value}' in schema["description"]
+    assert len(json.dumps(schema)) <= 250
 
 
 # ── Conversion helper ────────────────────────────────────────────────────────

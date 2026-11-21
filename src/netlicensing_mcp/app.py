@@ -23,7 +23,7 @@ from typing import Annotated, Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -149,6 +149,9 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
 - List tools and validate_licensee always return
   ``{"type": "list", "kind": "...", "count": N, "items": [...]}``, also
   for zero or one item; get / create / update responses are flat dicts.
+- Every tool result also carries ``structuredContent``: the same JSON
+  object as the text (a non-object result as ``{"result": ...}``); failed
+  calls (``{"error": true, ...}``) are flagged with ``isError``.
 - Pass ``include_raw=true`` to any tool to receive the sanitized
   NetLicensing API *response* nested under the ``"raw"`` key, alongside
   the normalized envelope built from it.
@@ -383,15 +386,14 @@ _DELETE = ToolAnnotations(
 def _compact_output_schema(schema: dict[str, Any]) -> None:
     """Keep the outputSchema small: it is sent with every tool in tools/list.
 
-    Drops the per-field ``title``/``default`` noise and replaces the class
-    docstring with a one-line description.
+    Publishes only ``type``, ``additionalProperties``, ``title`` and a short
+    description; the common fields are documented in the server
+    ``instructions`` ("Output conventions") instead.
     """
+    schema.pop("properties", None)
     schema["description"] = (
-        'The parsed JSON of the text content; a non-object result is {"result": value}.'
+        'Same JSON as the text content; a result that is not an object is {"result": value}.'
     )
-    for prop in schema.get("properties", {}).values():
-        prop.pop("title", None)
-        prop.pop("default", None)
 
 
 class ToolResult(BaseModel):
@@ -400,32 +402,12 @@ class ToolResult(BaseModel):
     ``structuredContent`` is the parsed JSON of the text content: the same
     redacted object, field for field. Results that are not a JSON object
     (a list, a scalar or plain text) come wrapped as ``{"result": ...}``.
-    The fields below are the common ones; tools add their own, hence
-    ``extra="allow"`` and no type constraints.
+    The shape varies by tool, so the model accepts any object.
     """
 
     model_config = ConfigDict(
         extra="allow", title="NetLicensingToolResult", json_schema_extra=_compact_output_schema
     )
-
-    type: Any = Field(None, description='Entity type, or "list"')
-    number: Any = Field(None, description="Entity identifier")
-    active: Any = Field(None, description="Active flag (boolean)")
-    console_url: Any = Field(None, description="NetLicensing Console link")
-    warnings: Any = Field(None, description="Warnings from NetLicensing")
-    suggested_actions: Any = Field(None, description="Suggested next steps")
-    summary: Any = Field(None, description="Short summary")
-    items: Any = Field(None, description="List: the entities")
-    count: Any = Field(None, description="List: number of items")
-    kind: Any = Field(None, description="List: entity type of the items")
-    error: Any = Field(None, description="true if the call failed")
-    status: Any = Field(None, description="HTTP status if failed, or entity status")
-    detail: Any = Field(None, description="Error message")
-    result: Any = Field(None, description="Value of a non-object result")
-
-
-# Top-level fields documented in every tool's outputSchema.
-OUTPUT_SCHEMA_FIELDS: tuple[str, ...] = tuple(ToolResult.model_fields)
 
 
 def to_call_tool_result(text: str) -> CallToolResult:
