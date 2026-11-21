@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
-from mcp.types import PromptMessage, TextContent
+from mcp.server.fastmcp.prompts.base import UserMessage
+from mcp.types import TextContent
 
 
 def register_audit_prompts(mcp: FastMCP) -> None:
@@ -12,15 +13,14 @@ def register_audit_prompts(mcp: FastMCP) -> None:
     # ── 1. Full account audit ────────────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_full(product_number: str) -> list[PromptMessage]:
+    def audit_full(product_number: str) -> list[UserMessage]:
         """Run a comprehensive license audit across all customers of a product.
 
         Args:
             product_number: The NetLicensing product number to audit (e.g. 'P001')
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -90,15 +90,14 @@ Numbered list for the account owner, ordered by entitlement risk and customer im
     # ── 2. Single-customer deep-dive ─────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_customer(licensee_number: str) -> list[PromptMessage]:
+    def audit_customer(licensee_number: str) -> list[UserMessage]:
         """Deep-dive audit for a single customer's license health.
 
         Args:
             licensee_number: The licensee number to audit (e.g. 'I001')
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -153,7 +152,7 @@ with licensee_number="{licensee_number}" and include the renewal URL in the repo
     def audit_expiry(
         product_number: str,
         days_threshold: int = 30,
-    ) -> list[PromptMessage]:
+    ) -> list[UserMessage]:
         """Find all customers with licenses expiring within N days.
 
         Args:
@@ -161,8 +160,7 @@ with licensee_number="{licensee_number}" and include the renewal URL in the repo
             days_threshold: Flag licenses expiring within this many days (default 30)
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -214,15 +212,14 @@ Present as:
     # ── 4. Cleanup audit ─────────────────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_cleanup(product_number: str) -> list[PromptMessage]:
+    def audit_cleanup(product_number: str) -> list[UserMessage]:
         """Identify inactive, unused, or orphaned licenses for cleanup.
 
         Args:
             product_number: Product number to inspect
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -271,15 +268,14 @@ without explicit confirmation from the user after they review this report.
     # ── 5. Anomaly detection ─────────────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_anomaly(product_number: str) -> list[PromptMessage]:
+    def audit_anomaly(product_number: str) -> list[UserMessage]:
         """Detect anomalous usage patterns across all customers.
 
         Args:
             product_number: Product number to analyse
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""

@@ -21,7 +21,9 @@ entitlements management system."""
 
 _HOW = """Work through the steps in order: call each tool and wait for its result
 before you continue. If a tool returns an error, stop, show its `detail` and
-`hint` to the user, and ask how to proceed. Identifiers are case-sensitive.
+`hint` to the user, and ask how to proceed, unless the step says how to
+handle that error (several steps expect a not-found). Identifiers are
+case-sensitive.
 When a list result has `has_more=true`, fetch the next page by passing its
 `next_page_hint` as `filter` before you conclude that something does not exist.
 Render entity numbers as Markdown links to their `console_url`."""
@@ -38,7 +40,8 @@ _SAFETY = """## Safety rules
 - If a step fails half-way, report what was already created; do not try to
   undo it on your own.
 - Never repeat secrets (API keys, licensee or node secrets, shop URLs) in
-  summaries, and never put them into other tool calls."""
+  summaries, and never put them into any tool call except the one a step
+  names for them."""
 
 
 def _messages(text: str) -> list[UserMessage]:
@@ -189,7 +192,7 @@ number for the trial. Show the full plan and wait for explicit confirmation.
 ## Step 5 — Create
 1. `netlicensing_create_product_module(product_number="{product_number}", number="<module number>", name="<module name>", licensing_model="TryAndBuy")`
 2. Trial template:
-   `netlicensing_create_license_template(module_number="<module number>", number="<trial template number>", name="{trial_days}-day trial", license_type="TIMEVOLUME", time_volume={trial_days}, price=0, currency="EUR", automatic=true, hidden=true)`
+   `netlicensing_create_license_template(module_number="<module number>", number="<trial template number>", name="{trial_days}-day trial", license_type="TIMEVOLUME", time_volume={trial_days}, time_volume_period="DAY", price=0, currency="EUR", automatic=true, hidden=true)`
 3. Full version template:
    `netlicensing_create_license_template(module_number="<module number>", number="<full template number>", name="<full version name>", license_type="FEATURE", price=<price>, currency="<currency>", automatic=false, hidden=false)`
 
@@ -234,20 +237,28 @@ selling the full version with
         """Create a licensee, assign a license from a template and validate it."""
         if licensee_number:
             existing = f"""Call `netlicensing_get_licensee(licensee_number="{licensee_number}")`.
-- Not found: create it in Step 5 with number="{licensee_number}".
+- Not found: create it in Step 5 with this number.
 - Found under product {product_number}: show it and ask whether to reuse it
   (skip Step 5).
 - Found under another product: stop and ask the user."""
-            number_arg = licensee_number
+            create_call = (
+                f'`netlicensing_create_licensee(product_number="{product_number}", '
+                f'number="{licensee_number}", name="{customer_name}")`'
+            )
         else:
             existing = f"""Call `netlicensing_list_licensees(product_number="{product_number}")` and look
 for a licensee named like "{customer_name}". If there is one, show it and ask
 whether to reuse it (skip Step 5) or create a new one."""
-            number_arg = "<empty: auto-generated>"
+            create_call = (
+                f'`netlicensing_create_licensee(product_number="{product_number}", '
+                f'name="{customer_name}")`\n(no number: NetLicensing generates it)'
+            )
 
         if license_template_number:
             choose = f"""Call `netlicensing_get_license_template(template_number="{license_template_number}")`.
-Check that it is active and belongs to a module of product {product_number}."""
+Check that it is active, then call
+`netlicensing_get_product_module(module_number="<module number of the template>")`
+and check that the module belongs to product {product_number}."""
         elif module_number:
             choose = (
                 f"""Call `netlicensing_list_license_templates(module_number="{module_number}")`."""
@@ -287,19 +298,20 @@ Show the plan (licensee number and name, template, license values) and wait
 for explicit confirmation.
 
 ## Step 5 — Create the licensee
-`netlicensing_create_licensee(product_number="{product_number}", number="{number_arg}", name="{customer_name}")`
-(leave number empty to let NetLicensing generate it; add licensee_secret only
-when licenseeSecretMode is PREDEFINED).
+{create_call}
+Add licensee_secret only when licenseeSecretMode is PREDEFINED.
 
 ## Step 6 — Check licenses assigned automatically
-Call `netlicensing_list_licenses(licensee_number="<licensee number>")`.
+Call `netlicensing_list_licenses(licensee_number="<licensee number>")`. If a
+license from the chosen template already exists (for example one assigned
+automatically), skip Step 7.
 
 ## Step 7 — Assign the license
 `netlicensing_create_license(licensee_number="<licensee number>", license_template_number="<template number>")`
 Some values are mandatory depending on the template's type and module's model
 (take them from the template unless the user says otherwise; ask when unknown):
-- TIMEVOLUME: start_date (ISO 8601, e.g. now) and time_volume, plus
-  time_volume_period (DAY, WEEK, MONTH or YEAR);
+- TIMEVOLUME: start_date (ISO 8601, e.g. now) and time_volume; the optional
+  time_volume_period (DAY, WEEK, MONTH or YEAR) sets the unit;
 - PayPerUse or NodeLocked model: quantity;
 - TIMEVOLUME in a Rental module: parent_feature.
 
@@ -453,8 +465,9 @@ and read each module's `valid`, expiry, quota and the `warnings` (API infos
 such as "No free floating licenses found.").
 
 ## Step 5 — Licenses and health
-Call `netlicensing_get_customer_health(licensee_number="{lic}", refresh_warning_level=true)`
-for the license list (active / inactive, templates) and warnings.
+Call `netlicensing_get_customer_health(licensee_number="{lic}", refresh_warning_level=false)`
+for the license list (active / inactive, templates) and warnings (Step 4
+already validated, so no second validation is needed).
 {module_step}
 
 ## Step 6 — Diagnosis
@@ -534,10 +547,19 @@ call, file or log. When you refer to it later, use the role and the masked
 form only.
 
 ## Step 6 — Revoking
-If the key leaks or is no longer needed:
-`netlicensing_preview_delete_token(token_number="<token number>")`, show the
-preview, then after confirmation
-`netlicensing_delete_token(token_number="<token number>", confirm_token="<token from the preview>")`.
+If the key leaks or is no longer needed: revoking needs the FULL key, because
+for an API key the token number is the key itself and NetLicensing lists it
+only masked. Ask the user to paste the full key or to copy it from the
+NetLicensing console; do not reuse the copy shown earlier in this
+conversation. Pass the full key only as token_number to
+`netlicensing_preview_delete_token` and `netlicensing_delete_token`, never
+echo it, and never put it into any other tool call. Their results contain
+the key (the preview's `target`, the delete message): do not quote them,
+report only the role and that the key was revoked.
+1. `netlicensing_preview_delete_token(token_number="<full API key from the user>")`
+   and show the role and type it would revoke;
+2. after confirmation,
+   `netlicensing_delete_token(token_number="<full API key from the user>", confirm_token="<token from the preview>")`.
 
 {_SAFETY}
 """)

@@ -84,8 +84,9 @@ SAMPLE_ARGS: dict[str, list[dict[str, str]]] = {
 def _json_wrapped_text(text: str) -> str | None:
     """The inner text when *text* is a JSON dump of a PromptMessage, else None.
 
-    The audit prompts return ``mcp.types.PromptMessage`` objects, which FastMCP
-    does not recognise as messages: it sends them as a JSON dump of the object.
+    FastMCP does not recognise an ``mcp.types.PromptMessage`` returned by a
+    prompt function as a message: it sends a JSON dump of the object as the
+    text. The audit prompts used to do that.
     """
     try:
         data = json.loads(text)
@@ -105,12 +106,8 @@ async def _render(name: str, args: dict[str, str]) -> str:
         assert isinstance(msg, PromptMessage) and msg.role == "user"
         assert isinstance(msg.content, TextContent)
         text = msg.content.text
-        inner = _json_wrapped_text(text)
-        if name in SETUP_PROMPTS:
-            # The setup prompts send their text as the message text.
-            assert inner is None, f"{name} sent a JSON-wrapped message"
-        elif inner is not None:
-            text = inner
+        # Every prompt sends its text as the message text, not a JSON dump.
+        assert _json_wrapped_text(text) is None, f"{name} sent a JSON-wrapped message"
         assert text.strip()
         texts.append(text)
     return "\n".join(texts)
@@ -194,12 +191,38 @@ async def test_setup_prompts_render_as_plain_text_prompt_messages():
         assert text.startswith("You are a Labs64 NetLicensing assistant"), text[:80]
 
 
+async def test_prompt_text_survives_rendering_unchanged():
+    # For every registered prompt the client gets exactly the text the prompt
+    # function builds (no JSON dump of a message object).
+    prompts = {p.name: p for p in server.mcp._prompt_manager.list_prompts()}
+    assert set(prompts) == set(SAMPLE_ARGS)
+    for name, variants in SAMPLE_ARGS.items():
+        for args in variants:
+            result = await server.mcp.get_prompt(name, args)
+            # .fn is the pydantic-validated function: it coerces the string args.
+            built = prompts[name].fn(**args)
+            assert len(result.messages) == len(built), name
+            for sent, own in zip(result.messages, built):
+                assert isinstance(sent, PromptMessage)
+                assert sent.content.text == own.content.text, name
+
+
+async def test_audit_prompts_send_plain_text():
+    text = await _render("audit_full", {"product_number": "P001"})
+    assert text.strip().startswith("You are a Labs64 NetLicensing analyst")
+    assert '"role"' not in text
+    prompts = {p.name: p for p in server.mcp._prompt_manager.list_prompts()}
+    for name in AUDIT_PROMPTS:
+        msgs = prompts[name].fn(**SAMPLE_ARGS[name][0])
+        assert all(isinstance(m, Message) and m.role == "user" for m in msgs), name
+
+
 async def test_setup_trial_coerces_and_checks_trial_days():
     text = await _render("setup_trial", {"product_number": "P9", "trial_days": "21"})
     assert "time_volume=21" in text
     default = await _render("setup_trial", {"product_number": "P9"})
     assert "time_volume=14" in default
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="greater than or equal to 1"):
         await server.mcp.get_prompt("setup_trial", {"product_number": "P9", "trial_days": "0"})
 
 
@@ -209,6 +232,20 @@ async def test_optional_arguments_change_the_steps():
         {"customer_name": "Acme", "product_number": "P1", "licensee_number": "I042"},
     )
     assert 'netlicensing_get_licensee(licensee_number="I042")' in by_number
+    assert (
+        'netlicensing_create_licensee(product_number="P1", number="I042", name="Acme")' in by_number
+    )
+    no_number = await _render("onboard_customer", {"customer_name": "Acme", "product_number": "P1"})
+    assert 'netlicensing_create_licensee(product_number="P1", name="Acme")' in no_number
+    create_calls = re.findall(r"netlicensing_create_licensee\(([^)]*)\)", no_number)
+    assert create_calls and all("number" not in _ARG.findall(c) for c in create_calls)
+    trial = await _render("setup_trial", {"product_number": "P1", "trial_days": "7"})
+    assert 'time_volume=7, time_volume_period="DAY", price=0' in trial
+    health = await _render("troubleshoot_validation", {"licensee_number": "I1"})
+    assert (
+        'netlicensing_get_customer_health(licensee_number="I1", refresh_warning_level=false)'
+        in health
+    )
     by_template = await _render(
         "onboard_customer",
         {"customer_name": "Acme", "product_number": "P1", "license_template_number": "LT7"},
@@ -262,8 +299,30 @@ async def test_issue_api_key_handles_the_one_time_secret():
         "ROLE_APIKEY_ADMIN",
     ):
         assert role in text
-    # Least privilege: a confirmation step comes before the create call.
-    assert text.index("Confirm") < text.index("netlicensing_create_api_token(")
+    # Least privilege: the role and scope are confirmed before the create call.
+    assert text.index("Confirm the role and the licensee scope") < text.index(
+        "netlicensing_create_api_token("
+    )
+
+
+async def test_issue_api_key_revocation_takes_the_full_key_from_the_user():
+    text = await _render("issue_api_key", {"purpose": "CI reporting"})
+    revoke = text[text.index("## Step 6 — Revoking") :]
+    assert "revoking needs the FULL key" in revoke
+    assert "Ask the user to paste the full key or to copy it from the" in revoke
+    assert "NetLicensing console" in revoke
+    assert "do not reuse the copy shown earlier in this\nconversation" in revoke
+    assert "Pass the full key only as token_number to" in revoke
+    assert "never\necho it, and never put it into any other tool call" in revoke
+    assert (
+        'netlicensing_preview_delete_token(token_number="<full API key from the user>")' in revoke
+    )
+    assert (
+        'netlicensing_delete_token(token_number="<full API key from the user>", '
+        'confirm_token="<token from the preview>")'
+    ) in revoke
+    # The earlier rule (do not reuse the key) and the safety block agree.
+    assert "never put them into any tool call except the one a step" in text
 
 
 async def test_troubleshoot_validation_uses_read_only_diagnostics_first():
@@ -369,6 +428,29 @@ async def test_every_tool_named_in_a_prompt_is_registered():
                     assert token in schemas, f"{name}: {token} is not a registered tool"
     # Non-vacuous: the prompts reference a good part of the tool surface.
     assert len(seen) >= 30
+
+
+async def _required_args() -> dict[str, set[str]]:
+    return {
+        t.name: set((t.inputSchema or {}).get("required", []))
+        for t in await server.mcp.list_tools()
+    }
+
+
+async def test_every_tool_call_in_a_prompt_passes_the_required_arguments():
+    # Only written-out calls, netlicensing_x(...): a tool named in prose or in
+    # the audit style "`netlicensing_x` with a=..." may leave arguments implicit.
+    required = await _required_args()
+    rendered = await _all_rendered()
+    count = 0
+    for name, texts in rendered.items():
+        for text in texts:
+            for tool_name, arg_text in _CALL.findall(text):
+                passed = set(_ARG.findall(arg_text))
+                missing = required[tool_name] - passed
+                assert not missing, f"{name}: {tool_name}({arg_text}) misses {sorted(missing)}"
+                count += 1
+    assert count >= 60
 
 
 async def test_every_argument_named_in_a_prompt_exists_on_the_tool():

@@ -17,6 +17,10 @@ Release notes for each version are published on the [GitHub Releases page](https
 - `MCP_TOOLSETS` (comma list of toolsets: `products`, `bundles`, `modules`, `templates`, `licensees`, `licenses`, `tokens`, `transactions`, `payments`, `system`, `workflows`; default `all`) and `MCP_READ_ONLY=true` (only tools annotated read-only) shrink the registered tool list. `netlicensing_server_info` is always registered, and the server instructions mention an active restriction. Without these variables all 61 tools are registered as before.
 - Structured tool output: every tool result now carries `structuredContent` (the same JSON object as the text content; non-object results as `{"result": ...}`), every tool declares an `outputSchema`, and error results set `isError`. The text content is unchanged.
 
+### Fixed
+
+- The audit prompts (`audit_full`, `audit_customer`, `audit_expiry`, `audit_cleanup`, `audit_anomaly`) were delivered to clients as a JSON dump of the message object (`{"role": "user", "content": {"type": "text", "text": "..."}}` with escaped newlines) instead of the prompt text. They now send the prompt text itself; the text is unchanged.
+
 ### Changed
 
 - `netlicensing_server_info` makes one API call by default (see Added); pass `check_connection=false` for the previous no-call behaviour.
