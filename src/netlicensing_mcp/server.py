@@ -392,14 +392,14 @@ def _price_active_diff(
 _READONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
 _WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
 _UPDATE = ToolAnnotations(
-    readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True
+    readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
 _DELETE = ToolAnnotations(
     readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True
 )
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List products", annotations=_READONLY)
 async def netlicensing_list_products(filter: str = "", include_raw: bool = False) -> str:
     """List all products in the NetLicensing account.
 
@@ -418,7 +418,7 @@ async def netlicensing_list_products(filter: str = "", include_raw: bool = False
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get product", annotations=_READONLY)
 async def netlicensing_get_product(product_number: str, include_raw: bool = False) -> str:
     """Get details of a specific product.
 
@@ -434,7 +434,7 @@ async def netlicensing_get_product(product_number: str, include_raw: bool = Fals
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create product", annotations=_WRITE)
 async def netlicensing_create_product(
     number: str,
     name: str,
@@ -481,7 +481,7 @@ async def netlicensing_create_product(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview update of product", annotations=_READONLY)
 async def netlicensing_preview_update_product(
     product_number: str,
     licensee_auto_create: bool | None = None,
@@ -516,7 +516,7 @@ async def netlicensing_preview_update_product(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update product", annotations=_UPDATE)
 async def netlicensing_update_product(
     product_number: str,
     name: str = "",
@@ -597,7 +597,7 @@ async def netlicensing_update_product(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview deletion of product", annotations=_READONLY)
 async def netlicensing_preview_delete_product(product_number: str) -> str:
     """Preview what would be deleted when deleting a product.
 
@@ -633,7 +633,7 @@ async def netlicensing_preview_delete_product(product_number: str) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_DELETE)
+@mcp.tool(title="Delete product", annotations=_DELETE)
 async def netlicensing_delete_product(
     product_number: str,
     force_cascade: bool = False,
@@ -684,7 +684,7 @@ async def netlicensing_delete_product(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List bundles", annotations=_READONLY)
 async def netlicensing_list_bundles(include_raw: bool = False) -> str:
     """List all bundles in the NetLicensing account.
 
@@ -699,7 +699,7 @@ async def netlicensing_list_bundles(include_raw: bool = False) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get bundle", annotations=_READONLY)
 async def netlicensing_get_bundle(bundle_number: str, include_raw: bool = False) -> str:
     """Get details of a specific bundle.
 
@@ -715,7 +715,7 @@ async def netlicensing_get_bundle(bundle_number: str, include_raw: bool = False)
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create bundle", annotations=_WRITE)
 async def netlicensing_create_bundle(
     number: str,
     name: str,
@@ -756,7 +756,7 @@ async def netlicensing_create_bundle(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update bundle", annotations=_UPDATE)
 async def netlicensing_update_bundle(
     bundle_number: str,
     name: str = "",
@@ -797,7 +797,7 @@ async def netlicensing_update_bundle(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview deletion of bundle", annotations=_READONLY)
 async def netlicensing_preview_delete_bundle(bundle_number: str) -> str:
     """Preview what would be deleted when deleting a bundle.
 
@@ -827,7 +827,7 @@ async def netlicensing_preview_delete_bundle(bundle_number: str) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_DELETE)
+@mcp.tool(title="Delete bundle", annotations=_DELETE)
 async def netlicensing_delete_bundle(
     bundle_number: str,
     force_cascade: bool = False,
@@ -870,7 +870,7 @@ async def netlicensing_delete_bundle(
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Obtain bundle", annotations=_WRITE)
 async def netlicensing_obtain_bundle(
     bundle_number: str,
     licensee_number: str,
@@ -900,7 +900,7 @@ async def netlicensing_obtain_bundle(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List product modules", annotations=_READONLY)
 async def netlicensing_list_product_modules(
     product_number: str, filter: str = "", include_raw: bool = False
 ) -> str:
@@ -925,7 +925,7 @@ async def netlicensing_list_product_modules(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get product module", annotations=_READONLY)
 async def netlicensing_get_product_module(module_number: str, include_raw: bool = False) -> str:
     """Get a specific product module.
 
@@ -943,7 +943,7 @@ async def netlicensing_get_product_module(module_number: str, include_raw: bool 
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create product module", annotations=_WRITE)
 async def netlicensing_create_product_module(
     product_number: str,
     number: str,
@@ -994,7 +994,7 @@ async def netlicensing_create_product_module(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update product module", annotations=_UPDATE)
 async def netlicensing_update_product_module(
     module_number: str,
     name: str = "",
@@ -1038,7 +1038,7 @@ async def netlicensing_update_product_module(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview deletion of product module", annotations=_READONLY)
 async def netlicensing_preview_delete_product_module(module_number: str) -> str:
     """Preview what would be deleted when deleting a product module.
 
@@ -1064,7 +1064,7 @@ async def netlicensing_preview_delete_product_module(module_number: str) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_DELETE)
+@mcp.tool(title="Delete product module", annotations=_DELETE)
 async def netlicensing_delete_product_module(
     module_number: str,
     force_cascade: bool = False,
@@ -1111,7 +1111,7 @@ async def netlicensing_delete_product_module(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List license templates", annotations=_READONLY)
 async def netlicensing_list_license_templates(
     module_number: str, filter: str = "", include_raw: bool = False
 ) -> str:
@@ -1136,7 +1136,7 @@ async def netlicensing_list_license_templates(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get license template", annotations=_READONLY)
 async def netlicensing_get_license_template(template_number: str, include_raw: bool = False) -> str:
     """Get a specific license template.
 
@@ -1154,7 +1154,7 @@ async def netlicensing_get_license_template(template_number: str, include_raw: b
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create license template", annotations=_WRITE)
 async def netlicensing_create_license_template(
     module_number: str,
     number: str,
@@ -1222,7 +1222,7 @@ async def netlicensing_create_license_template(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview update of license template", annotations=_READONLY)
 async def netlicensing_preview_update_license_template(
     template_number: str,
     active: bool | None = None,
@@ -1248,7 +1248,7 @@ async def netlicensing_preview_update_license_template(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update license template", annotations=_UPDATE)
 async def netlicensing_update_license_template(
     template_number: str,
     name: str = "",
@@ -1331,7 +1331,7 @@ async def netlicensing_update_license_template(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview deletion of license template", annotations=_READONLY)
 async def netlicensing_preview_delete_license_template(template_number: str) -> str:
     """Preview what would be deleted when deleting a license template.
 
@@ -1362,7 +1362,7 @@ async def netlicensing_preview_delete_license_template(template_number: str) -> 
         return _error(exc)
 
 
-@mcp.tool(annotations=_DELETE)
+@mcp.tool(title="Delete license template", annotations=_DELETE)
 async def netlicensing_delete_license_template(
     template_number: str,
     force_cascade: bool = False,
@@ -1410,7 +1410,7 @@ async def netlicensing_delete_license_template(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List licensees", annotations=_READONLY)
 async def netlicensing_list_licensees(
     product_number: str, filter: str = "", include_raw: bool = False
 ) -> str:
@@ -1435,7 +1435,7 @@ async def netlicensing_list_licensees(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get licensee", annotations=_READONLY)
 async def netlicensing_get_licensee(licensee_number: str, include_raw: bool = False) -> str:
     """Get a specific licensee (customer).
 
@@ -1453,7 +1453,7 @@ async def netlicensing_get_licensee(licensee_number: str, include_raw: bool = Fa
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create licensee", annotations=_WRITE)
 async def netlicensing_create_licensee(
     product_number: str,
     number: str = "",
@@ -1491,7 +1491,7 @@ async def netlicensing_create_licensee(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update licensee", annotations=_UPDATE)
 async def netlicensing_update_licensee(
     licensee_number: str,
     name: str = "",
@@ -1526,7 +1526,7 @@ async def netlicensing_update_licensee(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview deletion of licensee", annotations=_READONLY)
 async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
     """Preview what would be deleted when deleting a licensee.
 
@@ -1550,7 +1550,7 @@ async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_DELETE)
+@mcp.tool(title="Delete licensee", annotations=_DELETE)
 async def netlicensing_delete_licensee(
     licensee_number: str,
     force_cascade: bool = False,
@@ -1590,7 +1590,7 @@ async def netlicensing_delete_licensee(
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Validate licensee", annotations=_WRITE)
 async def netlicensing_validate_licensee(
     licensee_number: str,
     product_number: str = "",
@@ -1649,7 +1649,7 @@ async def netlicensing_validate_licensee(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Transfer licenses", annotations=_UPDATE)
 async def netlicensing_transfer_licenses(
     from_licensee_number: str,
     to_licensee_number: str,
@@ -1676,7 +1676,7 @@ async def netlicensing_transfer_licenses(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List licenses", annotations=_READONLY)
 async def netlicensing_list_licenses(
     licensee_number: str, filter: str = "", include_raw: bool = False
 ) -> str:
@@ -1701,7 +1701,7 @@ async def netlicensing_list_licenses(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get license", annotations=_READONLY)
 async def netlicensing_get_license(license_number: str, include_raw: bool = False) -> str:
     """Get details of a specific license.
 
@@ -1719,7 +1719,7 @@ async def netlicensing_get_license(license_number: str, include_raw: bool = Fals
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create license", annotations=_WRITE)
 async def netlicensing_create_license(
     licensee_number: str,
     license_template_number: str,
@@ -1778,7 +1778,7 @@ async def netlicensing_create_license(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update license", annotations=_UPDATE)
 async def netlicensing_update_license(
     license_number: str,
     active: bool | None = None,
@@ -1834,7 +1834,7 @@ async def netlicensing_update_license(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview deletion of license", annotations=_READONLY)
 async def netlicensing_preview_delete_license(license_number: str) -> str:
     """Preview what would be deleted when deleting a license.
 
@@ -1863,7 +1863,7 @@ async def netlicensing_preview_delete_license(license_number: str) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_DELETE)
+@mcp.tool(title="Delete license", annotations=_DELETE)
 async def netlicensing_delete_license(
     license_number: str,
     force_cascade: bool = False,
@@ -1912,7 +1912,7 @@ async def netlicensing_delete_license(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List tokens", annotations=_READONLY)
 async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) -> str:
     """List all active tokens in the account.
 
@@ -1930,7 +1930,7 @@ async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) 
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get token", annotations=_READONLY)
 async def netlicensing_get_token(token_number: str, include_raw: bool = False) -> str:
     """Get details of a specific token.
 
@@ -1947,7 +1947,7 @@ async def netlicensing_get_token(token_number: str, include_raw: bool = False) -
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create shop token", annotations=_WRITE)
 async def netlicensing_create_shop_token(
     licensee_number: str = "",
     product_number: str = "",
@@ -1989,7 +1989,7 @@ async def netlicensing_create_shop_token(
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create api token", annotations=_WRITE)
 async def netlicensing_create_api_token(
     api_key_role: str = "ROLE_APIKEY_LICENSEE",
     licensee_number: str = "",
@@ -2012,7 +2012,7 @@ async def netlicensing_create_api_token(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview deletion of token", annotations=_READONLY)
 async def netlicensing_preview_delete_token(token_number: str) -> str:
     """Preview what would be revoked when deleting a token.
 
@@ -2040,7 +2040,7 @@ async def netlicensing_preview_delete_token(token_number: str) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_DELETE)
+@mcp.tool(title="Delete token", annotations=_DELETE)
 async def netlicensing_delete_token(
     token_number: str,
     confirm_token: str = "",
@@ -2086,7 +2086,7 @@ async def netlicensing_delete_token(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List transactions", annotations=_READONLY)
 async def netlicensing_list_transactions(filter: str = "", include_raw: bool = False) -> str:
     """List all transactions in the account.
 
@@ -2107,7 +2107,7 @@ async def netlicensing_list_transactions(filter: str = "", include_raw: bool = F
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get transaction", annotations=_READONLY)
 async def netlicensing_get_transaction(transaction_number: str, include_raw: bool = False) -> str:
     """Get details of a specific transaction.
 
@@ -2125,7 +2125,7 @@ async def netlicensing_get_transaction(transaction_number: str, include_raw: boo
         return _error(exc)
 
 
-@mcp.tool(annotations=_WRITE)
+@mcp.tool(title="Create transaction", annotations=_WRITE)
 async def netlicensing_create_transaction(
     status: str,
     source: str = "SHOP",
@@ -2172,7 +2172,7 @@ async def netlicensing_create_transaction(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update transaction", annotations=_UPDATE)
 async def netlicensing_update_transaction(
     transaction_number: str,
     status: str = "",
@@ -2215,7 +2215,7 @@ async def netlicensing_update_transaction(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List payment methods", annotations=_READONLY)
 async def netlicensing_list_payment_methods(filter: str = "", include_raw: bool = False) -> str:
     """List all payment methods configured for the account.
 
@@ -2236,7 +2236,7 @@ async def netlicensing_list_payment_methods(filter: str = "", include_raw: bool 
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get payment method", annotations=_READONLY)
 async def netlicensing_get_payment_method(
     payment_method_number: str, include_raw: bool = False
 ) -> str:
@@ -2256,7 +2256,7 @@ async def netlicensing_get_payment_method(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Preview update of payment method", annotations=_READONLY)
 async def netlicensing_preview_update_payment_method(
     payment_method_number: str,
     active: bool | None = None,
@@ -2289,7 +2289,7 @@ async def netlicensing_preview_update_payment_method(
         return _error(exc)
 
 
-@mcp.tool(annotations=_UPDATE)
+@mcp.tool(title="Update payment method", annotations=_UPDATE)
 async def netlicensing_update_payment_method(
     payment_method_number: str,
     active: bool | None = None,
@@ -2349,7 +2349,7 @@ async def netlicensing_update_payment_method(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List licensing models", annotations=_READONLY)
 async def netlicensing_list_licensing_models(include_raw: bool = False) -> str:
     """List all licensing models supported by the NetLicensing service.
 
@@ -2367,7 +2367,7 @@ async def netlicensing_list_licensing_models(include_raw: bool = False) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List license types", annotations=_READONLY)
 async def netlicensing_list_license_types(include_raw: bool = False) -> str:
     """List all license types supported by the NetLicensing service.
 
@@ -2385,7 +2385,7 @@ async def netlicensing_list_license_types(include_raw: bool = False) -> str:
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="List countries", annotations=_READONLY)
 async def netlicensing_list_countries(include_raw: bool = False) -> str:
     """List all countries available for VAT and localization settings.
 
@@ -2408,7 +2408,7 @@ def _server_version() -> str:
         return "unknown"
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get server info", annotations=_READONLY)
 async def netlicensing_server_info() -> str:
     """Return this MCP server's version, NetLicensing API host and demo-mode flag.
 
@@ -2431,7 +2431,7 @@ async def netlicensing_server_info() -> str:
 from netlicensing_mcp.workflows import customer_health as _customer_health  # noqa: E402
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Get customer health", annotations=_READONLY)
 async def netlicensing_get_customer_health(
     licensee_number: str,
     refresh_warning_level: bool = False,
@@ -2471,7 +2471,7 @@ async def netlicensing_get_customer_health(
         return _error(exc)
 
 
-@mcp.tool(annotations=_READONLY)
+@mcp.tool(title="Explain validation", annotations=_READONLY)
 async def netlicensing_explain_validation(
     licensee_number: str,
     product_number: str = "",
