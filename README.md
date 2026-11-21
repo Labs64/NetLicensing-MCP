@@ -308,8 +308,8 @@ Once the server is configured, ask your assistant to **run `netlicensing_server_
 }
 ```
 
-- `status` is `ok`, `warning` (demo mode, or the API answered with an error that says nothing about the key) or `error` (no key, key rejected, API not reachable).
-- `auth.source` says where the credentials come from: `env` (`NETLICENSING_API_KEY`), `header` (HTTP mode: `X-NetLicensing-API-Key` or `Authorization: Bearer`), `demo` (`NETLICENSING_ALLOW_DEMO=true`) or `none`. `auth.valid` is `true` when the test call succeeded, `false` when NetLicensing rejected the key (`401`, or `403` when the key's role is too low to list products), and `null` when it could not be checked.
+- `status` is `ok`, `warning` (demo mode; a valid key whose role does not allow listing products, `403`; or the API answered with an error that says nothing about the key) or `error` (no key, key rejected with `401`, API not reachable). With `check_connection=false`, `ok` only means that a key is configured: it has not been checked.
+- `auth.source` says where the credentials come from: `env` (`NETLICENSING_API_KEY`), `header` (HTTP mode: `X-NetLicensing-API-Key` or `Authorization: Bearer`), `demo` (`NETLICENSING_ALLOW_DEMO=true`) or `none`. `auth.valid` is `true` when NetLicensing accepted the key (the test call succeeded, or it answered `403`: authenticated, but the key's role does not allow listing products; the `permission` check then fails and a warning explains it), `false` when NetLicensing rejected the key (`401`), and `null` when it could not be checked.
 - `next_steps` says in plain language what to fix, e.g. how to set the key.
 - Pass `check_connection=false` to skip the API call.
 

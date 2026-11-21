@@ -19,10 +19,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+# server first: importing it registers the tools in their canonical order
+# (tests/test_tool_registry_snapshot.py checks that order).
+import netlicensing_mcp.server as server
 import netlicensing_mcp.app as app
 import netlicensing_mcp.client as client
 import netlicensing_mcp.mcp_tools.utilities as utilities
-import netlicensing_mcp.server as server
 from netlicensing_mcp.errors import error_hint
 from netlicensing_mcp.toolsets import ToolFilter
 
@@ -131,6 +133,21 @@ async def test_keeps_existing_fields_and_adds_the_new_ones(key_default, fake_htt
     assert out["tool_count"] == settings["tool_count"] == 61
 
 
+async def test_reports_a_restricted_tool_list(key_default, fake_http, monkeypatch):
+    key_default(ENV_KEY)
+    restricted = ToolFilter.from_env({"MCP_TOOLSETS": "licenses", "MCP_READ_ONLY": "true"})
+    monkeypatch.setattr(app, "_active_filter", restricted)
+    out, _ = await _info(check_connection=False)
+    assert out["read_only"] is True
+    assert out["toolsets"] == ["licenses"]
+    assert out["tool_count"] == app.tool_settings(restricted)["tool_count"] == 4
+
+
+def test_instructions_point_at_server_info():
+    assert "run\n  `netlicensing_server_info` first" in app.INSTRUCTIONS
+    assert "on every new connection" not in app.INSTRUCTIONS
+
+
 # ── Valid key ────────────────────────────────────────────────────────────────
 
 
@@ -235,20 +252,47 @@ async def test_env_key_wins_over_demo_flag(key_default, fake_http, monkeypatch):
 # ── Rejected key ─────────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("status", [401, 403])
-async def test_rejected_key(key_default, fake_http, status):
+async def test_rejected_key_401(key_default, fake_http):
     key_default(ENV_KEY)
     # An upstream message that (hypothetically) echoes the key must not leak.
-    fake_http.get.return_value = _api_error(status, f"Unauthorized {ENV_KEY}")
+    fake_http.get.return_value = _api_error(401, f"Unauthorized {ENV_KEY}")
     out, text = await _info()
     assert out["status"] == "error"
     assert out["auth"] == {"configured": True, "source": "env", "valid": False}
     assert _check(out, "reachable")["ok"] is True
     assert _check(out, "authentication")["ok"] is False
-    hint = error_hint(client.NetLicensingError(status, ""), "netlicensing_server_info")["hint"]
+    hint = error_hint(client.NetLicensingError(401, ""), "netlicensing_server_info")["hint"]
     assert out["next_steps"][0] == hint
     assert "restart" in out["next_steps"][1]
     _assert_no_key(text, ENV_KEY)
+
+
+async def test_forbidden_403_means_valid_key_with_a_low_role(key_default, fake_http):
+    # API Conventions: 403 = authenticated, but the role may not call the operation.
+    key_default(ENV_KEY)
+    fake_http.get.return_value = _api_error(403, f"Forbidden {ENV_KEY}")
+    out, text = await _info()
+    assert out["status"] == "warning"
+    assert out["auth"] == {"configured": True, "source": "env", "valid": True}
+    assert _check(out, "reachable")["ok"] is True
+    assert _check(out, "authentication")["ok"] is True
+    assert _check(out, "permission")["ok"] is False
+    assert out["warnings"]
+    hint = error_hint(client.NetLicensingError(403, ""), "netlicensing_server_info")["hint"]
+    assert out["next_steps"][0] == hint
+    assert "restart" in out["next_steps"][1]
+    _assert_no_key(text, ENV_KEY)
+
+
+async def test_demo_rejected_has_no_key_restart_step(key_default, fake_http, monkeypatch):
+    key_default("")
+    monkeypatch.setenv("NETLICENSING_ALLOW_DEMO", "true")
+    fake_http.get.return_value = _api_error(401, "Unauthorized")
+    out, _ = await _info()
+    assert out["auth"] == {"configured": True, "source": "demo", "valid": False}
+    hint = error_hint(client.NetLicensingError(401, ""), "netlicensing_server_info")["hint"]
+    assert hint in out["next_steps"]
+    assert not any("After changing NETLICENSING_API_KEY" in s for s in out["next_steps"])
 
 
 async def test_rejected_header_key_points_at_the_header(key_default, fake_http):

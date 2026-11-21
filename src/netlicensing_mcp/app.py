@@ -134,6 +134,9 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
   tools handle this conversion automatically.
 - An API Key with the specified role is required to use REST API.
   API Key role may limit access to the specific API endpoints or operations.
+- When a tool fails with an authentication, connection or configuration
+  error, or the user asks whether the setup works, run
+  `netlicensing_server_info` first: its `status` and `next_steps` say what to fix.
 
 ## Output conventions
 

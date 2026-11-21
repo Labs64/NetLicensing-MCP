@@ -140,16 +140,19 @@ def _hint(exc: NetLicensingError) -> str:
     return str(error_hint(exc, _SELF)["hint"])
 
 
-def _retry_step(source: str) -> str:
+def _retry_steps(source: str) -> list[str]:
+    """How to apply a new key and check again (none for the fixed demo credentials)."""
     if source == "header":
-        return (
+        return [
             "Update the key your MCP client sends in the header, "
             "then run netlicensing_server_info again."
-        )
-    return (
-        "After changing NETLICENSING_API_KEY, restart the MCP server (or the client that "
-        "starts it) and run netlicensing_server_info again."
-    )
+        ]
+    if source == "env":
+        return [
+            "After changing NETLICENSING_API_KEY, restart the MCP server (or the client that "
+            "starts it) and run netlicensing_server_info again."
+        ]
+    return []
 
 
 def _unreachable(exc: NetLicensingError, detail: str) -> _Probe:
@@ -167,17 +170,44 @@ def _from_api_error(exc: NetLicensingError, host: str, source: str) -> _Probe:
         what = "timed out" if status == 504 else "could not be reached"
         return _unreachable(exc, f"The NetLicensing API at {host} {what}.")
     reachable = _check("reachable", True, f"The NetLicensing API at {host} answered.")
-    if status in (401, 403):
-        detail = (
-            "NetLicensing rejected the credentials (HTTP 401)."
-            if status == 401
-            else "The API key's role does not allow listing products (HTTP 403)."
-        )
+    if status == 401:
+        # API Conventions: 401 = missing or wrong credentials.
         return _Probe(
             valid=False,
             level="error",
-            checks=[reachable, _check("authentication", False, detail)],
-            next_steps=[_hint(exc), _retry_step(source)],
+            checks=[
+                reachable,
+                _check(
+                    "authentication", False, "NetLicensing rejected the credentials (HTTP 401)."
+                ),
+            ],
+            next_steps=[_hint(exc), *_retry_steps(source)],
+        )
+    if status == 403:
+        # API Conventions: 403 = authenticated, but the key's role may not call this operation.
+        return _Probe(
+            valid=True,
+            level="warning",
+            checks=[
+                reachable,
+                _check(
+                    "authentication",
+                    True,
+                    "NetLicensing accepted the API key; HTTP 403 means authenticated but "
+                    "not permitted.",
+                ),
+                _check(
+                    "permission",
+                    False,
+                    "The API key's role does not allow listing products (HTTP 403).",
+                ),
+            ],
+            warnings=[
+                "The API key is valid, but its role does not allow listing products, so tools "
+                "that need a higher role will fail with HTTP 403; license validation works with "
+                "any role."
+            ],
+            next_steps=[_hint(exc), *_retry_steps(source)],
         )
     if status == 502:
         what = "did not answer with a NetLicensing JSON response"
