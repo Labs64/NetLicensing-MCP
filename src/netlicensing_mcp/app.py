@@ -12,13 +12,18 @@ bottom of this module, so the registration path can be changed in one place.
 
 from __future__ import annotations
 
+import functools
+import inspect
 import json
 import logging
 import os
 import sys
+from collections.abc import Awaitable, Callable
+from typing import Annotated, Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
-from mcp.types import ToolAnnotations
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from pydantic import BaseModel, ConfigDict, Field
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -372,5 +377,119 @@ _DELETE = ToolAnnotations(
 )
 
 
-# Decorator used by every module in netlicensing_mcp.mcp_tools to register a tool.
-tool = mcp.tool
+# ── Structured output ────────────────────────────────────────────────────────
+
+
+def _compact_output_schema(schema: dict[str, Any]) -> None:
+    """Keep the outputSchema small: it is sent with every tool in tools/list.
+
+    Drops the per-field ``title``/``default`` noise and replaces the class
+    docstring with a one-line description.
+    """
+    schema["description"] = (
+        'The parsed JSON of the text content; a non-object result is {"result": value}.'
+    )
+    for prop in schema.get("properties", {}).values():
+        prop.pop("title", None)
+        prop.pop("default", None)
+
+
+class ToolResult(BaseModel):
+    """Structured result of a NetLicensing MCP tool.
+
+    ``structuredContent`` is the parsed JSON of the text content: the same
+    redacted object, field for field. Results that are not a JSON object
+    (a list, a scalar or plain text) come wrapped as ``{"result": ...}``.
+    The fields below are the common ones; tools add their own, hence
+    ``extra="allow"`` and no type constraints.
+    """
+
+    model_config = ConfigDict(
+        extra="allow", title="NetLicensingToolResult", json_schema_extra=_compact_output_schema
+    )
+
+    type: Any = Field(None, description='Entity type, or "list"')
+    number: Any = Field(None, description="Entity identifier")
+    active: Any = Field(None, description="Active flag (boolean)")
+    console_url: Any = Field(None, description="NetLicensing Console link")
+    warnings: Any = Field(None, description="Warnings from NetLicensing")
+    suggested_actions: Any = Field(None, description="Suggested next steps")
+    summary: Any = Field(None, description="Short summary")
+    items: Any = Field(None, description="List: the entities")
+    count: Any = Field(None, description="List: number of items")
+    kind: Any = Field(None, description="List: entity type of the items")
+    error: Any = Field(None, description="true if the call failed")
+    status: Any = Field(None, description="HTTP status if failed, or entity status")
+    detail: Any = Field(None, description="Error message")
+    result: Any = Field(None, description="Value of a non-object result")
+
+
+# Top-level fields documented in every tool's outputSchema.
+OUTPUT_SCHEMA_FIELDS: tuple[str, ...] = tuple(ToolResult.model_fields)
+
+
+def to_call_tool_result(text: str) -> CallToolResult:
+    """Build the MCP result for a tool's JSON string.
+
+    The text content is *text* unchanged. ``structuredContent`` is
+    ``json.loads(text)`` when that is an object, else ``{"result": value}``
+    (plain text that is not JSON is wrapped as a string). An error blob
+    (``{"error": true, ...}``) sets ``isError``.
+    """
+    try:
+        value: Any = json.loads(text)
+    except ValueError:
+        value = text
+    structured = value if isinstance(value, dict) else {"result": value}
+    return CallToolResult(
+        content=[TextContent(type="text", text=text)],
+        structuredContent=structured,
+        isError=isinstance(value, dict) and value.get("error") is True,
+    )
+
+
+ToolFn = TypeVar("ToolFn", bound=Callable[..., Awaitable[str]])
+
+
+def _structured(fn: Callable[..., Awaitable[str]]) -> Callable[..., Awaitable[CallToolResult]]:
+    """Wrap *fn* so that FastMCP registers it with structured output.
+
+    The wrapper takes the signature of *fn*, with its annotations evaluated
+    here in *fn*'s own module, so the input schema stays exactly the same.
+    Only the return annotation changes, to ``Annotated[CallToolResult,
+    ToolResult]``: FastMCP then publishes ``ToolResult``'s schema as the
+    tool's ``outputSchema`` and passes the returned ``CallToolResult`` on
+    to the client as is.
+    """
+    returns = Annotated[CallToolResult, ToolResult]
+    signature = inspect.signature(fn, eval_str=True).replace(return_annotation=returns)
+
+    @functools.wraps(fn)
+    async def wrapper(*args: Any, **kwargs: Any) -> CallToolResult:
+        return to_call_tool_result(await fn(*args, **kwargs))
+
+    wrapper.__signature__ = signature  # type: ignore[attr-defined]
+    wrapper.__annotations__ = {
+        **{name: p.annotation for name, p in signature.parameters.items()},
+        "return": returns,
+    }
+    return wrapper
+
+
+def tool(
+    *, title: str | None = None, annotations: ToolAnnotations | None = None
+) -> Callable[[ToolFn], ToolFn]:
+    """Register a tool function with the MCP server.
+
+    Every module in ``netlicensing_mcp.mcp_tools`` registers its tools with
+    this decorator, so all registration rules live here. The tool function
+    must return a JSON string; over MCP it is sent as text content plus
+    ``structuredContent`` (see :func:`to_call_tool_result`). The function
+    itself is returned unchanged, so direct calls still return the string.
+    """
+
+    def decorator(fn: ToolFn) -> ToolFn:
+        mcp.add_tool(_structured(fn), name=fn.__name__, title=title, annotations=annotations)
+        return fn
+
+    return decorator

@@ -74,6 +74,7 @@ NetLicensing supports several licensing models, such as Try & Buy, Subscription,
 
 - List tools and `validate_licensee` always return `{"type": "list", "count": ..., "items": [...]}`, even for zero or one result. Get, create and update tools return a single object.
 - Every tool accepts `include_raw=true` if you also want the original NetLicensing response.
+- **Response format:** every result is the JSON as text, plus the same object as `structuredContent` for clients that read structured output. A result that is not a JSON object (for example the message of a confirmed delete) comes as `{"result": ...}`. Failed calls are flagged with `isError`, and every tool declares an `outputSchema`.
 - Tools tell your client whether they only read data, write data, or are destructive, so clients can ask for approval at the right moments.
 
 ---

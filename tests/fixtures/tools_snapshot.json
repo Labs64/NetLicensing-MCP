@@ -89,16 +89,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_api_tokenOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -172,16 +209,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_bundleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -289,16 +363,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_licenseOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -458,16 +569,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_license_templateOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -533,16 +681,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_licenseeOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -623,16 +808,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_productOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -755,16 +977,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_product_moduleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -826,16 +1085,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_shop_tokenOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -909,16 +1205,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_create_transactionOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -957,16 +1290,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_delete_bundleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1005,16 +1375,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_delete_licenseOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1053,16 +1460,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_delete_license_templateOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1101,16 +1545,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_delete_licenseeOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1149,16 +1630,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_delete_productOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1197,16 +1715,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_delete_product_moduleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1240,16 +1795,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_delete_tokenOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1304,16 +1896,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_explain_validationOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1347,16 +1976,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_bundleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1395,16 +2061,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_customer_healthOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1438,16 +2141,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_licenseOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1481,16 +2221,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_license_templateOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1524,16 +2301,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_licenseeOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1567,16 +2381,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_payment_methodOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1610,16 +2461,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_productOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1653,16 +2541,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_product_moduleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1696,16 +2621,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_tokenOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1739,16 +2701,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_get_transactionOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1775,16 +2774,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_bundlesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1811,16 +2847,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_countriesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1859,16 +2932,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_license_templatesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1895,16 +3005,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_license_typesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1943,16 +3090,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_licenseesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -1991,16 +3175,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_licensesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2027,16 +3248,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_licensing_modelsOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2068,16 +3326,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_payment_methodsOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2116,16 +3411,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_product_modulesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2157,16 +3489,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_productsOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2198,16 +3567,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_tokensOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2239,16 +3645,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_list_transactionsOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2287,16 +3730,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_obtain_bundleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2325,16 +3805,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_delete_bundleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2363,16 +3880,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_delete_licenseOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2401,16 +3955,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_delete_license_templateOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2439,16 +4030,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_delete_licenseeOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2477,16 +4105,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_delete_productOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2515,16 +4180,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_delete_product_moduleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2553,16 +4255,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_delete_tokenOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2620,16 +4359,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_update_license_templateOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2670,16 +4446,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_update_payment_methodOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2725,16 +4538,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_preview_update_productOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2755,16 +4605,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_server_infoOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2803,16 +4690,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_transfer_licensesOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -2900,16 +4824,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_bundleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3019,16 +4980,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_licenseOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3218,16 +5216,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_license_templateOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3295,16 +5330,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_licenseeOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3360,16 +5432,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_payment_methodOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3462,16 +5571,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_productOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3591,16 +5737,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_product_moduleOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3666,16 +5849,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_update_transactionOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
@@ -3744,16 +5964,53 @@
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "description": "The parsed JSON of the text content; a non-object result is {\"result\": value}.",
         "properties": {
+          "type": {
+            "description": "Entity type, or \"list\""
+          },
+          "number": {
+            "description": "Entity identifier"
+          },
+          "active": {
+            "description": "Active flag (boolean)"
+          },
+          "console_url": {
+            "description": "NetLicensing Console link"
+          },
+          "warnings": {
+            "description": "Warnings from NetLicensing"
+          },
+          "suggested_actions": {
+            "description": "Suggested next steps"
+          },
+          "summary": {
+            "description": "Short summary"
+          },
+          "items": {
+            "description": "List: the entities"
+          },
+          "count": {
+            "description": "List: number of items"
+          },
+          "kind": {
+            "description": "List: entity type of the items"
+          },
+          "error": {
+            "description": "true if the call failed"
+          },
+          "status": {
+            "description": "HTTP status if failed, or entity status"
+          },
+          "detail": {
+            "description": "Error message"
+          },
           "result": {
-            "title": "Result",
-            "type": "string"
+            "description": "Value of a non-object result"
           }
         },
-        "required": [
-          "result"
-        ],
-        "title": "netlicensing_validate_licenseeOutput",
+        "title": "NetLicensingToolResult",
         "type": "object"
       },
       "annotations": {
