@@ -28,10 +28,33 @@ from netlicensing_mcp.responses import console_url, wrap
 
 def test_console_url_known_kinds():
     assert (
-        console_url("Licensee", "CUST-ACME") == "https://ui.netlicensing.io/#/licensees/CUST-ACME"
+        console_url("Licensee", "CUST-ACME")
+        == "https://ui.netlicensing.io/#/customers/CUST-ACME/edit"
     )
-    assert console_url("Product", "P001") == "https://ui.netlicensing.io/#/products/P001"
-    assert console_url("License", "L001") == "https://ui.netlicensing.io/#/licenses/L001"
+    assert console_url("Product", "P001") == "https://ui.netlicensing.io/#/products/P001/edit"
+    assert (
+        console_url("License", "L001", {"licenseeNumber": "C1"})
+        == "https://ui.netlicensing.io/#/customers/C1/licenses/L001/edit"
+    )
+
+
+def test_console_url_nested_routes():
+    base = "https://ui.netlicensing.io/#"
+    assert (
+        console_url("ProductModule", "M1", {"productNumber": "P1"})
+        == f"{base}/products/P1/modules/M1/edit"
+    )
+    assert console_url("Bundle", "B1") == f"{base}/bundles/B1/edit"
+
+
+def test_console_url_missing_parent_returns_none():
+    assert console_url("ProductModule", "M1") is None
+    assert console_url("License", "L1", {}) is None
+
+
+def test_console_url_kinds_without_page_return_none():
+    for kind in ("LicenseTemplate", "Transaction", "Token", "PaymentMethod"):
+        assert console_url(kind, "X1", {"productNumber": "P1"}) is None
 
 
 def test_console_url_unknown_kind_returns_none():
@@ -44,7 +67,7 @@ def test_console_url_empty_number_returns_none():
 
 def test_console_url_respects_env_override(monkeypatch):
     monkeypatch.setenv("MCP_CONSOLE_BASE_URL", "https://staging.example.com/ui/")
-    assert console_url("Licensee", "I1") == "https://staging.example.com/ui/licensees/I1"
+    assert console_url("Licensee", "I1") == "https://staging.example.com/ui/customers/I1/edit"
 
 
 # ── wrap(): single entity ─────────────────────────────────────────────────────
@@ -71,7 +94,7 @@ def test_wrap_single_entity_flat_envelope():
     assert env["number"] == "I1"
     assert env["name"] == "Acme"
     assert env["active"] is True
-    assert env["console_url"] == "https://ui.netlicensing.io/#/licensees/I1"
+    assert env["console_url"] == "https://ui.netlicensing.io/#/customers/I1/edit"
     assert env["warnings"] == []
     assert env["suggested_actions"] == []
     assert "items" not in env
@@ -124,7 +147,7 @@ def test_wrap_list_envelope():
     assert env["kind"] == "Product"
     assert env["count"] == 2
     assert len(env["items"]) == 2
-    assert env["items"][0]["console_url"] == "https://ui.netlicensing.io/#/products/P1"
+    assert env["items"][0]["console_url"] == "https://ui.netlicensing.io/#/products/P1/edit"
     assert env["items"][1]["active"] is False
 
 
@@ -145,7 +168,7 @@ async def test_tool_default_response_contains_console_url():
     with patch("netlicensing_mcp.server.products.get_product", AsyncMock(return_value=raw)):
         result = json.loads(await server.netlicensing_get_product("P1"))
 
-    assert result["console_url"] == "https://ui.netlicensing.io/#/products/P1"
+    assert result["console_url"] == "https://ui.netlicensing.io/#/products/P1/edit"
     assert "raw" not in result
 
 
@@ -155,7 +178,7 @@ async def test_tool_include_raw_true_attaches_raw():
     with patch("netlicensing_mcp.server.products.get_product", AsyncMock(return_value=raw)):
         result = json.loads(await server.netlicensing_get_product("P1", include_raw=True))
 
-    assert result["console_url"] == "https://ui.netlicensing.io/#/products/P1"
+    assert result["console_url"] == "https://ui.netlicensing.io/#/products/P1/edit"
     assert "raw" in result
     assert result["raw"] == raw
 

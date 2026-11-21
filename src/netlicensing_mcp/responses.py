@@ -33,7 +33,7 @@ Usage::
     raw = await licensees.get_licensee("I001")
     envelope = wrap(raw, "Licensee")
     # → {"type": "Licensee", "number": "I001", "active": True,
-    #    "console_url": "https://ui.netlicensing.io/#/licensees/I001", ...}
+    #    "console_url": "https://ui.netlicensing.io/#/customers/I001/edit", ...}
 """
 
 from __future__ import annotations
@@ -45,17 +45,16 @@ from typing import Any
 
 _DEFAULT_CONSOLE_BASE = "https://ui.netlicensing.io/#"
 
-#: Maps NetLicensing entity ``type`` strings to Console URL path segments.
+#: Maps NetLicensing entity ``type`` strings to Console route templates.
+#: ``{number}`` is the entity number; other placeholders are parent numbers
+#: read from the entity's own properties.  Kinds absent here (LicenseTemplate,
+#: Transaction, Token, PaymentMethod) have no direct Console page.
 ENTITY_PATH: dict[str, str] = {
-    "Product": "products",
-    "ProductModule": "modules",
-    "LicenseTemplate": "license-templates",
-    "Licensee": "licensees",
-    "License": "licenses",
-    "Bundle": "bundles",
-    "Transaction": "transactions",
-    "Token": "tokens",
-    "PaymentMethod": "payment-methods",
+    "Product": "products/{number}/edit",
+    "ProductModule": "products/{productNumber}/modules/{number}/edit",
+    "Licensee": "customers/{number}/edit",
+    "License": "customers/{licenseeNumber}/licenses/{number}/edit",
+    "Bundle": "bundles/{number}/edit",
 }
 
 
@@ -64,20 +63,33 @@ def _console_base() -> str:
     return os.getenv("MCP_CONSOLE_BASE_URL", _DEFAULT_CONSOLE_BASE).rstrip("/")
 
 
-def console_url(kind: str, number: str) -> str | None:
+def console_url(kind: str, number: str, props: dict[str, str] | None = None) -> str | None:
     """Build a Console deep link for *kind* / *number*.
 
-    Returns ``None`` when the entity kind has no known URL path or *number* is
-    empty.
+    Returns ``None`` when the entity kind has no Console page, *number* is
+    empty, or a required parent number (e.g. ``productNumber`` for a module)
+    is missing from *props*.
 
     Args:
         kind:   Entity type string, e.g. ``"Licensee"``.
         number: Entity identifier, e.g. ``"CUST-ACME"``.
+        props:  Entity properties, used to resolve parent numbers.
     """
-    path = ENTITY_PATH.get(kind)
-    if not path or not number:
+    template = ENTITY_PATH.get(kind)
+    if not template or not number:
         return None
-    return f"{_console_base()}/{path}/{number}"
+    values = {**(props or {}), "number": number}
+    try:
+        path = template.format_map(values)
+    except KeyError:
+        return None
+    if "{" in path or any(not values.get(k) for k in _placeholders(template)):
+        return None
+    return f"{_console_base()}/{path}"
+
+
+def _placeholders(template: str) -> list[str]:
+    return [seg[1:-1] for seg in template.split("/") if seg.startswith("{")]
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -171,7 +183,7 @@ def _wrap_item(
 
     # Inject Console deep link.
     number = props.get("number", "")
-    url = console_url(kind, number)
+    url = console_url(kind, number, props)
     if url:
         envelope["console_url"] = url
 
