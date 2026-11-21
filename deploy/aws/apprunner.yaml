@@ -1,7 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  NetLicensing MCP Server — AWS App Runner deployment.
-  Simplest option: auto-provisions HTTPS, scales to zero, no VPC required.
+  NetLicensing MCP Server - AWS App Runner deployment (existing App Runner
+  customers only: AWS has closed App Runner to new customers). Auto-provisions
+  HTTPS, no VPC required.
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PARAMETERS
@@ -10,10 +11,9 @@ Description: >
 Parameters:
   ImageUri:
     Type: String
-    Default: ghcr.io/labs64/netlicensing-mcp:latest
     Description: >
-      Container image URI. For GHCR images you must first push to ECR
-      (App Runner only supports ECR and ECR Public natively).
+      ECR image URI (App Runner only supports ECR and ECR Public). Copy the
+      GHCR image there first with "deploy.sh mirror".
 
 
   Cpu:
@@ -30,10 +30,11 @@ Parameters:
 
   MinSize:
     Type: Number
-    Default: 0
+    Default: 1
+    MinValue: 1
     Description: >
-      Minimum number of instances. Set to 0 for scale-to-zero
-      (first request has ~5 s cold start).
+      Minimum number of provisioned instances (App Runner always keeps at
+      least this many; scale-to-zero is not supported).
 
   MaxSize:
     Type: Number
@@ -72,7 +73,7 @@ Resources:
   McpService:
     Type: AWS::AppRunner::Service
     Properties:
-      ServiceName: netlicensing-mcp
+      ServiceName: !Ref AWS::StackName
       SourceConfiguration:
         AuthenticationConfiguration:
           AccessRoleArn: !GetAtt AccessRole.Arn

@@ -134,7 +134,7 @@ Resources:
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: ALB — allow HTTP/HTTPS from the internet
+      GroupDescription: ALB - allow HTTP/HTTPS from the internet
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -149,7 +149,7 @@ Resources:
   TaskSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Fargate tasks — allow traffic from ALB only
+      GroupDescription: Fargate tasks - allow traffic from ALB only
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -322,7 +322,14 @@ Resources:
       ServiceName: !Sub "${AWS::StackName}-service"
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !Ref DesiredCount
-      LaunchType: FARGATE
+      # LaunchType must be omitted when a capacity provider strategy is set.
+      CapacityProviderStrategy:
+        - !If
+          - EnableSpot
+          - CapacityProvider: FARGATE_SPOT
+            Weight: 1
+          - CapacityProvider: FARGATE
+            Weight: 1
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -349,13 +356,16 @@ Outputs:
     Value: !GetAtt Alb.DNSName
 
   McpEndpointHttp:
-    Description: MCP endpoint URL (HTTP)
+    Description: MCP endpoint URL (plain HTTP - testing only, API keys are sent unencrypted)
     Value: !Sub "http://${Alb.DNSName}/mcp"
 
-  McpEndpointHttps:
+  # HTTPS only validates for a hostname covered by your certificate, so point
+  # a DNS record (CNAME) for that hostname at AlbDnsName and use
+  # https://<your-hostname>/mcp. See README, step 4.
+  CertificateInUse:
     Condition: HasCertificate
-    Description: MCP endpoint URL (HTTPS)
-    Value: !Sub "https://${Alb.DNSName}/mcp"
+    Description: Certificate attached to the HTTPS listener
+    Value: !Ref CertificateArn
 
   HealthCheckUrl:
     Description: Health check URL

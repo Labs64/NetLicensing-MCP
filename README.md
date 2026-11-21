@@ -345,26 +345,19 @@ ngrok http 8000
 
 Deploy the MCP server to AWS for a **public HTTPS endpoint** that remote AI agents can connect to:
 
-| Option | Best for | Scale-to-zero | Setup |
-|---|---|---|---|
-| **ECS Fargate** | Production, consistent traffic | No | ALB + Fargate |
-| **App Runner** | Low-traffic, development | ✅ Yes | Auto-provisioned HTTPS |
-
-#### Quick deploy with the helper script
+The recommended path is **ECS Fargate** behind an Application Load Balancer. App Runner is closed to new AWS customers, so its template is kept only for accounts that already use it.
 
 ```bash
 cd deploy/aws
 
-# Option A — ECS Fargate
-# Deploy (with optional HTTPS via ACM certificate)
-./deploy.sh fargate \
-    --certificate-arn arn:aws:acm:us-east-1:123456789:certificate/your-cert-id
+# Quick test (plain HTTP, sandbox keys only)
+./deploy.sh fargate
 
-# Option B — App Runner (mirror image to ECR first)
-./deploy.sh mirror --ecr-repo 123456789.dkr.ecr.us-east-1.amazonaws.com/netlicensing-mcp
-./deploy.sh apprunner \
-    --ecr-image 123456789.dkr.ecr.us-east-1.amazonaws.com/netlicensing-mcp:latest
+# Production: HTTPS with your own domain and an ACM certificate
+./deploy.sh fargate --certificate-arn arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id
 ```
+
+HTTPS only works for a hostname covered by your certificate, so point a DNS CNAME for your domain at the load balancer. The guide walks through certificate, DNS, verification and client setup step by step.
 
 #### Connect MCP clients to the public URL
 
@@ -376,7 +369,7 @@ For example, in your MCP client configuration:
 {
   "mcpServers": {
     "netlicensing": {
-      "url": "https://your-endpoint.us-east-1.elb.amazonaws.com/mcp",
+      "url": "https://mcp.example.com/mcp",
       "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" }
     }
   }
@@ -385,7 +378,7 @@ For example, in your MCP client configuration:
 
 You can alternatively send `Authorization: Bearer YOUR_API_KEY`.
 
-📖 Full instructions, architecture diagrams, and cost estimates: **[deploy/aws/README.md](deploy/aws/README.md)**
+📖 Full step-by-step instructions: **[deploy/aws/README.md](deploy/aws/README.md)**
 
 ---
 

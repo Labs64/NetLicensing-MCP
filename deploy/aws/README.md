@@ -1,134 +1,211 @@
-# AWS Deployment — NetLicensing MCP Server
+# Deploy the NetLicensing MCP server on AWS
 
-Deploy the NetLicensing MCP server to AWS with a **public HTTPS URL** so remote
-AI agents (Claude, Copilot, custom apps) can connect via the
-`streamable-http` transport.
+This guide takes you from nothing to a running MCP server with its own web
+address that remote AI clients (Claude Code, VS Code, your own apps) can connect
+to. Follow the steps in order and copy the snippets.
 
-Two deployment options are provided:
+**How it works:** the server runs as a container on AWS Fargate behind a load
+balancer. The server does **not** store your NetLicensing API key. Every client
+sends its own key in an HTTP header with each request, so one deployment can
+serve many people, each with their own NetLicensing account.
 
-| Option | Best for | Cost (idle) | Scale-to-zero | HTTPS |
-|---|---|---|---|---|
-| **ECS Fargate** | Production, full control | ~$5–15/mo (Spot) | No (min 1 task) | Via ALB + ACM cert |
-| **App Runner** | Simplest, low-traffic | ~$0 (scale-to-zero) | ✅ Yes | Auto-provisioned |
+```
+MCP client ──HTTPS──▶ Load balancer ──HTTP──▶ Fargate task (netlicensing-mcp, port 8000)
+```
+
+> **App Runner:** AWS has closed App Runner to new customers and recommends
+> Amazon ECS Express Mode instead
+> ([AWS notice](https://docs.aws.amazon.com/apprunner/latest/dg/apprunner-availability-change.html)).
+> Use the Fargate path below. The App Runner template is kept at the
+> [end of this page](#existing-app-runner-customers) for accounts that already use it.
 
 ---
 
-## Prerequisites
+## Before you start
 
-- **AWS CLI v2** — [Install guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-- **AWS credentials** configured (`aws configure` or environment variables)
-- **Docker** (only needed if mirroring images to ECR for App Runner)
+You need:
 
----
+- An AWS account and permission to create VPCs, load balancers, ECS services and IAM roles.
+- [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), signed in.
+- A NetLicensing API key from your NetLicensing account.
+- For HTTPS (step 4): a domain name you control, for example `mcp.example.com`.
 
-## Option A — ECS Fargate (recommended for production)
-
-### 1. Deploy the stack
+Check that the CLI works and points at the account you expect:
 
 ```bash
-# HTTP only (quick test)
+aws --version
+aws sts get-caller-identity
+```
+
+Pick the region once and reuse it everywhere below:
+
+```bash
+export AWS_REGION=us-east-1
+```
+
+Get the files (skip if you already cloned the repo):
+
+```bash
+git clone https://github.com/Labs64/NetLicensing-MCP.git
+cd NetLicensing-MCP/deploy/aws
+```
+
+---
+
+## Step 1: Deploy
+
+For a first test, deploy without HTTPS. This is quick, and fine for trying it out
+with a sandbox key. **Do not use a real API key over plain HTTP.**
+
+```bash
 ./deploy.sh fargate
-
-# HTTPS (production) — requires an ACM certificate
-./deploy.sh fargate \
-    --certificate-arn arn:aws:acm:us-east-1:123456789:certificate/your-cert-id
 ```
 
-Or use CloudFormation directly:
+The script creates a CloudFormation stack named `netlicensing-mcp` (network,
+load balancer, cluster, service) and waits until it finishes. This usually takes
+a few minutes. It runs the public image `ghcr.io/labs64/netlicensing-mcp:latest`,
+which needs no registry login.
 
-```bash
-aws cloudformation deploy \
-    --template-file deploy/aws/ecs-fargate.yaml \
-    --stack-name netlicensing-mcp \
-    --region us-east-1 \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides \
-        CertificateArn=arn:aws:acm:us-east-1:123456789:certificate/your-cert-id
-```
+Useful options:
 
-### 2. Get the public URL
+| Option | What it does |
+|---|---|
+| `--image ghcr.io/labs64/netlicensing-mcp:1.0` | Pin a version instead of `latest` (recommended for production). |
+| `--no-spot` | Use regular Fargate capacity. The default is Fargate Spot, which is cheaper but can be interrupted by AWS. |
+| `--desired-count 2` | Run two copies of the server. |
+| `--stack-name my-mcp` | Use a different stack name (keep it short; load balancer names are limited to 32 characters). |
+| `--verbose` | Debug logging (secrets are still redacted). |
+
+## Step 2: Find your address
 
 ```bash
 aws cloudformation describe-stacks \
-    --stack-name netlicensing-mcp \
-    --query 'Stacks[0].Outputs' \
-    --output table
+  --stack-name netlicensing-mcp \
+  --query 'Stacks[0].Outputs[*].[OutputKey,OutputValue]' \
+  --output table
 ```
 
-The `McpEndpointHttps` output is the URL to use in your MCP client config.
-
-### 3. Verify
+Copy the `AlbDnsName` value (looks like `netlicensing-mcp-alb-123.us-east-1.elb.amazonaws.com`).
 
 ```bash
-curl https://your-alb-dns.us-east-1.elb.amazonaws.com/health
-# → {"status":"ok","server":"netlicensing-mcp"}
+export ALB=<paste AlbDnsName here>
 ```
 
-### Architecture
+## Step 3: Check that it works
 
-```
-┌─────────────┐     HTTPS     ┌────────────┐     HTTP      ┌───────────────────┐
-│  MCP Client │ ─────────── → │    ALB     │ ─────────── → │  Fargate Task     │
-│  (Claude,   │               │  (ACM TLS) │               │  netlicensing-mcp │
-│   Copilot)  │               └────────────┘               │  :8000/mcp        │
-└─────────────┘                                            └───────────────────┘
-```
-
----
-
-## Option B — App Runner (simplest, scale-to-zero)
-
-> **Note:** App Runner only supports ECR and ECR Public images — not GHCR
-> directly. Use the `mirror` command to copy the image first.
-
-### 1. Mirror the image to ECR
+Health check, which should print `{"status":"ok","server":"netlicensing-mcp"}`:
 
 ```bash
-# Create an ECR repo (if it doesn't exist)
-aws ecr create-repository --repository-name netlicensing-mcp --region us-east-1
-
-# Mirror using the helper script
-./deploy.sh mirror \
-    --ecr-repo 123456789.dkr.ecr.us-east-1.amazonaws.com/netlicensing-mcp
+curl http://$ALB/health
 ```
 
-### 2. Deploy
+A request without a key must be refused with `401`:
 
 ```bash
-./deploy.sh apprunner \
-    --ecr-image 123456789.dkr.ecr.us-east-1.amazonaws.com/netlicensing-mcp:latest
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://$ALB/mcp
 ```
 
-### 3. Get the public URL
+A request with a key must succeed. This asks the server to start an MCP session
+(`demo:demo` is NetLicensing's public sandbox key):
 
-The stack output `McpEndpoint` contains the auto-provisioned HTTPS URL
-(e.g. `https://abc123.us-east-1.awsapprunner.com/mcp`).
+```bash
+curl -s -X POST http://$ALB/mcp \
+  -H "X-NetLicensing-API-Key: demo:demo" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
+```
 
----
+You should see a JSON reply containing `"serverInfo":{"name":"netlicensing-mcp"...`.
+If the health check hangs or returns 503, wait a minute (the load balancer is
+still registering the container) and try again. If it still fails, see
+[Troubleshooting](#troubleshooting).
 
-## Connecting MCP Clients to the AWS Endpoint
+## Step 4: Turn on HTTPS (needed for real keys)
 
-Once deployed, configure your MCP client to use the public URL with the
-`streamable-http` transport:
+A TLS certificate only works for a hostname it was issued for, and a client
+rejects the connection if the certificate's domain does not match the host name
+it requested
+([AWS docs](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/https-listener-certificates.html)).
+So HTTPS needs **your own domain name** that points at the load balancer. In
+this guide it is `mcp.example.com`; replace it with yours.
 
-### Claude Desktop / VS Code
+**4a. Request a certificate** (in the same region as the stack):
 
-To securely invoke the remote MCP server for a specific vendor account, pass your NetLicensing API Key in the `X-NetLicensing-API-Key` header (or `Authorization: Bearer`):
+```bash
+aws acm request-certificate \
+  --domain-name mcp.example.com \
+  --validation-method DNS \
+  --region $AWS_REGION
+```
+
+Copy the `CertificateArn` it prints and keep it:
+
+```bash
+export CERT_ARN=<paste CertificateArn here>
+```
+
+**4b. Prove you own the domain.** Ask AWS which DNS record to create:
+
+```bash
+aws acm describe-certificate \
+  --certificate-arn $CERT_ARN --region $AWS_REGION \
+  --query 'Certificate.DomainValidationOptions[0].ResourceRecord'
+```
+
+Create that CNAME record (`Name` and `Value`) at your DNS provider, then wait
+until AWS confirms it (this can take several minutes):
+
+```bash
+aws acm wait certificate-validated --certificate-arn $CERT_ARN --region $AWS_REGION
+```
+
+**4c. Redeploy with the certificate:**
+
+```bash
+./deploy.sh fargate --certificate-arn $CERT_ARN
+```
+
+Port 80 now redirects to HTTPS.
+
+**4d. Point your domain at the load balancer.** At your DNS provider, create a
+CNAME record `mcp.example.com` → the `AlbDnsName` value from step 2.
+
+**4e. Test:**
+
+```bash
+curl https://mcp.example.com/health
+```
+
+Your MCP address is now **`https://mcp.example.com/mcp`**.
+
+## Step 5: Connect your AI client
+
+Send your NetLicensing API key in the `X-NetLicensing-API-Key` header
+(`Authorization: Bearer <key>` works too).
+
+**Claude Code:**
+
+```bash
+claude mcp add --transport http netlicensing https://mcp.example.com/mcp \
+  --header "X-NetLicensing-API-Key: YOUR_API_KEY"
+```
+
+**VS Code** (`.vscode/mcp.json`):
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "netlicensing": {
-      "url": "https://your-alb-dns.us-east-1.elb.amazonaws.com/mcp",
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
       "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" }
     }
   }
 }
 ```
 
-### Generic streamable-http client
-
-Pass the API key dynamically per client via HTTP headers:
+**Your own Python code:**
 
 ```python
 from mcp import ClientSession
@@ -136,7 +213,7 @@ from mcp.client.streamable_http import streamablehttp_client
 
 headers = {"X-NetLicensing-API-Key": "YOUR_API_KEY"}
 
-async with streamablehttp_client("https://your-endpoint/mcp", headers=headers) as (read, write, _):
+async with streamablehttp_client("https://mcp.example.com/mcp", headers=headers) as (read, write, _):
     async with ClientSession(read, write) as session:
         await session.initialize()
         tools = await session.list_tools()
@@ -144,12 +221,72 @@ async with streamablehttp_client("https://your-endpoint/mcp", headers=headers) a
 
 ---
 
-## Cleanup
+## Updating to a new version
+
+Redeploy with the version you want (the image tags are listed at
+[ghcr.io/labs64/netlicensing-mcp](https://github.com/Labs64/NetLicensing-MCP/pkgs/container/netlicensing-mcp)):
 
 ```bash
-# Delete the stack and all resources
-./deploy.sh teardown --stack-name netlicensing-mcp
-
-# Or directly:
-aws cloudformation delete-stack --stack-name netlicensing-mcp --region us-east-1
+./deploy.sh fargate --certificate-arn $CERT_ARN --image ghcr.io/labs64/netlicensing-mcp:1.0
 ```
+
+If you keep using the `latest` tag, CloudFormation sees no change, so tell ECS to
+pull the image again:
+
+```bash
+aws ecs update-service \
+  --cluster netlicensing-mcp-cluster \
+  --service netlicensing-mcp-service \
+  --force-new-deployment \
+  --region $AWS_REGION
+```
+
+## Troubleshooting
+
+**See the server's logs:**
+
+```bash
+aws logs tail /ecs/netlicensing-mcp --follow --region $AWS_REGION
+```
+
+**See why a container is not starting or staying healthy:**
+
+```bash
+aws ecs describe-services \
+  --cluster netlicensing-mcp-cluster --services netlicensing-mcp-service \
+  --region $AWS_REGION --query 'services[0].events[:5].message'
+```
+
+| Symptom | Likely cause |
+|---|---|
+| `401` from `/mcp` | The client is not sending the API key header. |
+| `503` from the load balancer right after deploy | The container is still starting. Wait a minute and retry. |
+| Browser or client reports a certificate error | You are using the `...elb.amazonaws.com` name. Use your own domain (step 4d). |
+| `deploy.sh` says the stack is in `ROLLBACK_COMPLETE` | Delete the failed stack (`./deploy.sh teardown`) and deploy again. |
+
+## Cleanup
+
+Deletes the stack and everything it created (you must type the stack name to confirm):
+
+```bash
+./deploy.sh teardown --stack-name netlicensing-mcp
+```
+
+If you created an ACM certificate or DNS records for step 4, remove those
+yourself. They are not part of the stack.
+
+---
+
+## Existing App Runner customers
+
+Only for AWS accounts that already use App Runner. App Runner can pull only from
+ECR, so copy the image there first (needs Docker running):
+
+```bash
+./deploy.sh mirror --ecr-repo 123456789012.dkr.ecr.$AWS_REGION.amazonaws.com/netlicensing-mcp
+./deploy.sh apprunner --ecr-image 123456789012.dkr.ecr.$AWS_REGION.amazonaws.com/netlicensing-mcp:latest
+```
+
+Replace `123456789012` with your AWS account ID. App Runner provides its own
+HTTPS address; the `McpEndpoint` stack output is your MCP URL. App Runner always
+keeps at least one instance running (`--min-size` must be 1 or more).

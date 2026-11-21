@@ -53,6 +53,11 @@ deploy_fargate() {
         esac
     done
 
+    if [[ -z "$certificate_arn" ]]; then
+        red "WARNING: no --certificate-arn given. The endpoint will be plain HTTP and"
+        red "         clients' NetLicensing API keys travel unencrypted. Testing only."
+    fi
+
     blue "Deploying NetLicensing MCP to ECS Fargate..."
     blue "  Stack:       $STACK_NAME"
     blue "  Region:      $REGION"
@@ -90,7 +95,7 @@ deploy_fargate() {
 deploy_apprunner() {
     local ecr_image=""
     local verbose="false"
-    local min_size=0
+    local min_size=1
     local max_size=2
 
     while [[ $# -gt 0 ]]; do
@@ -105,7 +110,8 @@ deploy_apprunner() {
         esac
     done
 
-    [[ -n "$ecr_image" ]] || die "--ecr-image is required (App Runner requires ECR). Mirror the image first — see README."
+    [[ "$min_size" =~ ^[1-9][0-9]*$ ]] || die "--min-size must be 1 or more (App Runner has no scale-to-zero)."
+    [[ -n "$ecr_image" ]] || die "--ecr-image is required (App Runner requires ECR). Run the 'mirror' command first - see README."
 
     blue "Deploying NetLicensing MCP to App Runner..."
     blue "  Stack:  $STACK_NAME"
@@ -175,17 +181,24 @@ mirror_to_ecr() {
 
     blue "Mirroring ${source_image} → ${ecr_repo}:latest"
 
-    # Login to ECR
-    local account_id region
-    account_id=$(echo "$ecr_repo" | cut -d. -f1)
-    region=$(echo "$ecr_repo" | cut -d. -f4)
-    aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${account_id}.dkr.ecr.${region}.amazonaws.com"
+    # ecr_repo looks like <account>.dkr.ecr.<region>.amazonaws.com/<name>
+    local registry repo_name region
+    registry="${ecr_repo%%/*}"
+    repo_name="${ecr_repo#*/}"
+    region=$(echo "$registry" | cut -d. -f4)
+    [[ -n "$region" && -n "$repo_name" && "$repo_name" != "$ecr_repo" ]] || die "--ecr-repo must look like 123456789012.dkr.ecr.us-east-1.amazonaws.com/netlicensing-mcp"
 
-    # Create repo if it doesn't exist
-    aws ecr describe-repositories --repository-names netlicensing-mcp --region "${region}" 2>/dev/null || \
-        aws ecr create-repository --repository-name netlicensing-mcp --region "${region}"
+    command -v docker >/dev/null 2>&1 || die "Docker not found. Install Docker Desktop or Docker Engine."
 
-    docker pull "${source_image}"
+    aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${registry}"
+
+    # Create the repo if it doesn't exist
+    aws ecr describe-repositories --repository-names "${repo_name}" --region "${region}" >/dev/null 2>&1 || \
+        aws ecr create-repository --repository-name "${repo_name}" --region "${region}" >/dev/null
+
+    # App Runner runs x86_64 by default, so always copy the amd64 variant (the
+    # published image is multi-arch; an Apple Silicon Mac would pull arm64).
+    docker pull --platform linux/amd64 "${source_image}"
     docker tag "${source_image}" "${ecr_repo}:latest"
     docker push "${ecr_repo}:latest"
 
@@ -195,10 +208,11 @@ mirror_to_ecr() {
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
-    check_prereqs
-
     local command="${1:-help}"
     shift || true
+    case "$command" in
+        fargate|apprunner|teardown|mirror) check_prereqs ;;
+    esac
 
     case "$command" in
         fargate)    deploy_fargate "$@" ;;
@@ -227,7 +241,7 @@ Fargate options:
 App Runner options:
   --ecr-image           ECR image URI (required, use 'mirror' to copy from GHCR)
   --verbose             Enable debug logging
-  --min-size            Min instances, 0 for scale-to-zero (default: 0)
+  --min-size            Min provisioned instances, 1 or more (default: 1)
   --max-size            Max instances (default: 2)
   --region              AWS region (default: us-east-1)
   --stack-name          CloudFormation stack name (default: netlicensing-mcp)
