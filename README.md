@@ -1,96 +1,112 @@
 <p align="center"><img src="https://raw.githubusercontent.com/Labs64/NetLicensing-MCP/refs/heads/master/assets/banner.jpg"></p>
 
 # NetLicensing MCP Server
- 
+
 <!-- mcp-name: io.github.Labs64/netlicensing-mcp -->
- 
+
 [![CI](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml/badge.svg)](https://github.com/Labs64/NetLicensing-MCP/actions/workflows/netlicensing-ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/netlicensing_mcp)](https://pypi.org/project/netlicensing-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/netlicensing-mcp)](https://pypi.org/project/netlicensing-mcp/)
 [![GHCR](https://img.shields.io/github/v/release/Labs64/NetLicensing-MCP?label=ghcr.io%2Flabs64%2Fnetlicensing-mcp&logo=docker&logoColor=white&style=flat-square)](https://github.com/Labs64/NetLicensing-MCP/pkgs/container/netlicensing-mcp)
 [![Docker Hub](https://img.shields.io/docker/v/labs64/netlicensing-mcp?logo=docker&logoColor=white&label=Docker%20Hub&color=2496ED)](https://hub.docker.com/r/labs64/netlicensing-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-netlicensing--mcp-blue?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMSAxN3YtNkg5bDMtNCAzIDRoLTJ2NmgtMnoiLz48L3N2Zz4=&style=flat-square)](https://registry.modelcontextprotocol.io/?q=netlicensing-mcp)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 
-**The official [Labs64 NetLicensing](https://netlicensing.io) MCP Server** — a natural language interface that lets AI agents manage software licenses, customers, and entitlements through conversational commands.
- 
-Works with Claude Desktop, GitHub Copilot (Agent mode), VS Code, JetBrains / IntelliJ IDEA, and any other MCP-compatible client.
- 
+**The official [Labs64 NetLicensing](https://netlicensing.io) MCP server.** Connect your AI assistant to NetLicensing and manage products, customers, licenses and entitlements by simply asking.
+
+It works with Claude Desktop, Claude Code, GitHub Copilot (Agent mode), VS Code, JetBrains IDEs, and any other MCP-compatible client.
+
+**Who is it for?**
+
+- **Customer service and support teams** who need a quick answer to "why can't this customer use the product?" or want to renew or transfer a license without opening the console.
+- **IT and system administrators** who audit accounts, clean up unused licenses and run the server for a team.
+- **Developers and vendors** who set up products, license templates and shop checkouts, or test their licensing model while they build.
+
 ---
- 
-## Why use this?
- 
-- **Natural Language Licensing** — Ask your AI assistant to create products, issue licenses, validate entitlements, and generate shop URLs without touching the NetLicensing UI or writing API calls.
-- **Full API coverage** — Various tools spanning the entire NetLicensing [REST API](https://netlicensing.io/wiki/restful-api): products, modules, templates, licensees, licenses, bundles, tokens, transactions, and payment methods.
-- **Built-in audit prompts** — Five ready-to-run prompt templates for account audits, expiry sweeps, anomaly detection, and cleanup workflows.
-- **Safe by default** — All delete operations expose a `force_cascade` option; nothing is silently cascaded.
-- **Zero-dependency quick start** — Run with `uvx` or Docker without a local Python install.
- 
+
+## Why use it?
+
+- **Ask in plain language.** Create products, issue licenses, validate a customer and generate shop links without clicking through the console or writing API calls.
+- **The whole NetLicensing API.** 61 tools cover products, modules, license templates, licensees, licenses, bundles, tokens, transactions and payment methods. See the [NetLicensing REST API](https://netlicensing.io/wiki/restful-api) for the details behind them.
+- **Answers, not just data.** Two ready-made workflows check a customer's health and explain, in plain words, why a validation passed or failed.
+- **Built-in audits.** Five prompt templates run account audits, expiry sweeps, cleanups and anomaly checks.
+- **Safe by default.** Deleting requires a preview and a confirmation. Secrets are masked. There is no silent fallback to demo credentials.
+- **Quick to start.** Run it with `uvx` or Docker. You don't need a local Python setup.
+
 ---
- 
+
 ## What can you ask?
- 
-Once connected, you can talk to NetLicensing in plain language:
- 
+
 - *"List all products in my NetLicensing account."*
-- *"Create a new licensee for `customer@example.com` under product PTEST."*
-- *"Validate the license for licensee L001 — does it pass?"*
-- *"Generate a shop URL for licensee L001 so they can self-serve their renewal."*
-- *"Which licenses are expiring in the next 30 days?"*
-- *"Find any licensees with no active licenses — flag them for cleanup."*
-- *"Transfer all licenses from licensee L001 to L002."*
-- *"Create an API key token scoped to read-only access."*
-- *"Show me all transactions from the last month."*
- 
+- *"Create a licensee for `customer@example.com` under product PTEST."*
+- *"Does licensee L001 have a valid license? If not, tell me why."*
+- *"How is customer L001 doing?"*
+- *"Generate a shop URL so L001 can renew on their own."*
+- *"Which licenses expire in the next 30 days?"*
+- *"Find licensees with no active license so I can clean them up."*
+- *"Move all licenses from L001 to L002."*
+- *"Create a read-only API key for licensee L001."*
+- *"Show me last month's transactions."*
+
+NetLicensing supports several licensing models, such as Try & Buy, Subscription, Rental, Floating, Multi-Feature, Pay-per-Use and Quota. Use `netlicensing_list_licensing_models` to see what your account offers, or read about them in the [NetLicensing documentation](https://netlicensing.io/wiki/licensing-models).
+
 ---
- 
-## Features
- 
+
+## What it can do
+
 | Area | Tools |
 |---|---|
 | **Products** | list, get, create, update, delete |
-| **Product Modules** | list, get, create, update, delete |
-| **License Templates** | list, get, create, update, delete |
-| **Licensees** | list, get, create, update, delete, validate, transfer |
-| **Licenses** | list, get, create, update (activate/deactivate), delete |
+| **Product modules** | list, get, create, update, delete |
+| **License templates** | list, get, create, update, delete |
+| **Licensees (customers)** | list, get, create, update, delete, validate, transfer licenses |
+| **Licenses** | list, get, create, update (activate or deactivate), delete |
 | **Bundles** | list, get, create, update, delete, obtain |
-| **Tokens** | list, get, create shop URL, create API token, revoke |
+| **Tokens** | list, get, create shop URL, create API key, delete |
 | **Transactions** | list, get, create, update |
-| **Payment Methods** | list, get, update |
-| **Utilities** | list licensing models, list license types, list countries, server info (version, API host, demo mode) |
-| **Audit Prompts** | full account, single customer, expiry sweep, cleanup, anomaly detection |
-| **Response shape** | list tools and `validate_licensee` always return `{"type": "list", "count", "items": [...]}`, even for 0 or 1 item; get / create / update return a single object |
-| **Delete Safety** | `force_cascade` option on all delete tools |
-| **Redaction** | secrets (`apiKey`, `licenseeSecret`, `nodeSecret`, …) masked in all responses and logs |
+| **Payment methods** | list, get, update |
+| **Reference data** | licensing models, license types, countries, server info (version, API host, demo mode) |
+| **Workflows** | `get_customer_health`, `explain_validation` (read-only) |
+| **Previews** | `preview_delete_*` and `preview_update_*` show what a change will affect before you confirm it |
+| **Audit prompts** | full account, single customer, expiry sweep, cleanup, anomaly detection |
+
+**Good to know**
+
+- List tools and `validate_licensee` always return `{"type": "list", "count": ..., "items": [...]}`, even for zero or one result. Get, create and update tools return a single object.
+- Every tool accepts `include_raw=true` if you also want the original NetLicensing response.
+- Tools tell your client whether they only read data, write data, or are destructive, so clients can ask for approval at the right moments.
 
 ---
 
 ## Security defaults
 
-The server is designed to be safe by default:
+- **No silent demo credentials.** If `NETLICENSING_API_KEY` is missing and `NETLICENSING_ALLOW_DEMO` isn't enabled, the server refuses to start (stdio) or answers `503` (HTTP).
+- **Secrets are masked.** Every response and log line passes through a redaction filter for `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret`. Short values become `****`. Longer ones keep the first 3 and last 4 characters (for example `pk_****W3Od`). Add your own fields with `MCP_REDACT_FIELDS`.
+- **Credentials appear once.** `create_api_token` and `create_shop_token` mark their response `"shown_once": true`. Later `get_token` and `list_tokens` calls return masked values.
+- **Deletes need confirmation.** Each delete first returns a preview and a single-use token that expires after 5 minutes. Nothing is deleted until you send that token back. `force_cascade` is a separate option that also removes dependent items, and it's only used when you ask for it.
+- **One key per request in HTTP mode.** Keys come from request headers, never from URLs, so one server can serve several teams safely.
 
-- **No silent credential fallback** — if `NETLICENSING_API_KEY` is not set and `NETLICENSING_ALLOW_DEMO` is not explicitly enabled, the server refuses to start (stdio) or returns `503` (HTTP) rather than silently using demo credentials.
-- **Redaction layer** — every tool response passes through a redaction filter. Sensitive fields (`apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`) are masked: values shorter than 16 characters become `****`, longer ones keep only their first 3 and last 4 characters (e.g. `pk_****W3Od`). The set is extendable via `MCP_REDACT_FIELDS`.
-- **One-time credentials** — `create_api_token` and `create_shop_token` tag their response with `"shown_once": true` so clients know the credential will not be visible in full again. Subsequent `get_token` / `list_tokens` calls return masked values.
-- **Delete confirmation** — all destructive operations require a two-step confirmation token flow; nothing is silently cascaded.
- 
+More detail in [SECURITY.md](SECURITY.md).
+
 ---
- 
+
 ## Quick Start
- 
+
+You need a NetLicensing API key. Sign in at [ui.netlicensing.io](https://ui.netlicensing.io), open your API keys and create one. Not ready for that yet? Try the sandbox with [demo mode](#demo--sandbox-mode-no-api-key).
+
 ### Option A — uvx (no install required)
- 
+
 ```bash
 NETLICENSING_API_KEY=your_key uvx netlicensing-mcp
 ```
- 
+
 ### Option B — pip
- 
+
 ```bash
 pip install netlicensing-mcp
 NETLICENSING_API_KEY=your_key netlicensing-mcp
 ```
- 
+
 ### Option C — Docker
 
 #### stdio (default) — for Claude Desktop / VS Code
@@ -134,11 +150,11 @@ docker run -i --rm \
 > so it is always clear you are not using a real account.
 
 ---
- 
+
 ## Configuration
- 
+
 ### Environment Variables
- 
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `NETLICENSING_API_KEY` | **Yes*** | — | NetLicensing API key. Required unless `NETLICENSING_ALLOW_DEMO=true` is set. |
@@ -155,12 +171,12 @@ docker run -i --rm \
 > **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header. Query-parameter keys are not supported, because URLs are logged by proxies and load balancers.
 
 ---
- 
+
 ### Claude Desktop
- 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
+
+Open `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
- 
+
 ```json
 {
   "mcpServers": {
@@ -174,7 +190,7 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
   }
 }
 ```
- 
+
 Or use the official Docker image:
 
 #### stdio (default) — for Claude Desktop / VS Code
@@ -211,23 +227,33 @@ Or use the official Docker image:
 }
 ```
 
+### Claude Code
+
+```bash
+claude mcp add netlicensing --env NETLICENSING_API_KEY=your_key_here -- uvx netlicensing-mcp
+```
+
+### Cursor and other MCP clients
+
+Any client that can start a stdio server works. Use the same `command`, `args` and `env` values as in the Claude Desktop example above.
+
 ### VS Code / GitHub Copilot
- 
+
 The repo ships a `.vscode/mcp.json` that auto-configures Copilot Agent mode.
 Set `NETLICENSING_API_KEY` in your shell environment or a `.env` file, then click
 **Start** in the editor banner that appears above `mcp.json`.
- 
+
 ### JetBrains / IntelliJ IDEA
- 
+
 In Copilot Chat → Agent mode → Tools icon → **Add More Tools…** — paste the
 same JSON block shown in the Claude Desktop section above.
- 
+
 ---
- 
+
 ## Audit Prompt Templates
- 
-Five built-in prompts accessible in Copilot Agent and Claude Desktop:
- 
+
+The server ships five prompt templates. Pick one in Copilot Agent or Claude Desktop and the assistant runs the whole audit for you:
+
 | Prompt | Purpose |
 |---|---|
 | `audit_full` | End-to-end account audit for a product |
@@ -235,29 +261,29 @@ Five built-in prompts accessible in Copilot Agent and Claude Desktop:
 | `audit_expiry` | Find licenses expiring within N days and generate renewal URLs |
 | `audit_cleanup` | Identify inactive / orphaned licenses for cleanup |
 | `audit_anomaly` | Detect unusual usage patterns across all customers |
- 
+
 ---
- 
+
 ## Troubleshooting
- 
+
 **Check MCP server logs**
- 
+
 ```bash
 # macOS / Claude Desktop
 tail -f ~/Library/Logs/Claude/mcp-server-netlicensing.log
- 
+
 # Windows
 Get-Content "$env:APPDATA\Claude\Logs\mcp-server-netlicensing.log" -Wait
 ```
- 
+
 **Run the MCP Inspector** (browser UI at `http://localhost:5173`)
- 
+
 ```bash
 mcp dev src/netlicensing_mcp/server.py
 ```
- 
+
 **Common issues**
- 
+
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `401 Unauthorized` responses | Invalid or expired API key | Regenerate your key at [ui.netlicensing.io](https://ui.netlicensing.io) |
@@ -265,11 +291,11 @@ mcp dev src/netlicensing_mcp/server.py
 | `uvx: command not found` | `uv` not installed | `pip install uv` or see [docs.astral.sh/uv](https://docs.astral.sh/uv) |
 | Server exits immediately / `503` on all calls | `NETLICENSING_API_KEY` not set and demo mode not enabled | Set `NETLICENSING_API_KEY`, or set `NETLICENSING_ALLOW_DEMO=true` for sandbox testing |
 | Demo data instead of live data | `NETLICENSING_API_KEY` not set; `NETLICENSING_ALLOW_DEMO=true` active | Ensure `NETLICENSING_API_KEY` is exported in the shell that starts the client and unset `NETLICENSING_ALLOW_DEMO` |
- 
+
 ---
- 
+
 ## Development
- 
+
 ```bash
 git clone https://github.com/Labs64/NetLicensing-MCP
 cd NetLicensing-MCP
@@ -284,10 +310,10 @@ pip install hatch hatch-vcs
 
 # Add your API key to a .env file (or export it in your shell)
 cp .env.example .env
- 
+
 # Run the MCP Inspector
 mcp dev src/netlicensing_mcp/server.py
- 
+
 # Run tests
 pytest tests/ -v
 
@@ -362,17 +388,15 @@ You can alternatively send `Authorization: Bearer YOUR_API_KEY`.
 📖 Full instructions, architecture diagrams, and cost estimates: **[deploy/aws/README.md](deploy/aws/README.md)**
 
 ---
- 
+
 ## Contributing
- 
-Contributions are welcome! Please open an issue or pull request on [GitHub](https://github.com/Labs64/NetLicensing-MCP).
- 
-For significant changes, open an issue first to discuss the approach.
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first, and open an issue before starting anything big. To report a security problem, follow [SECURITY.md](SECURITY.md). Release notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ---
- 
+
 ## License
- 
+
 Apache 2.0 — see [LICENSE](LICENSE)
 
 ---

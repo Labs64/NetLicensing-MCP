@@ -1,3 +1,8 @@
-"""netlicensing-mcp — MCP server for the Labs64 NetLicensing API."""
+"""netlicensing-mcp — official Labs64 NetLicensing MCP server."""
 
-__version__ = "1.0.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("netlicensing-mcp")
+except PackageNotFoundError:  # running from a source tree that is not installed
+    __version__ = "unknown"

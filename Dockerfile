@@ -10,8 +10,12 @@ RUN uv export --frozen --no-dev --no-emit-project -o requirements.txt
 FROM python:3.12-slim
 
 # Consolidated labels (single layer)
-LABEL org.opencontainers.image.title="netlicensing-mcp" \
-      org.opencontainers.image.description="MCP server for the Labs64 NetLicensing API" \
+LABEL io.modelcontextprotocol.server.name="io.github.Labs64/netlicensing-mcp" \
+      org.opencontainers.image.title="netlicensing-mcp" \
+      org.opencontainers.image.description="Official Labs64 NetLicensing MCP server: manage products, licensees, licenses and entitlements in plain language." \
+      org.opencontainers.image.vendor="Labs64" \
+      org.opencontainers.image.url="https://netlicensing.io" \
+      org.opencontainers.image.documentation="https://github.com/Labs64/NetLicensing-MCP#readme" \
       org.opencontainers.image.source="https://github.com/Labs64/NetLicensing-MCP" \
       org.opencontainers.image.licenses="Apache-2.0"
 
