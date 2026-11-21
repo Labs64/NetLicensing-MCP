@@ -13,6 +13,7 @@ and review the diff of ``tests/fixtures/tools_snapshot.json`` before committing.
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 from pathlib import Path
@@ -31,7 +32,9 @@ async def _live_registry() -> dict:
             {
                 "name": t.name,
                 "title": t.title,
-                "description": t.description,
+                # cleandoc: Python 3.13+ strips docstring indentation at compile time,
+                # 3.12 does not; compare the text, not the indentation.
+                "description": inspect.cleandoc(t.description or ""),
                 "inputSchema": t.inputSchema,
                 "outputSchema": t.outputSchema,
                 "annotations": (

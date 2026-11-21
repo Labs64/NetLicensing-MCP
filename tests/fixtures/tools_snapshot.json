@@ -66,7 +66,7 @@
     {
       "name": "netlicensing_create_api_token",
       "title": "Create api token",
-      "description": "Create a scoped API token.\n\n    Args:\n        api_key_role: ROLE_APIKEY_LICENSEE | ROLE_APIKEY_ANALYTICS |\n              ROLE_APIKEY_OPERATION | ROLE_APIKEY_MAINTENANCE | ROLE_APIKEY_ADMIN\n        licensee_number: Optional — scope token to a specific licensee\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Create a scoped API token.\n\nArgs:\n    api_key_role: ROLE_APIKEY_LICENSEE | ROLE_APIKEY_ANALYTICS |\n          ROLE_APIKEY_OPERATION | ROLE_APIKEY_MAINTENANCE | ROLE_APIKEY_ADMIN\n    licensee_number: Optional — scope token to a specific licensee\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "api_key_role": {
@@ -149,7 +149,7 @@
     {
       "name": "netlicensing_create_bundle",
       "title": "Create bundle",
-      "description": "Create a new bundle grouping one or more license templates.\n\n    Args:\n        number: Unique bundle number (e.g. 'B001')\n        name: Human-readable bundle name\n        license_template_numbers: List of license template numbers included in the bundle\n        active: Whether the bundle is active\n        price: Optional bundle price\n        currency: ISO 4217 currency code (e.g. EUR, USD — leave empty for account default)\n        description: Optional bundle description\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Create a new bundle grouping one or more license templates.\n\nArgs:\n    number: Unique bundle number (e.g. 'B001')\n    name: Human-readable bundle name\n    license_template_numbers: List of license template numbers included in the bundle\n    active: Whether the bundle is active\n    price: Optional bundle price\n    currency: ISO 4217 currency code (e.g. EUR, USD — leave empty for account default)\n    description: Optional bundle description\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "number": {
@@ -269,7 +269,7 @@
     {
       "name": "netlicensing_create_license",
       "title": "Create license",
-      "description": "Assign a new license to a customer from a license template.\n\n    Args:\n        licensee_number: Customer to assign the license to\n        license_template_number: Template defining type and rules\n        number: Optional custom license number (auto-generated if empty)\n        active: Whether the license is active immediately\n        name: Display name (defaults from template if empty)\n        start_date: ISO 8601 datetime — mandatory for TIMEVOLUME type\n        price: License price (overrides template default, omit to inherit)\n        currency: ISO 4217 currency code (overrides template default)\n        time_volume: Duration value — mandatory for TIMEVOLUME type\n        time_volume_period: DAY | WEEK | MONTH | YEAR (TIMEVOLUME type)\n        quantity: Usage quota — mandatory for PayPerUse / NodeLocked models\n        parent_feature: Parent feature — mandatory for TIMEVOLUME + Rental model\n        hidden: Hide license from end customer in Shop (omit to inherit)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Assign a new license to a customer from a license template.\n\nArgs:\n    licensee_number: Customer to assign the license to\n    license_template_number: Template defining type and rules\n    number: Optional custom license number (auto-generated if empty)\n    active: Whether the license is active immediately\n    name: Display name (defaults from template if empty)\n    start_date: ISO 8601 datetime — mandatory for TIMEVOLUME type\n    price: License price (overrides template default, omit to inherit)\n    currency: ISO 4217 currency code (overrides template default)\n    time_volume: Duration value — mandatory for TIMEVOLUME type\n    time_volume_period: DAY | WEEK | MONTH | YEAR (TIMEVOLUME type)\n    quantity: Usage quota — mandatory for PayPerUse / NodeLocked models\n    parent_feature: Parent feature — mandatory for TIMEVOLUME + Rental model\n    hidden: Hide license from end customer in Shop (omit to inherit)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -423,7 +423,7 @@
     {
       "name": "netlicensing_create_license_template",
       "title": "Create license template",
-      "description": "Create a license template.\n\n    Args:\n        module_number: Parent product module\n        number: Unique template number (e.g. 'LT01')\n        name: Template display name\n        license_type: FEATURE | TIMEVOLUME | FLOATING | QUANTITY\n        price: Template price (0 for free)\n        currency: ISO 4217 currency code (default EUR)\n        automatic: Auto-assign this license to new licensees\n        hidden: Hide template in NetLicensing Shop\n        hide_licenses: Hide licenses derived from this template in the Shop\n        active: Whether the template is active\n        time_volume: Number of time units (TIMEVOLUME type)\n        time_volume_period: DAY | WEEK | MONTH | YEAR (TIMEVOLUME type)\n        max_sessions: Concurrent sessions allowed (FLOATING type)\n        quantity: Usage quota (QUANTITY / PayPerUse type)\n        grace_period: Allow grace period after expiry (Subscription model)\n        custom_properties: Additional properties as key-value pairs (e.g. skus for PricingTable, description)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Create a license template.\n\nArgs:\n    module_number: Parent product module\n    number: Unique template number (e.g. 'LT01')\n    name: Template display name\n    license_type: FEATURE | TIMEVOLUME | FLOATING | QUANTITY\n    price: Template price (0 for free)\n    currency: ISO 4217 currency code (default EUR)\n    automatic: Auto-assign this license to new licensees\n    hidden: Hide template in NetLicensing Shop\n    hide_licenses: Hide licenses derived from this template in the Shop\n    active: Whether the template is active\n    time_volume: Number of time units (TIMEVOLUME type)\n    time_volume_period: DAY | WEEK | MONTH | YEAR (TIMEVOLUME type)\n    max_sessions: Concurrent sessions allowed (FLOATING type)\n    quantity: Usage quota (QUANTITY / PayPerUse type)\n    grace_period: Allow grace period after expiry (Subscription model)\n    custom_properties: Additional properties as key-value pairs (e.g. skus for PricingTable, description)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "module_number": {
@@ -629,7 +629,7 @@
     {
       "name": "netlicensing_create_licensee",
       "title": "Create licensee",
-      "description": "Create a new customer (licensee) under a product.\n\n    Args:\n        product_number: Product to associate the customer with\n        number: Optional custom licensee number (auto-generated if empty)\n        name: Optional display name for the customer\n        active: Whether the licensee is active\n        marked_for_transfer: Mark licensee for license transfer\n        licensee_secret: Secret for licensee identification (when product licenseeSecretMode is PREDEFINED)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Create a new customer (licensee) under a product.\n\nArgs:\n    product_number: Product to associate the customer with\n    number: Optional custom licensee number (auto-generated if empty)\n    name: Optional display name for the customer\n    active: Whether the licensee is active\n    marked_for_transfer: Mark licensee for license transfer\n    licensee_secret: Secret for licensee identification (when product licenseeSecretMode is PREDEFINED)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -741,7 +741,7 @@
     {
       "name": "netlicensing_create_product",
       "title": "Create product",
-      "description": "Create a new product.\n\n    Args:\n        number: Unique product number (e.g. 'P001')\n        name: Human-readable product name\n        version: Product version string\n        active: Whether the product is active\n        description: Optional product description\n        licensing_info: Optional licensing information displayed in the shop\n        licensee_auto_create: Auto-create licensees on first validation attempt\n        vat_mode: GROSS or NET (leave empty to use account default)\n        licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty for default)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Create a new product.\n\nArgs:\n    number: Unique product number (e.g. 'P001')\n    name: Human-readable product name\n    version: Product version string\n    active: Whether the product is active\n    description: Optional product description\n    licensing_info: Optional licensing information displayed in the shop\n    licensee_auto_create: Auto-create licensees on first validation attempt\n    vat_mode: GROSS or NET (leave empty to use account default)\n    licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty for default)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "number": {
@@ -868,7 +868,7 @@
     {
       "name": "netlicensing_create_product_module",
       "title": "Create product module",
-      "description": "Create a product module with a licensing model.\n\n    Args:\n        product_number: Parent product\n        number: Unique module number (e.g. 'M01')\n        name: Module name\n        licensing_model: One of: TryAndBuy, Subscription, Rental, Floating,\n                         MultiFeature, PayPerUse, PricingTable, Quota, NodeLocked\n        active: Whether the module is active\n        max_checkout_validity: Maximum checkout validity in days (Floating model)\n        yellow_threshold: Remaining time volume for yellow warning (Rental model)\n        red_threshold: Remaining time volume for red warning (Rental model)\n        node_secret_mode: PREDEFINED or CLIENT (NodeLocked model)\n        custom_properties: Additional properties as key-value pairs (e.g. skudef for PricingTable)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Create a product module with a licensing model.\n\nArgs:\n    product_number: Parent product\n    number: Unique module number (e.g. 'M01')\n    name: Module name\n    licensing_model: One of: TryAndBuy, Subscription, Rental, Floating,\n                     MultiFeature, PayPerUse, PricingTable, Quota, NodeLocked\n    active: Whether the module is active\n    max_checkout_validity: Maximum checkout validity in days (Floating model)\n    yellow_threshold: Remaining time volume for yellow warning (Rental model)\n    red_threshold: Remaining time volume for red warning (Rental model)\n    node_secret_mode: PREDEFINED or CLIENT (NodeLocked model)\n    custom_properties: Additional properties as key-value pairs (e.g. skudef for PricingTable)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -1037,7 +1037,7 @@
     {
       "name": "netlicensing_create_shop_token",
       "title": "Create shop token",
-      "description": "Generate a NetLicensing Shop one-time checkout URL for a customer.\n\n    Args:\n        licensee_number: Customer to generate the shop URL for (the product is\n            taken from the licensee)\n        product_number: Only used when licensee_number is not given; ignored\n            otherwise, since NetLicensing rejects both together\n        license_template_number: Optional — pre-select a specific license template\n        success_url: Optional URL to redirect to after successful purchase\n        cancel_url: Optional URL to redirect to if customer cancels\n        success_url_title: Optional button/link label for success redirect\n        cancel_url_title: Optional button/link label for cancel redirect\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Generate a NetLicensing Shop one-time checkout URL for a customer.\n\nArgs:\n    licensee_number: Customer to generate the shop URL for (the product is\n        taken from the licensee)\n    product_number: Only used when licensee_number is not given; ignored\n        otherwise, since NetLicensing rejects both together\n    license_template_number: Optional — pre-select a specific license template\n    success_url: Optional URL to redirect to after successful purchase\n    cancel_url: Optional URL to redirect to if customer cancels\n    success_url_title: Optional button/link label for success redirect\n    cancel_url_title: Optional button/link label for cancel redirect\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -1145,7 +1145,7 @@
     {
       "name": "netlicensing_create_transaction",
       "title": "Create transaction",
-      "description": "Create a new transaction.\n\n    Args:\n        status: CANCELLED | CLOSED | PENDING\n        source: Transaction source — SHOP or AUTO (default SHOP)\n        licensee_number: Optional — associated licensee\n        number: Optional custom transaction number (auto-generated if empty)\n        name: Optional human-readable transaction name\n        active: Whether the transaction is active\n        date_created: Optional ISO 8601 creation timestamp\n        date_closed: Optional ISO 8601 close timestamp\n        payment_method: Optional payment method number\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Create a new transaction.\n\nArgs:\n    status: CANCELLED | CLOSED | PENDING\n    source: Transaction source — SHOP or AUTO (default SHOP)\n    licensee_number: Optional — associated licensee\n    number: Optional custom transaction number (auto-generated if empty)\n    name: Optional human-readable transaction name\n    active: Whether the transaction is active\n    date_created: Optional ISO 8601 creation timestamp\n    date_closed: Optional ISO 8601 close timestamp\n    payment_method: Optional payment method number\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "status": {
@@ -1265,7 +1265,7 @@
     {
       "name": "netlicensing_delete_bundle",
       "title": "Delete bundle",
-      "description": "Delete a bundle permanently.\n\n    Always requires a two-step confirmation:\n    1. Call without confirm_token (or call netlicensing_preview_delete_bundle)\n       to receive a preview and a short-lived confirmation token.\n    2. Call again with the confirm_token within 5 minutes to execute.\n\n    Args:\n        bundle_number: Bundle to delete\n        force_cascade: Force deletion even if dependencies exist\n        confirm_token: Confirmation token from a previous preview call\n    ",
+      "description": "Delete a bundle permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_bundle)\n   to receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token within 5 minutes to execute.\n\nArgs:\n    bundle_number: Bundle to delete\n    force_cascade: Force deletion even if dependencies exist\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "bundle_number": {
@@ -1350,7 +1350,7 @@
     {
       "name": "netlicensing_delete_license",
       "title": "Delete license",
-      "description": "Delete a license permanently.\n\n    Always requires a two-step confirmation:\n    1. Call without confirm_token (or call netlicensing_preview_delete_license)\n       to receive a preview and a short-lived confirmation token.\n    2. Call again with the confirm_token within 5 minutes to execute.\n\n    Args:\n        license_number: License to delete\n        force_cascade: Force deletion even if dependencies exist\n        confirm_token: Confirmation token from a previous preview call\n    ",
+      "description": "Delete a license permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_license)\n   to receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token within 5 minutes to execute.\n\nArgs:\n    license_number: License to delete\n    force_cascade: Force deletion even if dependencies exist\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "license_number": {
@@ -1435,7 +1435,7 @@
     {
       "name": "netlicensing_delete_license_template",
       "title": "Delete license template",
-      "description": "Delete a license template.\n\n    Because dependent licenses cannot be cheaply enumerated, a confirmation\n    token is always required. Call netlicensing_preview_delete_license_template\n    first to obtain one.\n\n    Args:\n        template_number: Template to delete\n        force_cascade: Also delete all dependent licenses\n        confirm_token: Confirmation token from a previous preview call\n    ",
+      "description": "Delete a license template.\n\nBecause dependent licenses cannot be cheaply enumerated, a confirmation\ntoken is always required. Call netlicensing_preview_delete_license_template\nfirst to obtain one.\n\nArgs:\n    template_number: Template to delete\n    force_cascade: Also delete all dependent licenses\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "template_number": {
@@ -1520,7 +1520,7 @@
     {
       "name": "netlicensing_delete_licensee",
       "title": "Delete licensee",
-      "description": "Delete a licensee and all their licenses permanently.\n\n    Always requires a two-step confirmation:\n    1. Call without confirm_token (or call netlicensing_preview_delete_licensee)\n       to receive a preview and a short-lived confirmation token.\n    2. Call again with the confirm_token within 5 minutes to execute.\n\n    Args:\n        licensee_number: Licensee to delete\n        force_cascade: Also delete all dependent licenses\n        confirm_token: Confirmation token from a previous preview call\n    ",
+      "description": "Delete a licensee and all their licenses permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_licensee)\n   to receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token within 5 minutes to execute.\n\nArgs:\n    licensee_number: Licensee to delete\n    force_cascade: Also delete all dependent licenses\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -1605,7 +1605,7 @@
     {
       "name": "netlicensing_delete_product",
       "title": "Delete product",
-      "description": "Delete a product permanently.\n\n    Always requires a two-step confirmation:\n    1. Call without confirm_token (or call netlicensing_preview_delete_product)\n       to receive a preview and a short-lived confirmation token.\n    2. Call again with the confirm_token within 5 minutes to execute.\n\n    Args:\n        product_number: Product to delete\n        force_cascade: Also delete all dependent modules, templates, licensees, and licenses\n        confirm_token: Confirmation token from a previous preview call\n    ",
+      "description": "Delete a product permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_product)\n   to receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token within 5 minutes to execute.\n\nArgs:\n    product_number: Product to delete\n    force_cascade: Also delete all dependent modules, templates, licensees, and licenses\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -1690,7 +1690,7 @@
     {
       "name": "netlicensing_delete_product_module",
       "title": "Delete product module",
-      "description": "Delete a product module.\n\n    Always requires a two-step confirmation:\n    1. Call without confirm_token (or call netlicensing_preview_delete_product_module)\n       to receive a preview and a short-lived confirmation token.\n    2. Call again with the confirm_token within 5 minutes to execute.\n\n    Args:\n        module_number: Module to delete\n        force_cascade: Also delete all dependent license templates and licenses\n        confirm_token: Confirmation token from a previous preview call\n    ",
+      "description": "Delete a product module.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_product_module)\n   to receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token within 5 minutes to execute.\n\nArgs:\n    module_number: Module to delete\n    force_cascade: Also delete all dependent license templates and licenses\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "module_number": {
@@ -1775,7 +1775,7 @@
     {
       "name": "netlicensing_delete_token",
       "title": "Delete token",
-      "description": "Revoke an API or shop token.\n\n    Always requires a two-step confirmation:\n    1. Call without confirm_token (or call netlicensing_preview_delete_token)\n       to receive a preview and a short-lived confirmation token.\n    2. Call again with the confirm_token within 5 minutes to execute.\n\n    Args:\n        token_number: Token to revoke\n        confirm_token: Confirmation token from a previous preview call\n    ",
+      "description": "Revoke an API or shop token.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_token)\n   to receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token within 5 minutes to execute.\n\nArgs:\n    token_number: Token to revoke\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "token_number": {
@@ -1855,7 +1855,7 @@
     {
       "name": "netlicensing_explain_validation",
       "title": "Explain validation",
-      "description": "Run a dry-run validation and return a plain-language explanation.\n\n    Wraps validate_licensee with dryRun=true and translates the result into\n    per-module status, explanations, and suggested_actions (renewal tokens,\n    top-up flows, force-checkin advice). This tool is READ-ONLY — it never\n    consumes floating sessions, quota, or node-lock slots.\n\n    Note: module_parameters currently passes the first entry's fields only\n    (single-module shorthand). Full multi-module indexed support is planned\n    for a future release (P0.5).\n\n    Args:\n        licensee_number:   Licensee identifier (e.g. 'CUST-ACME').\n        product_number:    Optional — scope validation to a single product.\n        module_parameters: Optional per-module overrides. Each dict may\n                           contain: product_module_number, node_secret,\n                           session_id, action.\n        include_raw:       When True, include the sanitized upstream\n                           validate_licensee API response under 'raw'.\n    ",
+      "description": "Run a dry-run validation and return a plain-language explanation.\n\nWraps validate_licensee with dryRun=true and translates the result into\nper-module status, explanations, and suggested_actions (renewal tokens,\ntop-up flows, force-checkin advice). This tool is READ-ONLY — it never\nconsumes floating sessions, quota, or node-lock slots.\n\nNote: module_parameters currently passes the first entry's fields only\n(single-module shorthand). Full multi-module indexed support is planned\nfor a future release (P0.5).\n\nArgs:\n    licensee_number:   Licensee identifier (e.g. 'CUST-ACME').\n    product_number:    Optional — scope validation to a single product.\n    module_parameters: Optional per-module overrides. Each dict may\n                       contain: product_module_number, node_secret,\n                       session_id, action.\n    include_raw:       When True, include the sanitized upstream\n                       validate_licensee API response under 'raw'.",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -1956,7 +1956,7 @@
     {
       "name": "netlicensing_get_bundle",
       "title": "Get bundle",
-      "description": "Get details of a specific bundle.\n\n    Args:\n        bundle_number: Bundle identifier (e.g. 'B001')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get details of a specific bundle.\n\nArgs:\n    bundle_number: Bundle identifier (e.g. 'B001')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "bundle_number": {
@@ -2036,7 +2036,7 @@
     {
       "name": "netlicensing_get_customer_health",
       "title": "Get customer health",
-      "description": "Return a normalized health summary for one licensee.\n\n    Combines licensee details, license list, and (optionally) a dry-run\n    validation into a single CustomerHealth envelope with per-module rows,\n    warnings, and suggested actions. This tool is READ-ONLY — it never\n    modifies data or consumes quota.\n\n    Args:\n        licensee_number:       Licensee identifier (e.g. 'CUST-ACME').\n        refresh_warning_level: When True, runs a dry-run validate_licensee to\n                               get live warning levels and quota/session info.\n                               Slightly slower but more accurate.\n        include_raw:           When True, include the sanitized upstream\n                               NetLicensing API responses (licensee, licenses,\n                               validation) under 'raw'.\n    ",
+      "description": "Return a normalized health summary for one licensee.\n\nCombines licensee details, license list, and (optionally) a dry-run\nvalidation into a single CustomerHealth envelope with per-module rows,\nwarnings, and suggested actions. This tool is READ-ONLY — it never\nmodifies data or consumes quota.\n\nArgs:\n    licensee_number:       Licensee identifier (e.g. 'CUST-ACME').\n    refresh_warning_level: When True, runs a dry-run validate_licensee to\n                           get live warning levels and quota/session info.\n                           Slightly slower but more accurate.\n    include_raw:           When True, include the sanitized upstream\n                           NetLicensing API responses (licensee, licenses,\n                           validation) under 'raw'.",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -2121,7 +2121,7 @@
     {
       "name": "netlicensing_get_license",
       "title": "Get license",
-      "description": "Get details of a specific license.\n\n    Args:\n        license_number: License identifier\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get details of a specific license.\n\nArgs:\n    license_number: License identifier\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "license_number": {
@@ -2201,7 +2201,7 @@
     {
       "name": "netlicensing_get_license_template",
       "title": "Get license template",
-      "description": "Get a specific license template.\n\n    Args:\n        template_number: Template identifier\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get a specific license template.\n\nArgs:\n    template_number: Template identifier\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "template_number": {
@@ -2281,7 +2281,7 @@
     {
       "name": "netlicensing_get_licensee",
       "title": "Get licensee",
-      "description": "Get a specific licensee (customer).\n\n    Args:\n        licensee_number: Licensee identifier (e.g. 'I001')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get a specific licensee (customer).\n\nArgs:\n    licensee_number: Licensee identifier (e.g. 'I001')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -2361,7 +2361,7 @@
     {
       "name": "netlicensing_get_payment_method",
       "title": "Get payment method",
-      "description": "Get details of a specific payment method.\n\n    Args:\n        payment_method_number: Payment method identifier\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get details of a specific payment method.\n\nArgs:\n    payment_method_number: Payment method identifier\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "payment_method_number": {
@@ -2441,7 +2441,7 @@
     {
       "name": "netlicensing_get_product",
       "title": "Get product",
-      "description": "Get details of a specific product.\n\n    Args:\n        product_number: Product identifier (e.g. 'P001')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get details of a specific product.\n\nArgs:\n    product_number: Product identifier (e.g. 'P001')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -2521,7 +2521,7 @@
     {
       "name": "netlicensing_get_product_module",
       "title": "Get product module",
-      "description": "Get a specific product module.\n\n    Args:\n        module_number: Module identifier\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get a specific product module.\n\nArgs:\n    module_number: Module identifier\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "module_number": {
@@ -2601,7 +2601,7 @@
     {
       "name": "netlicensing_get_token",
       "title": "Get token",
-      "description": "Get details of a specific token.\n\n    Args:\n        token_number: Token identifier\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get details of a specific token.\n\nArgs:\n    token_number: Token identifier\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "token_number": {
@@ -2681,7 +2681,7 @@
     {
       "name": "netlicensing_get_transaction",
       "title": "Get transaction",
-      "description": "Get details of a specific transaction.\n\n    Args:\n        transaction_number: Transaction identifier\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Get details of a specific transaction.\n\nArgs:\n    transaction_number: Transaction identifier\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "transaction_number": {
@@ -2761,7 +2761,7 @@
     {
       "name": "netlicensing_list_bundles",
       "title": "List bundles",
-      "description": "List all bundles in the NetLicensing account.\n\n    Args:\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all bundles in the NetLicensing account.\n\nArgs:\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "include_raw": {
@@ -2834,7 +2834,7 @@
     {
       "name": "netlicensing_list_countries",
       "title": "List countries",
-      "description": "List all countries available for VAT and localization settings.\n\n    Args:\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all countries available for VAT and localization settings.\n\nArgs:\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "include_raw": {
@@ -2907,7 +2907,7 @@
     {
       "name": "netlicensing_list_license_templates",
       "title": "List license templates",
-      "description": "List all license templates for a product module.\n\n    Args:\n        module_number: Module whose templates to list\n        filter: Optional server-side filter expression (e.g. 'active=true')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all license templates for a product module.\n\nArgs:\n    module_number: Module whose templates to list\n    filter: Optional server-side filter expression (e.g. 'active=true')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "module_number": {
@@ -2992,7 +2992,7 @@
     {
       "name": "netlicensing_list_license_types",
       "title": "List license types",
-      "description": "List all license types supported by the NetLicensing service.\n\n    Args:\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all license types supported by the NetLicensing service.\n\nArgs:\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "include_raw": {
@@ -3065,7 +3065,7 @@
     {
       "name": "netlicensing_list_licensees",
       "title": "List licensees",
-      "description": "List all customers (licensees) for a product.\n\n    Args:\n        product_number: Product to list customers for\n        filter: Optional server-side filter expression (e.g. 'active=true')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all customers (licensees) for a product.\n\nArgs:\n    product_number: Product to list customers for\n    filter: Optional server-side filter expression (e.g. 'active=true')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -3150,7 +3150,7 @@
     {
       "name": "netlicensing_list_licenses",
       "title": "List licenses",
-      "description": "List all licenses for a specific customer.\n\n    Args:\n        licensee_number: Customer whose licenses to list\n        filter: Optional server-side filter expression (e.g. 'active=true')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all licenses for a specific customer.\n\nArgs:\n    licensee_number: Customer whose licenses to list\n    filter: Optional server-side filter expression (e.g. 'active=true')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -3235,7 +3235,7 @@
     {
       "name": "netlicensing_list_licensing_models",
       "title": "List licensing models",
-      "description": "List all licensing models supported by the NetLicensing service.\n\n    Args:\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all licensing models supported by the NetLicensing service.\n\nArgs:\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "include_raw": {
@@ -3308,7 +3308,7 @@
     {
       "name": "netlicensing_list_payment_methods",
       "title": "List payment methods",
-      "description": "List all payment methods configured for the account.\n\n    Args:\n        filter: Optional server-side filter expression (e.g. 'active=true')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all payment methods configured for the account.\n\nArgs:\n    filter: Optional server-side filter expression (e.g. 'active=true')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "filter": {
@@ -3386,7 +3386,7 @@
     {
       "name": "netlicensing_list_product_modules",
       "title": "List product modules",
-      "description": "List all modules (feature groups) for a product.\n\n    Args:\n        product_number: Product whose modules to list\n        filter: Optional server-side filter expression (e.g. 'active=true')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all modules (feature groups) for a product.\n\nArgs:\n    product_number: Product whose modules to list\n    filter: Optional server-side filter expression (e.g. 'active=true')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -3471,7 +3471,7 @@
     {
       "name": "netlicensing_list_products",
       "title": "List products",
-      "description": "List all products in the NetLicensing account.\n\n    Args:\n        filter: Optional server-side filter expression (e.g. 'active=true')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all products in the NetLicensing account.\n\nArgs:\n    filter: Optional server-side filter expression (e.g. 'active=true')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "filter": {
@@ -3549,7 +3549,7 @@
     {
       "name": "netlicensing_list_tokens",
       "title": "List tokens",
-      "description": "List all active tokens in the account.\n\n    Args:\n        filter: Optional server-side filter expression (e.g. 'tokenType=SHOP')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all active tokens in the account.\n\nArgs:\n    filter: Optional server-side filter expression (e.g. 'tokenType=SHOP')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "filter": {
@@ -3627,7 +3627,7 @@
     {
       "name": "netlicensing_list_transactions",
       "title": "List transactions",
-      "description": "List all transactions in the account.\n\n    Args:\n        filter: Optional server-side filter expression (e.g. 'status=CLOSED')\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "List all transactions in the account.\n\nArgs:\n    filter: Optional server-side filter expression (e.g. 'status=CLOSED')\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "filter": {
@@ -3705,7 +3705,7 @@
     {
       "name": "netlicensing_obtain_bundle",
       "title": "Obtain bundle",
-      "description": "Obtain a bundle for a customer — creates licenses from all license\n    templates included in the bundle for the specified licensee.\n\n    Args:\n        bundle_number: Bundle to obtain\n        licensee_number: Customer (licensee) who receives the licenses\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Obtain a bundle for a customer — creates licenses from all license\ntemplates included in the bundle for the specified licensee.\n\nArgs:\n    bundle_number: Bundle to obtain\n    licensee_number: Customer (licensee) who receives the licenses\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "bundle_number": {
@@ -3790,7 +3790,7 @@
     {
       "name": "netlicensing_preview_delete_bundle",
       "title": "Preview deletion of bundle",
-      "description": "Preview what would be deleted when deleting a bundle.\n\n    Bundles reference license templates but do not own them; only the bundle\n    record itself is removed. Returns a confirmation token.\n\n    Args:\n        bundle_number: Bundle to preview deletion for\n    ",
+      "description": "Preview what would be deleted when deleting a bundle.\n\nBundles reference license templates but do not own them; only the bundle\nrecord itself is removed. Returns a confirmation token.\n\nArgs:\n    bundle_number: Bundle to preview deletion for",
       "inputSchema": {
         "properties": {
           "bundle_number": {
@@ -3865,7 +3865,7 @@
     {
       "name": "netlicensing_preview_delete_license",
       "title": "Preview deletion of license",
-      "description": "Preview what would be deleted when deleting a license.\n\n    Licenses have no owned dependents. Returns context about the license\n    (licensee, template) and a confirmation token.\n\n    Args:\n        license_number: License to preview deletion for\n    ",
+      "description": "Preview what would be deleted when deleting a license.\n\nLicenses have no owned dependents. Returns context about the license\n(licensee, template) and a confirmation token.\n\nArgs:\n    license_number: License to preview deletion for",
       "inputSchema": {
         "properties": {
           "license_number": {
@@ -3940,7 +3940,7 @@
     {
       "name": "netlicensing_preview_delete_license_template",
       "title": "Preview deletion of license template",
-      "description": "Preview what would be deleted when deleting a license template.\n\n    Dependent licenses cannot be efficiently counted without enumerating all\n    licensees, so the preview always warns that licenses may be affected.\n    Returns a confirmation token.\n\n    Args:\n        template_number: Template to preview deletion for\n    ",
+      "description": "Preview what would be deleted when deleting a license template.\n\nDependent licenses cannot be efficiently counted without enumerating all\nlicensees, so the preview always warns that licenses may be affected.\nReturns a confirmation token.\n\nArgs:\n    template_number: Template to preview deletion for",
       "inputSchema": {
         "properties": {
           "template_number": {
@@ -4015,7 +4015,7 @@
     {
       "name": "netlicensing_preview_delete_licensee",
       "title": "Preview deletion of licensee",
-      "description": "Preview what would be deleted when deleting a licensee.\n\n    Returns the count of licenses that would be removed and a confirmation token.\n\n    Args:\n        licensee_number: Licensee to preview deletion for\n    ",
+      "description": "Preview what would be deleted when deleting a licensee.\n\nReturns the count of licenses that would be removed and a confirmation token.\n\nArgs:\n    licensee_number: Licensee to preview deletion for",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -4090,7 +4090,7 @@
     {
       "name": "netlicensing_preview_delete_product",
       "title": "Preview deletion of product",
-      "description": "Preview what would be deleted when deleting a product.\n\n    Returns affected counts, sample entity identifiers, and a short-lived\n    confirmation token. Pass the token to netlicensing_delete_product within\n    5 minutes to confirm the deletion.\n\n    Args:\n        product_number: Product to preview deletion for\n    ",
+      "description": "Preview what would be deleted when deleting a product.\n\nReturns affected counts, sample entity identifiers, and a short-lived\nconfirmation token. Pass the token to netlicensing_delete_product within\n5 minutes to confirm the deletion.\n\nArgs:\n    product_number: Product to preview deletion for",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -4165,7 +4165,7 @@
     {
       "name": "netlicensing_preview_delete_product_module",
       "title": "Preview deletion of product module",
-      "description": "Preview what would be deleted when deleting a product module.\n\n    Returns affected license template counts and a confirmation token.\n\n    Args:\n        module_number: Module to preview deletion for\n    ",
+      "description": "Preview what would be deleted when deleting a product module.\n\nReturns affected license template counts and a confirmation token.\n\nArgs:\n    module_number: Module to preview deletion for",
       "inputSchema": {
         "properties": {
           "module_number": {
@@ -4240,7 +4240,7 @@
     {
       "name": "netlicensing_preview_delete_token",
       "title": "Preview deletion of token",
-      "description": "Preview what would be revoked when deleting a token.\n\n    For APIKEY tokens this is always required before deletion.\n    Returns token kind, role, and a confirmation token.\n\n    Args:\n        token_number: Token to preview deletion for\n    ",
+      "description": "Preview what would be revoked when deleting a token.\n\nFor APIKEY tokens this is always required before deletion.\nReturns token kind, role, and a confirmation token.\n\nArgs:\n    token_number: Token to preview deletion for",
       "inputSchema": {
         "properties": {
           "token_number": {
@@ -4315,7 +4315,7 @@
     {
       "name": "netlicensing_preview_update_license_template",
       "title": "Preview update of license template",
-      "description": "Preview a sensitive license template update (price, currency, or active state).\n\n    Returns a diff table of the proposed changes and a confirmation token. Pass\n    the token to netlicensing_update_license_template within 5 minutes to apply.\n\n    Args:\n        template_number: Template to preview changes for\n        active: Proposed new active state (omit to skip)\n        price: Proposed new price (omit to skip)\n        currency: Proposed new currency code (leave empty to skip)\n    ",
+      "description": "Preview a sensitive license template update (price, currency, or active state).\n\nReturns a diff table of the proposed changes and a confirmation token. Pass\nthe token to netlicensing_update_license_template within 5 minutes to apply.\n\nArgs:\n    template_number: Template to preview changes for\n    active: Proposed new active state (omit to skip)\n    price: Proposed new price (omit to skip)\n    currency: Proposed new currency code (leave empty to skip)",
       "inputSchema": {
         "properties": {
           "template_number": {
@@ -4419,7 +4419,7 @@
     {
       "name": "netlicensing_preview_update_payment_method",
       "title": "Preview update of payment method",
-      "description": "Preview a sensitive payment method update (active state change).\n\n    Returns a diff and a confirmation token. Pass the token to\n    netlicensing_update_payment_method within 5 minutes to apply.\n\n    Args:\n        payment_method_number: Payment method to preview changes for\n        active: Proposed new active state (omit to skip)\n    ",
+      "description": "Preview a sensitive payment method update (active state change).\n\nReturns a diff and a confirmation token. Pass the token to\nnetlicensing_update_payment_method within 5 minutes to apply.\n\nArgs:\n    payment_method_number: Payment method to preview changes for\n    active: Proposed new active state (omit to skip)",
       "inputSchema": {
         "properties": {
           "payment_method_number": {
@@ -4506,7 +4506,7 @@
     {
       "name": "netlicensing_preview_update_product",
       "title": "Preview update of product",
-      "description": "Preview a sensitive product update (licenseeAutoCreate or vatMode change).\n\n    Returns a diff of proposed changes and a confirmation token. Pass the\n    token to netlicensing_update_product within 5 minutes to apply.\n\n    Args:\n        product_number: Product to preview changes for\n        licensee_auto_create: Proposed new auto-create setting (omit to skip)\n        vat_mode: Proposed new VAT mode — GROSS or NET (leave empty to skip)\n    ",
+      "description": "Preview a sensitive product update (licenseeAutoCreate or vatMode change).\n\nReturns a diff of proposed changes and a confirmation token. Pass the\ntoken to netlicensing_update_product within 5 minutes to apply.\n\nArgs:\n    product_number: Product to preview changes for\n    licensee_auto_create: Proposed new auto-create setting (omit to skip)\n    vat_mode: Proposed new VAT mode — GROSS or NET (leave empty to skip)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -4598,7 +4598,7 @@
     {
       "name": "netlicensing_server_info",
       "title": "Get server info",
-      "description": "Return this MCP server's version, NetLicensing API host and demo-mode flag.\n\n    Read-only; makes no API call and returns no secrets.\n    ",
+      "description": "Return this MCP server's version, NetLicensing API host and demo-mode flag.\n\nRead-only; makes no API call and returns no secrets.",
       "inputSchema": {
         "properties": {},
         "title": "netlicensing_server_infoArguments",
@@ -4665,7 +4665,7 @@
     {
       "name": "netlicensing_transfer_licenses",
       "title": "Transfer licenses",
-      "description": "Transfer all licenses from one licensee to another.\n\n    The source licensee must be marked for transfer (markedForTransfer=true)\n    and both licensees must be active. The source licensee is consumed.\n\n    Args:\n        from_licensee_number: Source licensee\n        to_licensee_number: Destination licensee\n        include_raw: Accepted for consistency; the API returns no body (204)\n    ",
+      "description": "Transfer all licenses from one licensee to another.\n\nThe source licensee must be marked for transfer (markedForTransfer=true)\nand both licensees must be active. The source licensee is consumed.\n\nArgs:\n    from_licensee_number: Source licensee\n    to_licensee_number: Destination licensee\n    include_raw: Accepted for consistency; the API returns no body (204)",
       "inputSchema": {
         "properties": {
           "from_licensee_number": {
@@ -4750,7 +4750,7 @@
     {
       "name": "netlicensing_update_bundle",
       "title": "Update bundle",
-      "description": "Update an existing bundle's fields.\n\n    Args:\n        bundle_number: Bundle to update\n        name: New name (leave empty to keep current)\n        active: Set active state (omit to keep current)\n        license_template_numbers: New list of license template numbers (omit to keep current)\n        price: New price (omit to keep current)\n        currency: New currency code (leave empty to keep current)\n        description: New description (leave empty to keep current)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update an existing bundle's fields.\n\nArgs:\n    bundle_number: Bundle to update\n    name: New name (leave empty to keep current)\n    active: Set active state (omit to keep current)\n    license_template_numbers: New list of license template numbers (omit to keep current)\n    price: New price (omit to keep current)\n    currency: New currency code (leave empty to keep current)\n    description: New description (leave empty to keep current)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "bundle_number": {
@@ -4884,7 +4884,7 @@
     {
       "name": "netlicensing_update_license",
       "title": "Update license",
-      "description": "Update a license's properties.\n\n    Args:\n        license_number: License to update\n        active: True to activate, False to deactivate (omit to keep current)\n        name: New display name (leave empty to keep current)\n        start_date: ISO 8601 datetime — TIMEVOLUME type (leave empty to keep current)\n        price: License price (omit to keep current)\n        currency: ISO 4217 currency code (leave empty to keep current)\n        time_volume: Duration value — TIMEVOLUME type (leave empty to keep current)\n        time_volume_period: DAY | WEEK | MONTH | YEAR (leave empty to keep current)\n        quantity: Usage quota — PayPerUse model (leave empty to keep current)\n        used_quantity: Used count — PayPerUse model (leave empty to keep current)\n        parent_feature: Parent feature — Rental model (leave empty to keep current)\n        hidden: Visibility in Shop (omit to keep current)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update a license's properties.\n\nArgs:\n    license_number: License to update\n    active: True to activate, False to deactivate (omit to keep current)\n    name: New display name (leave empty to keep current)\n    start_date: ISO 8601 datetime — TIMEVOLUME type (leave empty to keep current)\n    price: License price (omit to keep current)\n    currency: ISO 4217 currency code (leave empty to keep current)\n    time_volume: Duration value — TIMEVOLUME type (leave empty to keep current)\n    time_volume_period: DAY | WEEK | MONTH | YEAR (leave empty to keep current)\n    quantity: Usage quota — PayPerUse model (leave empty to keep current)\n    used_quantity: Used count — PayPerUse model (leave empty to keep current)\n    parent_feature: Parent feature — Rental model (leave empty to keep current)\n    hidden: Visibility in Shop (omit to keep current)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "license_number": {
@@ -5040,7 +5040,7 @@
     {
       "name": "netlicensing_update_license_template",
       "title": "Update license template",
-      "description": "Update a license template's properties.\n\n    Changing price, currency, or active requires a confirmation token (revenue /\n    availability impact). Call netlicensing_preview_update_license_template first.\n\n    Args:\n        template_number: Template to update\n        name: New name (leave empty to keep current)\n        active: Set active state (omit to keep current)\n        price: New price (omit to keep current)\n        currency: New ISO 4217 currency code (leave empty to keep current)\n        automatic: Auto-assign to new licensees (omit to keep current)\n        hidden: Hide template in NetLicensing Shop (omit to keep current)\n        hide_licenses: Hide derived licenses in the Shop (omit to keep current)\n        time_volume: Number of time units — TIMEVOLUME type (omit to keep current)\n        time_volume_period: DAY | WEEK | MONTH | YEAR — TIMEVOLUME type (leave empty to keep current)\n        max_sessions: Concurrent sessions — FLOATING type (omit to keep current)\n        quantity: Usage quota — QUANTITY / PayPerUse type (omit to keep current)\n        grace_period: Grace period after expiry — Subscription model (omit to keep current)\n        custom_properties: Additional properties to set or update as key-value pairs\n        confirm_token: Confirmation token (required when price, currency, or active change)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update a license template's properties.\n\nChanging price, currency, or active requires a confirmation token (revenue /\navailability impact). Call netlicensing_preview_update_license_template first.\n\nArgs:\n    template_number: Template to update\n    name: New name (leave empty to keep current)\n    active: Set active state (omit to keep current)\n    price: New price (omit to keep current)\n    currency: New ISO 4217 currency code (leave empty to keep current)\n    automatic: Auto-assign to new licensees (omit to keep current)\n    hidden: Hide template in NetLicensing Shop (omit to keep current)\n    hide_licenses: Hide derived licenses in the Shop (omit to keep current)\n    time_volume: Number of time units — TIMEVOLUME type (omit to keep current)\n    time_volume_period: DAY | WEEK | MONTH | YEAR — TIMEVOLUME type (leave empty to keep current)\n    max_sessions: Concurrent sessions — FLOATING type (omit to keep current)\n    quantity: Usage quota — QUANTITY / PayPerUse type (omit to keep current)\n    grace_period: Grace period after expiry — Subscription model (omit to keep current)\n    custom_properties: Additional properties to set or update as key-value pairs\n    confirm_token: Confirmation token (required when price, currency, or active change)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "template_number": {
@@ -5276,7 +5276,7 @@
     {
       "name": "netlicensing_update_licensee",
       "title": "Update licensee",
-      "description": "Update a licensee's properties.\n\n    Args:\n        licensee_number: Licensee to update\n        name: New name (empty to keep current)\n        active: New active state (omit to keep current)\n        marked_for_transfer: Mark for license transfer (omit to keep current)\n        licensee_secret: Secret for licensee identification (leave empty to keep current)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update a licensee's properties.\n\nArgs:\n    licensee_number: Licensee to update\n    name: New name (empty to keep current)\n    active: New active state (omit to keep current)\n    marked_for_transfer: Mark for license transfer (omit to keep current)\n    licensee_secret: Secret for licensee identification (leave empty to keep current)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -5390,7 +5390,7 @@
     {
       "name": "netlicensing_update_payment_method",
       "title": "Update payment method",
-      "description": "Update a payment method's configuration.\n\n    Changing the active state requires a confirmation token. Call\n    netlicensing_preview_update_payment_method first.\n\n    Args:\n        payment_method_number: Payment method to update\n        active: Enable or disable the payment method\n        paypal_subject: PayPal account e-mail address\n        confirm_token: Confirmation token (required when active changes)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update a payment method's configuration.\n\nChanging the active state requires a confirmation token. Call\nnetlicensing_preview_update_payment_method first.\n\nArgs:\n    payment_method_number: Payment method to update\n    active: Enable or disable the payment method\n    paypal_subject: PayPal account e-mail address\n    confirm_token: Confirmation token (required when active changes)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "payment_method_number": {
@@ -5492,7 +5492,7 @@
     {
       "name": "netlicensing_update_product",
       "title": "Update product",
-      "description": "Update an existing product's fields.\n\n    Changing licenseeAutoCreate or vatMode requires a confirmation token\n    (downstream business effect). Call netlicensing_preview_update_product first.\n\n    Args:\n        product_number: Product to update\n        name: New name (leave empty to keep current)\n        active: Set active state (omit to keep current)\n        version: New version string (leave empty to keep current)\n        description: New description (leave empty to keep current)\n        licensing_info: Licensing information for the shop (leave empty to keep current)\n        licensee_auto_create: Auto-create licensees on first validation\n        vat_mode: GROSS or NET (leave empty to keep current)\n        licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty to keep current)\n        confirm_token: Confirmation token (required when licenseeAutoCreate or vatMode change)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update an existing product's fields.\n\nChanging licenseeAutoCreate or vatMode requires a confirmation token\n(downstream business effect). Call netlicensing_preview_update_product first.\n\nArgs:\n    product_number: Product to update\n    name: New name (leave empty to keep current)\n    active: Set active state (omit to keep current)\n    version: New version string (leave empty to keep current)\n    description: New description (leave empty to keep current)\n    licensing_info: Licensing information for the shop (leave empty to keep current)\n    licensee_auto_create: Auto-create licensees on first validation\n    vat_mode: GROSS or NET (leave empty to keep current)\n    licensee_secret_mode: DISABLED, PREDEFINED, or CLIENT (leave empty to keep current)\n    confirm_token: Confirmation token (required when licenseeAutoCreate or vatMode change)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -5631,7 +5631,7 @@
     {
       "name": "netlicensing_update_product_module",
       "title": "Update product module",
-      "description": "Update a product module's properties.\n\n    Args:\n        module_number: Module to update\n        name: New name (leave empty to keep current)\n        active: Set active state (omit to keep current)\n        max_checkout_validity: Maximum checkout validity in days (Floating model, omit to keep current)\n        yellow_threshold: Remaining time volume for yellow warning (Rental model, omit to keep current)\n        red_threshold: Remaining time volume for red warning (Rental model, omit to keep current)\n        node_secret_mode: PREDEFINED or CLIENT (NodeLocked model, leave empty to keep current)\n        custom_properties: Additional properties to set or update as key-value pairs\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update a product module's properties.\n\nArgs:\n    module_number: Module to update\n    name: New name (leave empty to keep current)\n    active: Set active state (omit to keep current)\n    max_checkout_validity: Maximum checkout validity in days (Floating model, omit to keep current)\n    yellow_threshold: Remaining time volume for yellow warning (Rental model, omit to keep current)\n    red_threshold: Remaining time volume for red warning (Rental model, omit to keep current)\n    node_secret_mode: PREDEFINED or CLIENT (NodeLocked model, leave empty to keep current)\n    custom_properties: Additional properties to set or update as key-value pairs\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "module_number": {
@@ -5797,7 +5797,7 @@
     {
       "name": "netlicensing_update_transaction",
       "title": "Update transaction",
-      "description": "Update a transaction's status or properties.\n\n    Args:\n        transaction_number: Transaction to update\n        status: CANCELLED | CLOSED | PENDING (leave empty to keep current)\n        active: Set active state (omit to keep current)\n        name: Human-readable name (leave empty to keep current)\n        date_closed: ISO 8601 close timestamp (leave empty to keep current)\n        payment_method: Payment method number (leave empty to keep current)\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Update a transaction's status or properties.\n\nArgs:\n    transaction_number: Transaction to update\n    status: CANCELLED | CLOSED | PENDING (leave empty to keep current)\n    active: Set active state (omit to keep current)\n    name: Human-readable name (leave empty to keep current)\n    date_closed: ISO 8601 close timestamp (leave empty to keep current)\n    payment_method: Payment method number (leave empty to keep current)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "transaction_number": {
@@ -5909,7 +5909,7 @@
     {
       "name": "netlicensing_validate_licensee",
       "title": "Validate licensee",
-      "description": "Validate a customer's licenses across all product modules.\n\n    Returns the list envelope with one ProductModuleValidation item per module\n    (validity, type, expiry, usage; Floating expirationTimestamp and session data\n    are kept), even when only one module is validated. API infos (ERROR, WARNING,\n    INFO — e.g. \"No free floating licenses found.\") appear in 'warnings'.\n\n    Module-scoped parameters (session_id, action, node_secret) require\n    product_module_number, and one call addresses ONE module. A call that is not\n    a dry run still validates every module of the product, so other Floating or\n    NodeLocked modules may report their own missing-parameter errors.\n\n    Args:\n        licensee_number: Customer to validate\n        product_number: Optional — scope validation to a specific product\n        licensee_name: Human-readable name for auto-created licensees (when licenseeAutoCreate is enabled)\n        session_id: Floating model — unique session identifier (needs product_module_number;\n            required with action)\n        action: Floating model — 'checkOut' or 'checkIn' (needs product_module_number and session_id)\n        product_module_number: Module that session_id / action / node_secret apply to;\n            required when any of them is given\n        node_secret: NodeLocked model — unique device/node secret (needs product_module_number)\n        dry_run: When true, validate without side effects: never checks out, checks in,\n            binds a node or consumes anything. Default false.\n        include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)\n    ",
+      "description": "Validate a customer's licenses across all product modules.\n\nReturns the list envelope with one ProductModuleValidation item per module\n(validity, type, expiry, usage; Floating expirationTimestamp and session data\nare kept), even when only one module is validated. API infos (ERROR, WARNING,\nINFO — e.g. \"No free floating licenses found.\") appear in 'warnings'.\n\nModule-scoped parameters (session_id, action, node_secret) require\nproduct_module_number, and one call addresses ONE module. A call that is not\na dry run still validates every module of the product, so other Floating or\nNodeLocked modules may report their own missing-parameter errors.\n\nArgs:\n    licensee_number: Customer to validate\n    product_number: Optional — scope validation to a specific product\n    licensee_name: Human-readable name for auto-created licensees (when licenseeAutoCreate is enabled)\n    session_id: Floating model — unique session identifier (needs product_module_number;\n        required with action)\n    action: Floating model — 'checkOut' or 'checkIn' (needs product_module_number and session_id)\n    product_module_number: Module that session_id / action / node_secret apply to;\n        required when any of them is given\n    node_secret: NodeLocked model — unique device/node secret (needs product_module_number)\n    dry_run: When true, validate without side effects: never checks out, checks in,\n        binds a node or consumes anything. Default false.\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "licensee_number": {
