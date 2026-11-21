@@ -283,6 +283,36 @@ Set `NETLICENSING_API_KEY` in your shell environment or a `.env` file, then clic
 In Copilot Chat → Agent mode → Tools icon → **Add More Tools…** — paste the
 same JSON block shown in the Claude Desktop section above.
 
+### First run
+
+Once the server is configured, ask your assistant to **run `netlicensing_server_info`** (for example: "Run netlicensing_server_info and tell me if the setup is OK"). It checks the setup and makes one small read-only API call (it lists one product) to confirm that the NetLicensing API is reachable and accepts your key. The result never contains the key:
+
+```json
+{
+  "version": "<installed version>",
+  "base_url": "go.netlicensing.io",
+  "demo_mode": false,
+  "status": "ok",
+  "transport": "stdio",
+  "auth": {"configured": true, "source": "env", "valid": true},
+  "checks": [
+    {"name": "credentials", "ok": true, "detail": "API key from the NETLICENSING_API_KEY environment variable (or .env file)."},
+    {"name": "reachable", "ok": true, "detail": "The NetLicensing API at go.netlicensing.io answered."},
+    {"name": "authentication", "ok": true, "detail": "The credentials were accepted (test read: list products, 1 item)."}
+  ],
+  "warnings": [],
+  "next_steps": [],
+  "toolsets": ["all"],
+  "read_only": false,
+  "tool_count": 61
+}
+```
+
+- `status` is `ok`, `warning` (demo mode, or the API answered with an error that says nothing about the key) or `error` (no key, key rejected, API not reachable).
+- `auth.source` says where the credentials come from: `env` (`NETLICENSING_API_KEY`), `header` (HTTP mode: `X-NetLicensing-API-Key` or `Authorization: Bearer`), `demo` (`NETLICENSING_ALLOW_DEMO=true`) or `none`. `auth.valid` is `true` when the test call succeeded, `false` when NetLicensing rejected the key (`401`, or `403` when the key's role is too low to list products), and `null` when it could not be checked.
+- `next_steps` says in plain language what to fix, e.g. how to set the key.
+- Pass `check_connection=false` to skip the API call.
+
 ---
 
 ## Audit Prompt Templates
@@ -300,6 +330,10 @@ The server ships five prompt templates. Pick one in Copilot Agent or Claude Desk
 ---
 
 ## Troubleshooting
+
+**Run the first-run check**
+
+Ask your assistant to run `netlicensing_server_info` (see [First run](#first-run)): it reports whether a key is configured, whether NetLicensing accepts it and what to do next.
 
 **Check MCP server logs**
 

@@ -48,6 +48,7 @@ from netlicensing_mcp.app import (
     _extract_props,
     _fmt_price,
     _price_active_diff,
+    set_transport,
 )
 from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp.prompts.audit import register_audit_prompts
@@ -339,6 +340,7 @@ def main() -> None:
 
     # Resolve transport: CLI arg → env var → default
     transport = args.transport or os.getenv("MCP_TRANSPORT", "stdio").lower()
+    set_transport(transport)  # for netlicensing_server_info
 
     # Resolve verbose: CLI flag → env var → default
     verbose = args.verbose or os.getenv("MCP_VERBOSE", "").lower() in ("1", "true", "yes")

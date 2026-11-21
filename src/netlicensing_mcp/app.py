@@ -190,6 +190,29 @@ _active_filter = ToolFilter.from_env(os.environ)
 mcp = new_server(_active_filter)
 
 
+# ── Transport (for server_info) ──────────────────────────────────────────────
+
+_TRANSPORTS = ("stdio", "http")
+
+# What main() would resolve without a CLI argument; main() records the final
+# choice (CLI arg → MCP_TRANSPORT → stdio) with set_transport().
+_transport: str = os.getenv("MCP_TRANSPORT", "stdio").lower()
+if _transport not in _TRANSPORTS:
+    _transport = "stdio"
+
+
+def set_transport(name: str) -> None:
+    """Record the transport ``server.main()`` runs (``stdio`` or ``http``)."""
+    global _transport  # noqa: PLW0603
+    if name in _TRANSPORTS:
+        _transport = name
+
+
+def active_transport() -> str:
+    """The transport this server runs: ``"stdio"`` or ``"http"``."""
+    return _transport
+
+
 # ── Health check (for load balancers & container orchestrators) ──────────────
 
 

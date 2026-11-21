@@ -35,6 +35,14 @@ api_key_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
 
 _last_demo_warning_time: float = 0.0
 
+# Logged (throttled) on demo-mode API calls; also a netlicensing_server_info warning.
+DEMO_MODE_WARNING = (
+    "DEMO MODE ACTIVE — using sandbox demo:demo credentials. "
+    "All API calls go to the NetLicensing sandbox. "
+    "Set NETLICENSING_API_KEY for production use. "
+    "Remove NETLICENSING_ALLOW_DEMO=true to disable this mode."
+)
+
 
 def _allow_demo() -> bool:
     """Return True when ``NETLICENSING_ALLOW_DEMO`` is explicitly opted-in."""
@@ -179,12 +187,7 @@ def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
         # Demo mode is explicitly opted-in — emit a loud, throttled warning.
         now = time.monotonic()
         if now - _last_demo_warning_time >= 60:
-            logger.warning(
-                "⚠️  DEMO MODE ACTIVE — using sandbox demo:demo credentials. "
-                "All API calls go to the NetLicensing sandbox. "
-                "Set NETLICENSING_API_KEY for production use. "
-                "Remove NETLICENSING_ALLOW_DEMO=true to disable this mode."
-            )
+            logger.warning("⚠️  %s", DEMO_MODE_WARNING)
             _last_demo_warning_time = now
         auth_str = "demo:demo"
     else:

@@ -2403,9 +2403,15 @@
     {
       "name": "netlicensing_server_info",
       "title": "Get server info",
-      "description": "Return this MCP server's version, NetLicensing API host and demo-mode flag.\n\nRead-only; makes no API call and returns no secrets.",
+      "description": "Check this MCP server's setup and its NetLicensing connection.\n\nCall this FIRST on a new setup, and whenever another tool fails with an\nauthentication, connection or configuration error: 'status' (\"ok\",\n\"warning\" or \"error\") and 'next_steps' (plain-language sentences to pass\non to the user) say what to fix.\n\nReturns version, NetLicensing API host (base_url), demo_mode, transport\n(stdio or http), toolsets, read_only and tool_count, plus 'auth'\n({configured, source: env|header|demo|none, valid: true|false|null}),\n'checks' ([{name, ok, detail}]) and 'warnings'. Never returns the API key.\n\nArgs:\n    check_connection: When true (default), make one cheap read-only API call (list one product, short timeout) to check that the API is reachable and accepts the credentials; when false, make no API call (auth.valid stays null)",
       "inputSchema": {
-        "properties": {},
+        "properties": {
+          "check_connection": {
+            "default": true,
+            "title": "Check Connection",
+            "type": "boolean"
+          }
+        },
         "title": "netlicensing_server_infoArguments",
         "type": "object"
       },
