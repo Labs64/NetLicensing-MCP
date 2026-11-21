@@ -61,6 +61,18 @@
           "name": "MCP_REDACT_FIELDS",
           "description": "Comma-separated extra field names to redact from responses and logs",
           "required": false
+        },
+        {
+          "name": "MCP_TOOLSETS",
+          "description": "Comma-separated toolsets to register: products, bundles, modules, templates, licensees, licenses, tokens, transactions, payments, system, workflows, or all",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "MCP_READ_ONLY",
+          "description": "Register only read-only tools (true/false)",
+          "required": false,
+          "default": "false"
         }
       ]
     },
@@ -117,6 +129,18 @@
           "name": "MCP_REDACT_FIELDS",
           "description": "Comma-separated extra field names to redact from responses and logs",
           "required": false
+        },
+        {
+          "name": "MCP_TOOLSETS",
+          "description": "Comma-separated toolsets to register: products, bundles, modules, templates, licensees, licenses, tokens, transactions, payments, system, workflows, or all",
+          "required": false,
+          "default": "all"
+        },
+        {
+          "name": "MCP_READ_ONLY",
+          "description": "Register only read-only tools (true/false)",
+          "required": false,
+          "default": "false"
         }
       ]
     }

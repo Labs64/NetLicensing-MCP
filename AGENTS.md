@@ -59,6 +59,10 @@ Three layers, top-down:
 
 6. **`redaction.py`** — redaction layer (P0.3). Exposes `redact(payload, fields, mode)`, `tag_one_time_display(response)`, and `redact_token_read(response)`. Default redact set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. Extendable via `MCP_REDACT_FIELDS`. Handles both plain dict keys and NetLicensing property arrays (`{"property": [{"name": "licenseeSecret", "value": "..."}]}`). `mode="mask"` (default) produces a partial mask (`s3c****ecret`); `mode="remove"` drops the field. `redact_payment_method()` is an **allowlist**: every PaymentMethod property except `number`/`active` is masked, because providers store credentials (Stripe tokens, PayPal e-mails) as arbitrary custom properties. It is applied in `tools/payment_methods.py`, so every payment-method path is covered.
 
+### Toolsets and read-only mode (`toolsets.py`)
+
+`toolsets.TOOLSETS` is the single table that puts every tool into exactly one toolset; the `tool` decorator in `app.py` raises if a tool is missing from it, so **add every new tool to that table**. `ToolFilter.from_env()` parses `MCP_TOOLSETS` / `MCP_READ_ONLY` once, when `app.py` is imported; the decorator records every tool and adds it to `mcp` only if the filter allows it, but always returns the original function, so direct imports keep working. A restriction appends a short note to the server `instructions`. Tests build a fresh server under another filter with `app.new_server(filter)` + `app.register_tools(server, filter)`; `app.active_tool_settings()` reports the active toolsets, read-only flag and tool count.
+
 ### API key resolution (`api_key_ctx`)
 
 API key is held in a **`contextvars.ContextVar`** (`client.api_key_ctx`), defaulted from `NETLICENSING_API_KEY`. In HTTP mode, `ApiKeyMiddleware` in `server.py` reads the key per-request from (in priority order) `X-NetLicensing-API-Key` header → `Authorization: Bearer …` (no query-parameter form: URLs get logged), then `.set()`s the ContextVar for the duration of the request and resets it after. The server runs FastMCP with `stateless_http=True`; in stateful mode the SDK pins the session-creating request's key to every later call. This means a single shared HTTP deployment can serve many tenants without baking a key into the server. Falls back to `demo:demo` credentials (sandbox) if no key is present.
@@ -99,6 +103,8 @@ Environment variables (all optional):
 - `MCP_VERBOSE` — `true|1|yes` enables debug logging of API requests/responses (sensitive fields automatically redacted); also via `-v` flag
 - `MCP_REDACT_FIELDS` — comma-separated extra field names to add to the redaction set (e.g. `ssn,phone`); default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`
 - `MCP_CONSOLE_BASE_URL` — Console UI base for `console_url` deep links emitted by the normalized response envelope; default `https://ui.netlicensing.io/#`
+- `MCP_TOOLSETS` — comma-separated toolsets to register (`products`, `bundles`, `modules`, `templates`, `licensees`, `licenses`, `tokens`, `transactions`, `payments`, `system`, `workflows`, or `all` = default). Unknown names log a warning and are ignored; if none is valid, all are registered
+- `MCP_READ_ONLY` — `true|1|yes` registers only tools annotated `readOnlyHint=True` (lists, gets, `preview_*`, workflows, reference data). Applied after `MCP_TOOLSETS`. `netlicensing_server_info` is always registered under any filter
 
 Logs go to **stderr** (stdio mode must keep stdout clean for the MCP protocol).
 

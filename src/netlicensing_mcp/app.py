@@ -19,6 +19,7 @@ import logging
 import os
 import sys
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Annotated, Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
@@ -31,6 +32,7 @@ from starlette.responses import JSONResponse
 from netlicensing_mcp.client import NetLicensingError, is_demo_mode
 from netlicensing_mcp.redaction import redact, redact_token_read
 from netlicensing_mcp.responses import DEFAULT_WARN_INFO_TYPES, wrap
+from netlicensing_mcp.toolsets import ToolFilter, toolset_of
 
 # Configure logging to output to stdout
 logging.basicConfig(
@@ -39,14 +41,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stderr)],
 )
 
-mcp = FastMCP(
-    "netlicensing-mcp",
-    # Stateless HTTP: every request gets a fresh transport and context, so the
-    # per-request API key set by ApiKeyMiddleware is the one the tool uses. In
-    # stateful mode the SDK runs a session in the task of the request that
-    # created it, which pins that request's key for the whole session.
-    stateless_http=True,
-    instructions="""
+INSTRUCTIONS = """
 You are connected to the Labs64 NetLicensing REST API — a cloud-based
 online license and entitlements management system for software vendors.
 
@@ -155,10 +150,34 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
 - Pass ``include_raw=true`` to any tool to receive the sanitized
   NetLicensing API *response* nested under the ``"raw"`` key, alongside
   the normalized envelope built from it.
-""",
-    host=os.getenv("MCP_HOST", "127.0.0.1"),
-    port=int(os.getenv("MCP_PORT", "8000")),
-)
+"""
+
+
+def new_server(tool_filter: ToolFilter) -> FastMCP:
+    """Create an empty FastMCP server with this project's settings.
+
+    The ``instructions`` are :data:`INSTRUCTIONS` plus, when *tool_filter*
+    restricts the tool list, a short note about it. Tools are added by the
+    ``tool`` decorator (shared :data:`mcp`) or :func:`register_tools`.
+    """
+    return FastMCP(
+        "netlicensing-mcp",
+        # Stateless HTTP: every request gets a fresh transport and context, so the
+        # per-request API key set by ApiKeyMiddleware is the one the tool uses. In
+        # stateful mode the SDK runs a session in the task of the request that
+        # created it, which pins that request's key for the whole session.
+        stateless_http=True,
+        instructions=INSTRUCTIONS + tool_filter.instructions_note(),
+        host=os.getenv("MCP_HOST", "127.0.0.1"),
+        port=int(os.getenv("MCP_PORT", "8000")),
+    )
+
+
+# MCP_TOOLSETS / MCP_READ_ONLY, read once at import; the tool decorator
+# consults this filter when each mcp_tools module registers its tools.
+_active_filter = ToolFilter.from_env(os.environ)
+
+mcp = new_server(_active_filter)
 
 
 # ── Health check (for load balancers & container orchestrators) ──────────────
@@ -458,6 +477,24 @@ def _structured(fn: Callable[..., Awaitable[str]]) -> Callable[..., Awaitable[Ca
     return wrapper
 
 
+@dataclass(frozen=True)
+class _ToolSpec:
+    """A decorated tool, kept so it can be registered on any server."""
+
+    name: str
+    fn: Callable[..., Awaitable[CallToolResult]]
+    title: str | None
+    annotations: ToolAnnotations | None
+
+
+# Every decorated tool in registration order, registered or not.
+_TOOL_SPECS: list[_ToolSpec] = []
+
+
+def _add(server: FastMCP, spec: _ToolSpec) -> None:
+    server.add_tool(spec.fn, name=spec.name, title=spec.title, annotations=spec.annotations)
+
+
 def tool(
     *, title: str | None = None, annotations: ToolAnnotations | None = None
 ) -> Callable[[ToolFn], ToolFn]:
@@ -468,10 +505,49 @@ def tool(
     must return a JSON string; over MCP it is sent as text content plus
     ``structuredContent`` (see :func:`to_call_tool_result`). The function
     itself is returned unchanged, so direct calls still return the string.
+
+    The tool must be listed in ``netlicensing_mcp.toolsets.TOOLSETS``. It is
+    added to :data:`mcp` only if the active filter (``MCP_TOOLSETS`` /
+    ``MCP_READ_ONLY``) allows it; the function is returned either way.
     """
 
     def decorator(fn: ToolFn) -> ToolFn:
-        mcp.add_tool(_structured(fn), name=fn.__name__, title=title, annotations=annotations)
+        name = fn.__name__
+        if toolset_of(name) is None:
+            raise ValueError(f"{name} is not in any toolset; add it to toolsets.TOOLSETS")
+        spec = _ToolSpec(name, _structured(fn), title, annotations)
+        _TOOL_SPECS.append(spec)
+        if _active_filter.allows(name, annotations):
+            _add(mcp, spec)
         return fn
 
     return decorator
+
+
+def register_tools(server: FastMCP, tool_filter: ToolFilter) -> None:
+    """Add every decorated tool that *tool_filter* allows to *server*, in order.
+
+    For building a server under other settings than the import-time ones
+    (tests); the shared :data:`mcp` is filled by the decorator.
+    """
+    for spec in _TOOL_SPECS:
+        if tool_filter.allows(spec.name, spec.annotations):
+            _add(server, spec)
+
+
+def tool_settings(tool_filter: ToolFilter) -> dict[str, Any]:
+    """Toolsets, read-only flag and tool count that *tool_filter* gives."""
+    return {
+        "toolsets": tool_filter.toolset_list(),
+        "read_only": tool_filter.read_only,
+        "tool_count": sum(1 for s in _TOOL_SPECS if tool_filter.allows(s.name, s.annotations)),
+    }
+
+
+def active_tool_settings() -> dict[str, Any]:
+    """The settings the shared :data:`mcp` was built with (for server_info).
+
+    ``{"toolsets": [...] or ["all"], "read_only": bool, "tool_count": int}``;
+    the count is complete once every ``mcp_tools`` module is imported.
+    """
+    return tool_settings(_active_filter)

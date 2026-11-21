@@ -75,3 +75,8 @@ async def test_snapshot_covers_every_tool():
     assert sorted(data["tool_order"]) == [t["name"] for t in data["tools"]]
     assert all(t["name"].startswith("netlicensing_") for t in data["tools"])
     assert len(data["prompts"]) == 5
+
+
+async def test_default_registry_has_61_tools():
+    # Without MCP_TOOLSETS / MCP_READ_ONLY every tool is registered.
+    assert len(await mcp.list_tools()) == 61

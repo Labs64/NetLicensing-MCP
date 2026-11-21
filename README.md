@@ -166,10 +166,43 @@ docker run -i --rm \
 | `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
 | `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs raw API requests/responses **with sensitive fields automatically redacted**. Can also be set via `-v` CLI flag. |
 | `MCP_REDACT_FIELDS` | No | — | Comma-separated list of additional field names to redact from all tool responses and log output (e.g. `MCP_REDACT_FIELDS=ssn,phone`). Extends the built-in default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. |
+| `MCP_TOOLSETS` | No | `all` | Comma-separated list of toolsets to register (e.g. `licensees,licenses`). Unknown names are ignored with a warning on stderr. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
+| `MCP_READ_ONLY` | No | `false` | Register only read-only tools (`true`, `1`, or `yes`): list, get, `preview_*`, workflows and reference data. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
 
 > **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode) or return `503 Service Unavailable` for all tool calls (HTTP mode). This prevents accidental use of demo credentials in production.
 
 > **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header. Query-parameter keys are not supported, because URLs are logged by proxies and load balancers.
+
+
+### Reduce the tool list / read-only mode
+
+The server registers 61 tools by default. Some clients handle long tool lists poorly, and some deployments should never change data. Two environment variables shrink the list when the server starts:
+
+- `MCP_TOOLSETS` registers only the listed toolsets. `all` (the default) registers everything.
+- `MCP_READ_ONLY=true` registers only tools annotated as read-only (`readOnlyHint`). Previews (`preview_*`) stay; every create, update, delete, `obtain_bundle`, `transfer_licenses` and `validate_licensee` (it can check out floating sessions or bind nodes) is left out.
+
+When both are set, the toolset filter applies first, then the read-only filter. `netlicensing_server_info` is always registered. When a restriction is active, the server instructions sent to the client say so.
+
+| Toolset | Tools |
+|---|---|
+| `products` | list, get, create, update, delete products, with previews |
+| `bundles` | list, get, create, update, delete, obtain bundles, with delete preview |
+| `modules` | list, get, create, update, delete product modules, with delete preview |
+| `templates` | list, get, create, update, delete license templates, with previews |
+| `licensees` | list, get, create, update, delete, validate licensees, transfer licenses, with delete preview |
+| `licenses` | list, get, create, update, delete licenses, with delete preview |
+| `tokens` | list, get tokens, create shop and API tokens, delete, with delete preview |
+| `transactions` | list, get, create, update transactions |
+| `payments` | list, get, update payment methods, with update preview |
+| `system` | `list_licensing_models`, `list_license_types`, `list_countries`, `server_info` |
+| `workflows` | `get_customer_health`, `explain_validation` |
+
+```bash
+# Only customer and license tools, read-only
+MCP_TOOLSETS=licensees,licenses MCP_READ_ONLY=true NETLICENSING_API_KEY=your_key uvx netlicensing-mcp
+```
+
+The audit prompts are always available. Some of their steps call tools that may not be registered (for example `audit_expiry` calls `netlicensing_create_shop_token`, which is not available in read-only mode or without the `tokens` toolset); the assistant then cannot run those steps.
 
 ---
 
