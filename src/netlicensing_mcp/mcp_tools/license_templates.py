@@ -8,6 +8,7 @@ from netlicensing_mcp.app import (
     _READONLY,
     _UPDATE,
     _WRITE,
+    _confirm_error,
     _error,
     _extract_props,
     _fmt_price,
@@ -43,7 +44,7 @@ async def netlicensing_list_license_templates(
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_license_templates")
 
 
 @tool(title="Get license template", annotations=_READONLY)
@@ -61,7 +62,7 @@ async def netlicensing_get_license_template(template_number: str, include_raw: b
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_license_template")
 
 
 @tool(title="Create license template", annotations=_WRITE)
@@ -129,7 +130,7 @@ async def netlicensing_create_license_template(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_license_template")
 
 
 @tool(title="Preview update of license template", annotations=_READONLY)
@@ -155,7 +156,7 @@ async def netlicensing_preview_update_license_template(
         diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
         return _json(safety.make_update_preview("update_license_template", template_number, diff))
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_update_license_template")
 
 
 @tool(title="Update license template", annotations=_UPDATE)
@@ -236,9 +237,9 @@ async def netlicensing_update_license_template(
             include_raw=include_raw,
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_update_license_template")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_license_template")
 
 
 @tool(title="Preview deletion of license template", annotations=_READONLY)
@@ -269,7 +270,7 @@ async def netlicensing_preview_delete_license_template(template_number: str) -> 
             )
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_delete_license_template")
 
 
 @tool(title="Delete license template", annotations=_DELETE)
@@ -310,6 +311,6 @@ async def netlicensing_delete_license_template(
             )
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_delete_license_template")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_delete_license_template")

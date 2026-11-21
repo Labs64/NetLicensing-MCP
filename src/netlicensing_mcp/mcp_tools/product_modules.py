@@ -8,6 +8,7 @@ from netlicensing_mcp.app import (
     _READONLY,
     _UPDATE,
     _WRITE,
+    _confirm_error,
     _error,
     _json,
     _sample_numbers,
@@ -45,7 +46,7 @@ async def netlicensing_list_product_modules(
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_product_modules")
 
 
 @tool(title="Get product module", annotations=_READONLY)
@@ -63,7 +64,7 @@ async def netlicensing_get_product_module(module_number: str, include_raw: bool 
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_product_module")
 
 
 @tool(title="Create product module", annotations=_WRITE)
@@ -114,7 +115,7 @@ async def netlicensing_create_product_module(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_product_module")
 
 
 @tool(title="Update product module", annotations=_UPDATE)
@@ -158,7 +159,7 @@ async def netlicensing_update_product_module(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_product_module")
 
 
 @tool(title="Preview deletion of product module", annotations=_READONLY)
@@ -184,7 +185,7 @@ async def netlicensing_preview_delete_product_module(module_number: str) -> str:
             )
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_delete_product_module")
 
 
 @tool(title="Delete product module", annotations=_DELETE)
@@ -224,6 +225,6 @@ async def netlicensing_delete_product_module(
             )
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_delete_product_module")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_delete_product_module")

@@ -6,6 +6,7 @@ from netlicensing_mcp import safety
 from netlicensing_mcp.app import (
     _READONLY,
     _UPDATE,
+    _confirm_error,
     _error,
     _extract_props,
     _json,
@@ -34,7 +35,7 @@ async def netlicensing_list_payment_methods(filter: str = "", include_raw: bool 
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_payment_methods")
 
 
 @tool(title="Get payment method", annotations=_READONLY)
@@ -54,7 +55,7 @@ async def netlicensing_get_payment_method(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_payment_method")
 
 
 @tool(title="Preview update of payment method", annotations=_READONLY)
@@ -87,7 +88,7 @@ async def netlicensing_preview_update_payment_method(
             safety.make_update_preview("update_payment_method", payment_method_number, diff)
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_update_payment_method")
 
 
 @tool(title="Update payment method", annotations=_UPDATE)
@@ -140,6 +141,6 @@ async def netlicensing_update_payment_method(
             include_raw=include_raw,
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_update_payment_method")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_payment_method")

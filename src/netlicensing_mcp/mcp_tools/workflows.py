@@ -53,7 +53,7 @@ async def netlicensing_get_customer_health(
             }
         return _json(envelope)
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_customer_health")
 
 
 @tool(title="Explain validation", annotations=_READONLY)
@@ -102,4 +102,4 @@ async def netlicensing_explain_validation(
             envelope["raw"] = payload
         return _json(envelope)
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_explain_validation")

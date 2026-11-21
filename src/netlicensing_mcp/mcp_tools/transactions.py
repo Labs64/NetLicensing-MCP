@@ -32,7 +32,7 @@ async def netlicensing_list_transactions(filter: str = "", include_raw: bool = F
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_transactions")
 
 
 @tool(title="Get transaction", annotations=_READONLY)
@@ -50,7 +50,7 @@ async def netlicensing_get_transaction(transaction_number: str, include_raw: boo
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_transaction")
 
 
 @tool(title="Create transaction", annotations=_WRITE)
@@ -97,7 +97,7 @@ async def netlicensing_create_transaction(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_transaction")
 
 
 @tool(title="Update transaction", annotations=_UPDATE)
@@ -135,4 +135,4 @@ async def netlicensing_update_transaction(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_transaction")

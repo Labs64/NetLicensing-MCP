@@ -8,6 +8,7 @@ from netlicensing_mcp.app import (
     _READONLY,
     _UPDATE,
     _WRITE,
+    _confirm_error,
     _error,
     _extract_props,
     _fmt_price,
@@ -31,7 +32,7 @@ async def netlicensing_list_bundles(include_raw: bool = False) -> str:
             await bundles.list_bundles(), "Bundle", include_raw=include_raw, as_list=True
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_bundles")
 
 
 @tool(title="Get bundle", annotations=_READONLY)
@@ -47,7 +48,7 @@ async def netlicensing_get_bundle(bundle_number: str, include_raw: bool = False)
             await bundles.get_bundle(bundle_number), "Bundle", include_raw=include_raw
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_bundle")
 
 
 @tool(title="Create bundle", annotations=_WRITE)
@@ -88,7 +89,7 @@ async def netlicensing_create_bundle(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_bundle")
 
 
 @tool(title="Update bundle", annotations=_UPDATE)
@@ -129,7 +130,7 @@ async def netlicensing_update_bundle(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_bundle")
 
 
 @tool(title="Preview deletion of bundle", annotations=_READONLY)
@@ -159,7 +160,7 @@ async def netlicensing_preview_delete_bundle(bundle_number: str) -> str:
             )
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_delete_bundle")
 
 
 @tool(title="Delete bundle", annotations=_DELETE)
@@ -200,9 +201,9 @@ async def netlicensing_delete_bundle(
             )
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_delete_bundle")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_delete_bundle")
 
 
 @tool(title="Obtain bundle", annotations=_WRITE)
@@ -227,4 +228,4 @@ async def netlicensing_obtain_bundle(
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_obtain_bundle")

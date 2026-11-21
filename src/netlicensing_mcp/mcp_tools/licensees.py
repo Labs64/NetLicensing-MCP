@@ -8,6 +8,7 @@ from netlicensing_mcp.app import (
     _READONLY,
     _UPDATE,
     _WRITE,
+    _confirm_error,
     _error,
     _json,
     _sample_numbers,
@@ -44,7 +45,7 @@ async def netlicensing_list_licensees(
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_licensees")
 
 
 @tool(title="Get licensee", annotations=_READONLY)
@@ -62,7 +63,7 @@ async def netlicensing_get_licensee(licensee_number: str, include_raw: bool = Fa
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_licensee")
 
 
 @tool(title="Create licensee", annotations=_WRITE)
@@ -100,7 +101,7 @@ async def netlicensing_create_licensee(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_licensee")
 
 
 @tool(title="Update licensee", annotations=_UPDATE)
@@ -135,7 +136,7 @@ async def netlicensing_update_licensee(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_licensee")
 
 
 @tool(title="Preview deletion of licensee", annotations=_READONLY)
@@ -159,7 +160,7 @@ async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
             )
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_delete_licensee")
 
 
 @tool(title="Delete licensee", annotations=_DELETE)
@@ -197,9 +198,9 @@ async def netlicensing_delete_licensee(
             )
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_delete_licensee")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_delete_licensee")
 
 
 @tool(title="Validate licensee", annotations=_WRITE)
@@ -258,7 +259,7 @@ async def netlicensing_validate_licensee(
             warn_info_types=("ERROR", "WARNING", "INFO"),
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_validate_licensee")
 
 
 @tool(title="Transfer licenses", annotations=_UPDATE)
@@ -280,4 +281,4 @@ async def netlicensing_transfer_licenses(
     try:
         return _json(await licensees.transfer_licenses(from_licensee_number, to_licensee_number))
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_transfer_licenses")

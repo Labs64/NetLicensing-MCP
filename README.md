@@ -316,6 +316,32 @@ Get-Content "$env:APPDATA\Claude\Logs\mcp-server-netlicensing.log" -Wait
 mcp dev src/netlicensing_mcp/server.py
 ```
 
+**Read the error result**
+
+A failed tool call returns `{"error": true, "status": ..., "detail": ...}` (flagged `isError`), where `detail` is NetLicensing's own message. It also carries `hint` (the next step), `suggested_actions` (tools to call next) and `retryable` (whether the same call may succeed later; `retry_after_seconds` on a `429`). For example:
+
+```json
+{
+  "error": true,
+  "status": 400,
+  "detail": "Requested licensee does not exist.",
+  "hint": "The licensee was not found. Identifiers are case-sensitive: check the number, or look it up with netlicensing_list_licensees.",
+  "suggested_actions": ["netlicensing_list_licensees"],
+  "retryable": false
+}
+```
+
+| `status` | Meaning | `retryable` |
+|---|---|---|
+| `400` | Validation or business rule; NetLicensing also reports a **missing entity as `400`** (`Requested … does not exist.`), a duplicate number and a delete blocked by dependents this way | no |
+| `401` / `403` | Missing or invalid API key / key role too low for the operation | no |
+| `402` | Operation not included in your pricing plan | no |
+| `429` | Above your plan's API rate limit while NetLicensing is busy; wait `retry_after_seconds` | yes |
+| `500`, `502`, `504` | NetLicensing error, API unreachable or timed out (the hint names the API host only) | yes |
+| `503` | No API key configured (see below); any other `503` counts as a server error like `500` | no |
+
+The hints never contain your API key. A hint about a delete blocked by dependents points at the `preview_delete` tool; `force_cascade` is for an explicit user request only.
+
 **Common issues**
 
 | Symptom | Likely cause | Fix |

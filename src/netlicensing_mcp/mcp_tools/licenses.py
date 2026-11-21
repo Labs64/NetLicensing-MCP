@@ -8,6 +8,7 @@ from netlicensing_mcp.app import (
     _READONLY,
     _UPDATE,
     _WRITE,
+    _confirm_error,
     _error,
     _extract_props,
     _fmt_price,
@@ -41,7 +42,7 @@ async def netlicensing_list_licenses(
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_licenses")
 
 
 @tool(title="Get license", annotations=_READONLY)
@@ -59,7 +60,7 @@ async def netlicensing_get_license(license_number: str, include_raw: bool = Fals
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_license")
 
 
 @tool(title="Create license", annotations=_WRITE)
@@ -118,7 +119,7 @@ async def netlicensing_create_license(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_license")
 
 
 @tool(title="Update license", annotations=_UPDATE)
@@ -174,7 +175,7 @@ async def netlicensing_update_license(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_license")
 
 
 @tool(title="Preview deletion of license", annotations=_READONLY)
@@ -203,7 +204,7 @@ async def netlicensing_preview_delete_license(license_number: str) -> str:
             )
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_delete_license")
 
 
 @tool(title="Delete license", annotations=_DELETE)
@@ -245,6 +246,6 @@ async def netlicensing_delete_license(
             )
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_delete_license")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_delete_license")

@@ -107,7 +107,13 @@ async def test_error_blob_sets_is_error_and_keeps_text():
 
     assert _text(result) == direct
     assert result.structuredContent == json.loads(direct)
-    assert result.structuredContent == {"error": True, "status": 404, "detail": "Product not found"}
+    # Task 4 added next-step keys (hint, suggested_actions, retryable) to error blobs.
+    assert {k: result.structuredContent[k] for k in ("error", "status", "detail")} == {
+        "error": True,
+        "status": 404,
+        "detail": "Product not found",
+    }
+    assert result.structuredContent["suggested_actions"] == ["netlicensing_list_products"]
     assert result.isError is True
 
 

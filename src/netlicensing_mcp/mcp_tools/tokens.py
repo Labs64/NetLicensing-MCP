@@ -7,6 +7,7 @@ from netlicensing_mcp.app import (
     _DELETE,
     _READONLY,
     _WRITE,
+    _confirm_error,
     _error,
     _extract_props,
     _json,
@@ -35,7 +36,7 @@ async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) 
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_tokens")
 
 
 @tool(title="Get token", annotations=_READONLY)
@@ -52,7 +53,7 @@ async def netlicensing_get_token(token_number: str, include_raw: bool = False) -
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_token")
 
 
 @tool(title="Create shop token", annotations=_WRITE)
@@ -94,7 +95,7 @@ async def netlicensing_create_shop_token(
         _scrub_apikey_console_url(wrapped)
         return _json(tag_one_time_display(wrapped))
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_shop_token")
 
 
 @tool(title="Create api token", annotations=_WRITE)
@@ -117,7 +118,7 @@ async def netlicensing_create_api_token(
         _scrub_apikey_console_url(wrapped)
         return _json(tag_one_time_display(wrapped))
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_api_token")
 
 
 @tool(title="Preview deletion of token", annotations=_READONLY)
@@ -145,7 +146,7 @@ async def netlicensing_preview_delete_token(token_number: str) -> str:
             )
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_delete_token")
 
 
 @tool(title="Delete token", annotations=_DELETE)
@@ -184,6 +185,6 @@ async def netlicensing_delete_token(
             )
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_delete_token")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_delete_token")

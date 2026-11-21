@@ -8,6 +8,7 @@ from netlicensing_mcp.app import (
     _READONLY,
     _UPDATE,
     _WRITE,
+    _confirm_error,
     _error,
     _extract_props,
     _json,
@@ -40,7 +41,7 @@ async def netlicensing_list_products(filter: str = "", include_raw: bool = False
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_products")
 
 
 @tool(title="Get product", annotations=_READONLY)
@@ -56,7 +57,7 @@ async def netlicensing_get_product(product_number: str, include_raw: bool = Fals
             await products.get_product(product_number), "Product", include_raw=include_raw
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_get_product")
 
 
 @tool(title="Create product", annotations=_WRITE)
@@ -103,7 +104,7 @@ async def netlicensing_create_product(
             include_raw=include_raw,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_create_product")
 
 
 @tool(title="Preview update of product", annotations=_READONLY)
@@ -138,7 +139,7 @@ async def netlicensing_preview_update_product(
             diff.append({"field": "vatMode", "from": current.get("vatMode"), "to": vat_mode})
         return _json(safety.make_update_preview("update_product", product_number, diff))
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_update_product")
 
 
 @tool(title="Update product", annotations=_UPDATE)
@@ -217,9 +218,9 @@ async def netlicensing_update_product(
             include_raw=include_raw,
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_update_product")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_update_product")
 
 
 @tool(title="Preview deletion of product", annotations=_READONLY)
@@ -255,7 +256,7 @@ async def netlicensing_preview_delete_product(product_number: str) -> str:
             )
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_preview_delete_product")
 
 
 @tool(title="Delete product", annotations=_DELETE)
@@ -299,6 +300,6 @@ async def netlicensing_delete_product(
             )
         )
     except ValueError as exc:
-        return _json({"error": True, "detail": str(exc)})
+        return _confirm_error(exc, "netlicensing_delete_product")
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_delete_product")

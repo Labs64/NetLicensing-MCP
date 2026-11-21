@@ -30,6 +30,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from netlicensing_mcp.client import NetLicensingError, is_demo_mode
+from netlicensing_mcp.errors import confirmation_hint, error_hint
 from netlicensing_mcp.redaction import redact, redact_token_read
 from netlicensing_mcp.responses import DEFAULT_WARN_INFO_TYPES, wrap
 from netlicensing_mcp.toolsets import ToolFilter, toolset_of
@@ -147,6 +148,10 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
 - Every tool result also carries ``structuredContent``: the same JSON
   object as the text (a non-object result as ``{"result": ...}``); failed
   calls (``{"error": true, ...}``) are flagged with ``isError``.
+- Error results keep ``status`` and ``detail`` (NetLicensing's own message)
+  and add ``hint`` (the next step), ``suggested_actions`` (tool names to
+  call next) and ``retryable`` (whether the same call may succeed later).
+  The safety rules above still apply to a suggested delete or cascade.
 - Pass ``include_raw=true`` to any tool to receive the sanitized
   NetLicensing API *response* nested under the ``"raw"`` key, alongside
   the normalized envelope built from it.
@@ -283,9 +288,29 @@ def _wrap_json_token_read(entity: dict, *, include_raw: bool = False, as_list: b
     return _json(wrapped)
 
 
-def _error(exc: NetLicensingError) -> str:
-    """Return a user-friendly error string from a NetLicensing API error."""
-    return json.dumps({"error": True, "status": exc.status_code, "detail": exc.detail}, indent=2)
+def _registered_tool_names() -> frozenset[str]:
+    """Names of the tools the active filter registers on :data:`mcp`."""
+    return frozenset(s.name for s in _TOOL_SPECS if _active_filter.allows(s.name, s.annotations))
+
+
+def _error(exc: NetLicensingError, tool_name: str | None = None) -> str:
+    """Return the error blob for a NetLicensing API error raised in *tool_name*.
+
+    ``error`` / ``status`` / ``detail`` come first, then the next-step keys
+    from :func:`netlicensing_mcp.errors.error_hint` (``hint``,
+    ``suggested_actions``, ``retryable`` and, for 429, ``retry_after_seconds``).
+    Suggestions name only tools that are registered on this server.
+    """
+    blob = {"error": True, "status": exc.status_code, "detail": exc.detail}
+    blob.update(error_hint(exc, tool_name, available=_registered_tool_names()))
+    return json.dumps(blob, indent=2)
+
+
+def _confirm_error(exc: ValueError, tool_name: str | None = None) -> str:
+    """Return the error blob for a rejected ``confirm_token`` in *tool_name*."""
+    blob = {"error": True, "detail": str(exc)}
+    blob.update(confirmation_hint(tool_name, available=_registered_tool_names()))
+    return _json(blob)
 
 
 def _count_items(response: dict) -> int:

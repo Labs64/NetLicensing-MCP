@@ -32,7 +32,7 @@ async def netlicensing_list_licensing_models(include_raw: bool = False) -> str:
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_licensing_models")
 
 
 @tool(title="List license types", annotations=_READONLY)
@@ -50,7 +50,7 @@ async def netlicensing_list_license_types(include_raw: bool = False) -> str:
             as_list=True,
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_license_types")
 
 
 @tool(title="List countries", annotations=_READONLY)
@@ -65,7 +65,7 @@ async def netlicensing_list_countries(include_raw: bool = False) -> str:
             await utilities.list_countries(), "Country", include_raw=include_raw, as_list=True
         )
     except NetLicensingError as exc:
-        return _error(exc)
+        return _error(exc, "netlicensing_list_countries")
 
 
 def _server_version() -> str:
