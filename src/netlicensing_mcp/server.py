@@ -22,6 +22,7 @@ import logging
 import os
 import sys
 
+from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -52,6 +53,7 @@ from netlicensing_mcp.app import (
 )
 from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp.prompts.audit import register_audit_prompts
+from netlicensing_mcp.readiness import register_ready_route
 from netlicensing_mcp.redaction import redact, redact_token_read, tag_one_time_display
 from netlicensing_mcp.responses import DEFAULT_WARN_INFO_TYPES, wrap
 from netlicensing_mcp.tools import (
@@ -168,6 +170,7 @@ __all__ = [
     "health_check",
     "tool",
     "ApiKeyMiddleware",
+    "build_http_app",
     "main",
     "logger",
     "netlicensing_list_products",
@@ -280,6 +283,9 @@ __all__ = [
 
 register_audit_prompts(mcp)
 
+# GET /ready (readiness); GET /health (liveness) is registered in app.py.
+register_ready_route(mcp, version=_server_version)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
@@ -288,8 +294,8 @@ register_audit_prompts(mcp)
 
 class ApiKeyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Health check endpoint must remain unauthenticated for load-balancer probes
-        if request.url.path == "/health":
+        # Liveness / readiness probes must remain unauthenticated for load balancers
+        if request.url.path in ("/health", "/ready"):
             return await call_next(request)
 
         # Extract key: prefer dedicated header, fall back to Bearer token
@@ -316,6 +322,13 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             status_code=401,
             headers={"WWW-Authenticate": 'Bearer realm="netlicensing-mcp"'},
         )
+
+
+def build_http_app() -> Starlette:
+    """The ASGI app HTTP mode serves: FastMCP's streamable-HTTP app + ``ApiKeyMiddleware``."""
+    app = mcp.streamable_http_app()
+    app.add_middleware(ApiKeyMiddleware)
+    return app
 
 
 def main() -> None:
@@ -378,8 +391,7 @@ def main() -> None:
         import uvicorn
 
         async def run_server() -> None:
-            app = mcp.streamable_http_app()
-            app.add_middleware(ApiKeyMiddleware)
+            app = build_http_app()
             config = uvicorn.Config(
                 app,
                 host=mcp.settings.host,

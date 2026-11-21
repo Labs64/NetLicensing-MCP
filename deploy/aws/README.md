@@ -99,6 +99,13 @@ Health check, which should print `{"status":"ok","server":"netlicensing-mcp"}`:
 curl http://$ALB/health
 ```
 
+Readiness check, which also tests that the server reaches the NetLicensing API
+and should print `"status":"ready"` (see [Health and readiness probes](#health-and-readiness-probes)):
+
+```bash
+curl http://$ALB/ready
+```
+
 A request without a key must be refused with `401`:
 
 ```bash
@@ -175,6 +182,7 @@ CNAME record `mcp.example.com` → the `AlbDnsName` value from step 2.
 
 ```bash
 curl https://mcp.example.com/health
+curl https://mcp.example.com/ready
 ```
 
 Your MCP address is now **`https://mcp.example.com/mcp`**.
@@ -245,6 +253,27 @@ aws ecs update-service \
   --region $AWS_REGION
 ```
 
+## Health and readiness probes
+
+The server has two unauthenticated endpoints. Neither needs an API key.
+
+| Endpoint | Kind | Answers | Use it for |
+|---|---|---|---|
+| `GET /health` | Liveness | Always `200` `{"status":"ok","server":"netlicensing-mcp"}` while the process serves HTTP. Never calls NetLicensing. | Load balancer target-group checks, App Runner health checks, the Docker `HEALTHCHECK`: anything that restarts or replaces the container when it fails. |
+| `GET /ready` | Readiness | `200` `{"status":"ready", ...}` when the MCP endpoint is running and the NetLicensing API answers; otherwise `503` `{"status":"not_ready", "reason": ..., ...}`. | Monitoring and alerting, smoke tests after a deploy (`curl https://<host>/ready`), and orchestrators that only stop sending traffic while it fails. |
+
+Both CloudFormation templates keep `/health` as the target-group / App Runner
+health check. Do not switch them to `/ready`: when NetLicensing itself is down,
+`/ready` returns `503` on every container, and every container would be marked
+unhealthy and replaced, although a new container cannot fix an upstream outage.
+
+`/ready` checks the API with one unauthenticated `GET` of `NETLICENSING_BASE_URL`
+(3-second timeout). Any HTTP answer, including `401` or `404`, means "reachable";
+only timeouts and connection errors mean "unreachable". A success is cached for
+15 seconds and a failure for 5 seconds, so frequent probes do not reach
+NetLicensing more often than that. The reply names only the API's host name, never
+a key or the upstream response.
+
 ## Troubleshooting
 
 **See the server's logs:**
@@ -265,6 +294,7 @@ aws ecs describe-services \
 |---|---|
 | `401` from `/mcp` | The client is not sending the API key header. |
 | `503` from the load balancer right after deploy | The container is still starting. Wait a minute and retry. |
+| `503` from `/ready` with `"reason": "NetLicensing API at ... is unreachable (...)"` | The container cannot reach the NetLicensing API: check the task's outbound internet access (the Fargate template gives tasks a public IP) and `NETLICENSING_BASE_URL`. |
 | Browser or client reports a certificate error | You are using the `...elb.amazonaws.com` name. Use your own domain (step 4d). |
 | `deploy.sh` says the stack is in `ROLLBACK_COMPLETE` | Delete the failed stack (`./deploy.sh teardown`) and deploy again. |
 
