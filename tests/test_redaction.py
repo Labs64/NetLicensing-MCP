@@ -276,8 +276,9 @@ def test_redact_token_read_masks_shop_url(shop_token_response):
     props = {p["name"]: p["value"] for p in result["items"]["item"][0]["property"]}
     assert "onetimetoken123" not in props["shopURL"]
     assert "****" in props["shopURL"]
-    # shop token's number is an opaque ID, not the secret — still preserved
-    assert props["number"] == "TK-shop-001"
+    # shop token number is the secret embedded in shopURL — masked too
+    assert props["number"] != "TK-shop-001"
+    assert "****" in props["number"]
 
 
 def test_redact_token_read_mixed_list(mixed_token_list_response):
@@ -292,7 +293,8 @@ def test_redact_token_read_mixed_list(mixed_token_list_response):
     # Second item: SHOP — shopURL masked
     shop_props = {p["name"]: p["value"] for p in items[1]["property"]}
     assert "****" in shop_props["shopURL"]
-    assert shop_props["number"] == "TK-shop-001"
+    assert "TK-shop-001" not in shop_props["number"]
+    assert "****" in shop_props["number"]
 
 
 def test_redact_token_read_passthrough_for_unknown_type():

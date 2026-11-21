@@ -228,8 +228,8 @@ def redact_token_read(response: Any) -> Any:
     For **APIKEY** tokens the ``number`` property IS the API key value — it
     must be masked on read paths (it was shown once at creation time).
 
-    For **SHOP** tokens the ``shopURL`` property contains a one-time checkout
-    URL that should similarly be masked after the initial create response.
+    For **SHOP** tokens both ``shopURL`` and ``number`` are masked: the number
+    is the token embedded in the checkout URL, so it is equally sensitive.
 
     After token-specific masking, :func:`redact` is applied for the standard
     DEFAULT_REDACT fields.
@@ -275,7 +275,9 @@ def redact_token_read(response: Any) -> Any:
         if token_type == "APIKEY":
             extra_mask.add("number")
         if token_type == "SHOP":
-            extra_mask.add("shopURL")
+            # The shop token ``number`` is the credential embedded in the
+            # checkout URL, so masking only ``shopURL`` leaves it exposed.
+            extra_mask.update({"number", "shopURL"})
 
         if extra_mask:
             new_props = []

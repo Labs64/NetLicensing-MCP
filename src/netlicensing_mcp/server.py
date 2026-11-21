@@ -242,9 +242,9 @@ def _wrap_json(
 
 
 def _scrub_apikey_console_url(env: dict) -> None:
-    """Strip ``console_url`` from APIKEY token envelopes (single or list).
+    """Strip ``console_url`` from APIKEY and SHOP token envelopes (single or list).
 
-    For APIKEY tokens the ``number`` property *is* the API key value, so
+    For APIKEY and SHOP tokens the ``number`` property is the credential, so
     embedding it in a URL path (``…/tokens/<apikey>``) leaks the credential
     — both on read paths (where ``number`` is masked, producing a broken URL
     that still hints at the key shape) and on create paths (where ``number``
@@ -252,7 +252,7 @@ def _scrub_apikey_console_url(env: dict) -> None:
     """
 
     def _scrub(item: dict) -> None:
-        if item.get("tokenType") == "APIKEY":
+        if item.get("tokenType") in ("APIKEY", "SHOP"):
             item.pop("console_url", None)
 
     if env.get("type") == "list":
@@ -1970,6 +1970,7 @@ async def netlicensing_create_shop_token(
             cancel_url_title=cancel_url_title or None,
         )
         wrapped = wrap(raw, "Token", raw=raw if include_raw else None)
+        _scrub_apikey_console_url(wrapped)
         return _json(tag_one_time_display(wrapped))
     except NetLicensingError as exc:
         return _error(exc)

@@ -227,7 +227,7 @@ async def test_create_api_token_drops_console_url():
 
 
 @pytest.mark.asyncio
-async def test_get_token_shop_keeps_console_url():
+async def test_get_token_shop_masks_number_and_drops_console_url():
     raw = _single(
         "Token",
         {
@@ -240,6 +240,7 @@ async def test_get_token_shop_keeps_console_url():
         result = json.loads(await server.netlicensing_get_token("TKN-SHOP-1"))
 
     assert result["tokenType"] == "SHOP"
-    assert result["console_url"] == "https://ui.netlicensing.io/#/tokens/TKN-SHOP-1"
+    assert "console_url" not in result
+    assert "TKN-SHOP-1" not in json.dumps(result)
     # shopURL must be masked on read paths.
     assert "shop.example/checkout/abc" not in json.dumps(result)
