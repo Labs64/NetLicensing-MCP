@@ -213,7 +213,11 @@ from mcp.client.streamable_http import streamablehttp_client
 
 headers = {"X-NetLicensing-API-Key": "YOUR_API_KEY"}
 
-async with streamablehttp_client("https://mcp.example.com/mcp", headers=headers) as (read, write, _):
+async with streamablehttp_client("https://mcp.example.com/mcp", headers=headers) as (
+    read,
+    write,
+    _,
+):
     async with ClientSession(read, write) as session:
         await session.initialize()
         tools = await session.list_tools()
