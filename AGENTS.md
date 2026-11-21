@@ -42,7 +42,14 @@ CI matrix runs tests on Python 3.12, 3.13, 3.14. Lint/format/mypy run on 3.14 on
 
 Three layers, top-down:
 
-1. **`server.py`** — single FastMCP entry point. Each NetLicensing operation is a thin `@mcp.tool()` wrapper named `netlicensing_<action>_<entity>` (e.g. `netlicensing_create_license`). The wrapper's only jobs are: (a) translate empty strings / `None` defaults into "leave unchanged" semantics, (b) call the matching function in `tools/<entity>.py`, (c) wrap `NetLicensingError` into a JSON error blob via `_error()`. Tools return JSON strings, not dicts — `_json()` serializes the result **and applies the redaction layer**. Token create operations additionally call `tag_one_time_display()` before `_json()`; token read operations use `_json_token_read()` which applies `redact_token_read()` to also mask APIKEY `number` and SHOP `shopURL` fields.
+1. **MCP layer** — split across three places:
+   - **`app.py`** — the single `FastMCP` instance (`mcp`, with the `instructions=` block and `stateless_http=True`), logging setup, the `/health` route, the annotation presets (`_READONLY`, `_WRITE`, `_UPDATE`, `_DELETE`), the response helpers (`_json`, `_json_token_read`, `_wrap_json`, `_wrap_json_token_read`, `_error`, …) and `tool`, the decorator every tool module registers with (currently just `mcp.tool`; change registration there, in one place).
+   - **`mcp_tools/<entity>.py`** — the `@tool(...)` wrappers, one module per entity (`products`, `bundles`, `product_modules`, `license_templates`, `licensees`, `licenses`, `tokens`, `transactions`, `payment_methods`, `utilities` incl. `netlicensing_server_info`, `workflows` for customer health / explain validation). Importing a module registers its tools.
+   - **`server.py`** — thin entry point (`main()`, console script `netlicensing-mcp`, `python -m netlicensing_mcp.server`, `mcp dev src/netlicensing_mcp/server.py`). It imports the `mcp_tools` modules in a fixed order (that order is the `tools/list` order), registers the audit prompts, defines `ApiKeyMiddleware`, and re-exports every tool function, `mcp`, the helpers and the `tools/<entity>` modules (see `__all__`), so `from netlicensing_mcp.server import …` and patches such as `netlicensing_mcp.server.tokens.get_token` keep working.
+
+   `tests/test_tool_registry_snapshot.py` compares every tool's name, title, description, input schema and annotations, the tool order and the prompts against `tests/fixtures/tools_snapshot.json`. After an intentional change, regenerate it with `UPDATE_SNAPSHOT=1 pytest tests/test_tool_registry_snapshot.py --no-cov` and review the diff.
+
+   Each NetLicensing operation is a thin wrapper named `netlicensing_<action>_<entity>` (e.g. `netlicensing_create_license`). The wrapper's only jobs are: (a) translate empty strings / `None` defaults into "leave unchanged" semantics, (b) call the matching function in `tools/<entity>.py`, (c) wrap `NetLicensingError` into a JSON error blob via `_error()`. Tools return JSON strings, not dicts — `_json()` serializes the result **and applies the redaction layer**. Token create operations additionally call `tag_one_time_display()` before `_json()`; token read operations use `_json_token_read()` which applies `redact_token_read()` to also mask APIKEY `number` and SHOP `shopURL` fields.
 
 2. **`tools/<entity>.py`** — one module per NetLicensing entity (`products`, `product_modules`, `license_templates`, `licensees`, `licenses`, `bundles`, `tokens`, `transactions`, `payment_methods`, `utilities`). Each builds the form-encoded payload, calls `nl_get/post/put/delete`, and runs the response through `strip_output_fields` from `tools/helpers.py`.
 
@@ -79,7 +86,7 @@ Preserve this pattern when adding tools — clients (LLMs) will frequently pass 
 
 ### Server instructions
 
-The long `instructions=` string passed to `FastMCP(...)` in `server.py` documents the NetLicensing **entity hierarchy** (Product → ProductModule → LicenseTemplate; Product → Licensee → License; Bundles; Transactions; Tokens; PaymentMethods), licensing models, and **safety rules** (never delete without confirmation; `force_cascade` only on explicit user request; prefer deactivation over deletion). This is what guides LLM clients — when changing tool behaviour that affects those rules, update the instructions block too.
+The long `instructions=` string passed to `FastMCP(...)` in `app.py` documents the NetLicensing **entity hierarchy** (Product → ProductModule → LicenseTemplate; Product → Licensee → License; Bundles; Transactions; Tokens; PaymentMethods), licensing models, and **safety rules** (never delete without confirmation; `force_cascade` only on explicit user request; prefer deactivation over deletion). This is what guides LLM clients — when changing tool behaviour that affects those rules, update the instructions block too.
 
 ## Configuration
 
@@ -97,4 +104,4 @@ Logs go to **stderr** (stdio mode must keep stdout clean for the MCP protocol).
 
 ## Deployment
 
-`deploy/aws/` contains a `deploy.sh` helper supporting **ECS Fargate** (production, ALB-fronted) and **App Runner** (scale-to-zero, dev). HTTP mode exposes `/health` (returns `{"status":"ok"}`) for load balancer probes — defined at `server.py:130`.
+`deploy/aws/` contains a `deploy.sh` helper supporting **ECS Fargate** (production, ALB-fronted) and **App Runner** (scale-to-zero, dev). HTTP mode exposes `/health` (returns `{"status":"ok"}`) for load balancer probes — defined in `app.py` (`health_check`).

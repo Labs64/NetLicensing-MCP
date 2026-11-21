@@ -28,7 +28,7 @@ mypy src/
 
 ## Guidelines
 
-- New tools follow the `netlicensing_<action>_<entity>` naming and live as thin wrappers in `server.py`, with the logic in `tools/<entity>.py`.
+- New tools follow the `netlicensing_<action>_<entity>` naming and live as thin wrappers in `mcp_tools/<entity>.py` (registered with `@tool` from `app.py`), with the logic in `tools/<entity>.py`.
 - Give every tool the right annotation (`_READONLY`, `_WRITE`, `_UPDATE` or `_DELETE`).
 - Delete and update operations that change data must go through the preview and confirmation flow.
 - Never log or return secrets unredacted.
