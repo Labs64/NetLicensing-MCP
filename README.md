@@ -436,7 +436,7 @@ Two unauthenticated probe endpoints come with HTTP mode (no API key needed):
 | `GET /health` | Liveness: always `200` `{"status":"ok","server":"netlicensing-mcp"}` while the process serves HTTP. | Load balancer and container health checks (the Docker image's `HEALTHCHECK` uses it). |
 | `GET /ready` | Readiness: `200` `{"status":"ready","server":...,"version":...,"checks":{"app":...,"upstream":...}}` when the MCP endpoint is running and the NetLicensing API answers, else `503` with `"status":"not_ready"` and a `reason`. | Monitoring and post-deploy checks, e.g. `curl http://127.0.0.1:8000/ready`. |
 
-`/ready` sends one unauthenticated `GET` to `NETLICENSING_BASE_URL` (3-second timeout); any HTTP answer, even `401` or `404`, counts as reachable, only timeouts and connection errors do not. The result is cached for 15 seconds (a failure for 5 seconds). An API key is not checked, since in HTTP mode each request brings its own. The reply never contains a key or the upstream response, only the API's host name.
+`/ready` sends one unauthenticated `GET` to `NETLICENSING_BASE_URL` (3-second timeout); any HTTP answer, even `401` or `404`, counts as reachable; timeouts, connection and other transport/protocol errors, and a malformed URL count as unreachable. The result is cached for 15 seconds (a failure for 5 seconds). An API key is not checked, since in HTTP mode each request brings its own. The reply never contains a key or the upstream response, only the API's host name.
 
 Use `ngrok` or a reverse proxy to expose the HTTP endpoint to remote MCP clients:
 

@@ -9,7 +9,7 @@ whether this instance can serve MCP traffic now:
 2. **upstream** — the NetLicensing API (``NETLICENSING_BASE_URL``) answers.
    One unauthenticated ``GET`` of the base URL through the shared HTTP client,
    3 s timeout. *Any* HTTP response (also 401 / 404 / 5xx) counts as
-   reachable; only timeouts and connection / transport errors do not. The
+   reachable; timeouts, connection / transport errors and a malformed URL do not. The
    result is cached (success 15 s, failure 5 s) so probes cannot hammer the
    upstream, and concurrent checks share one probe.
 
@@ -50,7 +50,8 @@ class UpstreamStatus:
     """Outcome of one upstream probe. ``error`` is a fixed code, never upstream text."""
 
     ok: bool
-    error: str | None  # "timeout" | "connect_error" | "transport_error" | "invalid_url"
+    # "timeout" | "connect_error" | "transport_error" | "invalid_url" | "probe_error"
+    error: str | None
     checked_at: float
 
 
@@ -78,7 +79,16 @@ class UpstreamProbe:
         self.failure_ttl = failure_ttl
         self.clock = clock
         self._last: UpstreamStatus | None = None
-        self._lock = asyncio.Lock()
+        self._lock: asyncio.Lock | None = None
+        self._lock_loop: asyncio.AbstractEventLoop | None = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        """The lock for the running event loop (an ``asyncio.Lock`` binds to one loop)."""
+        loop = asyncio.get_running_loop()
+        if self._lock is None or self._lock_loop is not loop:
+            self._lock = asyncio.Lock()
+            self._lock_loop = loop
+        return self._lock
 
     def _fresh(self) -> UpstreamStatus | None:
         last = self._last
@@ -92,7 +102,7 @@ class UpstreamProbe:
         cached = self._fresh()
         if cached is not None:
             return cached, True
-        async with self._lock:
+        async with self._get_lock():
             # Another task may have probed while this one waited for the lock.
             cached = self._fresh()
             if cached is not None:
@@ -128,20 +138,38 @@ class UpstreamProbe:
 upstream_probe = UpstreamProbe()
 
 
+_MISSING = object()
+
+
 def session_manager_running(server: FastMCP) -> bool:
-    """True while the server's streamable-HTTP session manager runs (lifespan started)."""
-    manager = getattr(server, "_session_manager", None)
-    return manager is not None and getattr(manager, "_task_group", None) is not None
+    """True while the server's streamable-HTTP session manager runs (lifespan started).
+
+    Reads private SDK attributes. If a future SDK no longer has them, assume it
+    runs (fail open) rather than report "not ready" forever.
+    """
+    manager = getattr(server, "_session_manager", _MISSING)
+    if manager is None:  # streamable_http_app() not built yet
+        return False
+    task_group = _MISSING if manager is _MISSING else getattr(manager, "_task_group", _MISSING)
+    if task_group is _MISSING:
+        logger.debug("Readiness: cannot inspect the MCP session manager; assuming it runs")
+        return True
+    return task_group is not None
 
 
 def register_ready_route(server: FastMCP, version: Callable[[], str]) -> None:
-    """Add ``GET /ready`` to *server*; *version* returns the package version."""
+    """Add ``GET /ready`` to *server*; *version* returns the package version (read once)."""
+    version_str = version()
 
     @server.custom_route("/ready", methods=["GET"])
     async def ready_check(request: Request) -> JSONResponse:
         """Readiness probe — 200 when this instance can serve traffic, else 503."""
         app_ok = session_manager_running(server)
-        upstream, cached = await upstream_probe.check()
+        try:
+            upstream, cached = await upstream_probe.check()
+        except Exception as exc:  # a bug must give 503, not 500; CancelledError passes
+            logger.warning("Readiness: upstream check failed (%s)", type(exc).__name__)
+            upstream, cached = UpstreamStatus(ok=False, error="probe_error", checked_at=0.0), False
         host = upstream_host()
 
         upstream_check: dict[str, object] = {"ok": upstream.ok, "host": host, "cached": cached}
@@ -157,7 +185,7 @@ def register_ready_route(server: FastMCP, version: Callable[[], str]) -> None:
         body: dict[str, object] = {
             "status": "not_ready" if reasons else "ready",
             "server": SERVER_NAME,
-            "version": version(),
+            "version": version_str,
         }
         if reasons:
             body["reason"] = "; ".join(reasons)

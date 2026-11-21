@@ -269,10 +269,10 @@ unhealthy and replaced, although a new container cannot fix an upstream outage.
 
 `/ready` checks the API with one unauthenticated `GET` of `NETLICENSING_BASE_URL`
 (3-second timeout). Any HTTP answer, including `401` or `404`, means "reachable";
-only timeouts and connection errors mean "unreachable". A success is cached for
-15 seconds and a failure for 5 seconds, so frequent probes do not reach
-NetLicensing more often than that. The reply names only the API's host name, never
-a key or the upstream response.
+timeouts, connection and other transport/protocol errors, and a malformed URL mean
+"unreachable". A success is cached for 15 seconds and a failure for 5 seconds, so
+frequent probes do not reach NetLicensing more often than that. The reply names
+only the API's host name, never a key or the upstream response.
 
 ## Troubleshooting
 
@@ -294,7 +294,7 @@ aws ecs describe-services \
 |---|---|
 | `401` from `/mcp` | The client is not sending the API key header. |
 | `503` from the load balancer right after deploy | The container is still starting. Wait a minute and retry. |
-| `503` from `/ready` with `"reason": "NetLicensing API at ... is unreachable (...)"` | The container cannot reach the NetLicensing API: check the task's outbound internet access (the Fargate template gives tasks a public IP) and `NETLICENSING_BASE_URL`. |
+| `503` from `/ready` with `"reason": "NetLicensing API at ... is unreachable (...)"` | The container cannot reach the NetLicensing API: check the task's outbound internet access (the Fargate template gives tasks a public IP) and `NETLICENSING_BASE_URL`. A `timeout` can also mean the server's shared connection pool to NetLicensing is saturated by tool calls (the probe waits for a free connection, up to 3 seconds). |
 | Browser or client reports a certificate error | You are using the `...elb.amazonaws.com` name. Use your own domain (step 4d). |
 | `deploy.sh` says the stack is in `ROLLBACK_COMPLETE` | Delete the failed stack (`./deploy.sh teardown`) and deploy again. |
 

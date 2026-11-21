@@ -274,3 +274,115 @@ async def test_concurrent_checks_share_one_probe(
     assert len(upstream.requests) == 1
     assert all(r.ok for r, _ in results)
     assert sorted(cached for _, cached in results) == [False, True, True, True, True]
+
+
+# ── robustness (review fix round 1) ──────────────────────────────────────────
+
+
+def test_app_check_fails_open_when_sdk_internals_are_unknown(
+    http: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    # A future SDK without ``_task_group``: do not report "not ready" forever.
+    monkeypatch.setattr(server.mcp, "_session_manager", object())
+    r = http.get("/ready")
+    assert r.status_code == 200
+    assert r.json()["checks"]["app"] == {"ok": True}
+
+
+def test_session_manager_running_states():
+    class Manager:
+        def __init__(self, task_group: object) -> None:
+            self._task_group = task_group
+
+    class Server:
+        def __init__(self, manager: object) -> None:
+            self._session_manager = manager
+
+    check = readiness.session_manager_running
+    assert check(Server(None)) is False  # type: ignore[arg-type]  # app not built
+    assert check(Server(Manager(None))) is False  # type: ignore[arg-type]  # not started
+    assert check(Server(Manager(object()))) is True  # type: ignore[arg-type]  # running
+    assert check(Server(object())) is True  # type: ignore[arg-type]  # unknown internals
+    assert check(object()) is True  # type: ignore[arg-type]  # unknown internals
+
+
+def test_probe_lock_works_across_event_loops(upstream: Upstream, monkeypatch, clock: FakeClock):
+    async def slow(request: httpx.Request) -> httpx.Response:
+        upstream.requests.append(request)
+        await asyncio.sleep(0.01)
+        return httpx.Response(200)
+
+    monkeypatch.setattr(client, "_client", httpx.AsyncClient(transport=httpx.MockTransport(slow)))
+    probe = readiness.UpstreamProbe(clock=clock)
+
+    async def contended() -> None:
+        await asyncio.gather(*(probe.check() for _ in range(3)))
+
+    asyncio.run(contended())
+    clock.now += readiness.SUCCESS_TTL_SECONDS + 1
+    asyncio.run(contended())  # used to raise "bound to a different event loop"
+    assert len(upstream.requests) == 2
+
+
+def test_unexpected_probe_error_is_a_503_not_a_500(
+    http: TestClient, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+):
+    async def broken() -> str | None:
+        raise RuntimeError("unexpected " + _UPSTREAM_SECRET)
+
+    monkeypatch.setattr(readiness.upstream_probe, "_probe", broken)
+    with caplog.at_level("WARNING", logger="netlicensing_mcp.readiness"):
+        r = http.get("/ready")
+    assert r.status_code == 503
+    body = r.json()
+    assert body["reason"] == "NetLicensing API at upstream.test is unreachable (probe_error)"
+    assert body["checks"]["upstream"]["error"] == "probe_error"
+    assert r.headers["cache-control"] == "no-store"
+    _assert_no_secrets(r.text)
+    assert "RuntimeError" in caplog.text
+    _assert_no_secrets(caplog.text)
+
+
+def test_unreachable_warning_log_has_no_url_credentials(
+    http: TestClient, upstream: Upstream, caplog: pytest.LogCaptureFixture
+):
+    upstream.handler = Upstream.fail(httpx.ConnectError)
+    with caplog.at_level("WARNING", logger="netlicensing_mcp.readiness"):
+        assert http.get("/ready").status_code == 503
+    assert "NetLicensing API at upstream.test is unreachable (connect_error)" in caplog.text
+    _assert_no_secrets(caplog.text)
+
+
+def test_both_reasons_are_joined_and_503_is_not_cacheable(app, upstream: Upstream):
+    upstream.handler = Upstream.fail(httpx.ConnectError)
+    r = TestClient(app).get("/ready")  # no lifespan: app check fails too
+    assert r.status_code == 503
+    assert r.headers["cache-control"] == "no-store"
+    assert r.json()["reason"] == (
+        "MCP session manager is not running; "
+        "NetLicensing API at upstream.test is unreachable (connect_error)"
+    )
+
+
+def test_version_is_read_once_at_registration(monkeypatch: pytest.MonkeyPatch):
+    from mcp.server.fastmcp import FastMCP
+
+    calls: list[int] = []
+
+    def version() -> str:
+        calls.append(1)
+        return "9.9.9"
+
+    srv = FastMCP("t")
+    readiness.register_ready_route(srv, version=version)
+    assert calls == [1]
+    monkeypatch.setattr(readiness, "upstream_probe", readiness.UpstreamProbe())
+    monkeypatch.setattr(readiness.upstream_probe, "_probe", _ok_probe)
+    with TestClient(srv.streamable_http_app()) as c:
+        assert c.get("/ready").json()["version"] == "9.9.9"
+        assert c.get("/ready").json()["version"] == "9.9.9"
+    assert calls == [1]
+
+
+async def _ok_probe() -> str | None:
+    return None
