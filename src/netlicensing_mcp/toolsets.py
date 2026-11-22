@@ -134,6 +134,7 @@ def toolset_of(name: str) -> str | None:
 
 
 _TRUE = ("true", "1", "yes")
+_FALSE = ("false", "0", "no")
 
 
 @dataclass(frozen=True)
@@ -153,22 +154,31 @@ class ToolFilter:
 
         ``MCP_TOOLSETS`` is a comma list, trimmed and case-insensitive. Unset,
         blank or containing ``all`` means every toolset. Unknown names are
-        logged as warnings and ignored; if no valid name remains, all
-        toolsets are used and that is logged too. ``MCP_READ_ONLY`` is on for
-        ``true``, ``1`` or ``yes``.
+        logged as warnings and ignored (also next to ``all``); if no valid
+        name remains, all toolsets are used and that is logged too.
+        ``MCP_READ_ONLY`` is on for ``true``, ``1`` or ``yes``; any other
+        non-blank value other than ``false``, ``0`` or ``no`` leaves it off
+        and logs a warning.
         """
-        read_only = environ.get("MCP_READ_ONLY", "").strip().lower() in _TRUE
+        raw_read_only = environ.get("MCP_READ_ONLY", "").strip().lower()
+        read_only = raw_read_only in _TRUE
+        if raw_read_only and not read_only and raw_read_only not in _FALSE:
+            logger.warning(
+                "MCP_READ_ONLY: unrecognised value %r; read-only mode is OFF "
+                "(use true, 1 or yes to enable it)",
+                raw_read_only[:20],
+            )
         requested = [part.strip().lower() for part in environ.get("MCP_TOOLSETS", "").split(",")]
         requested = [part for part in requested if part]
-        if not requested or "all" in requested:
-            return cls(None, read_only)
-        unknown = [part for part in requested if part not in TOOLSETS]
+        unknown = [part for part in requested if part != "all" and part not in TOOLSETS]
         if unknown:
             logger.warning(
                 "MCP_TOOLSETS: ignoring unknown toolset(s) %s; valid toolsets: %s, all",
                 ", ".join(unknown),
                 ", ".join(TOOLSET_NAMES),
             )
+        if not requested or "all" in requested:
+            return cls(None, read_only)
         valid = frozenset(part for part in requested if part in TOOLSETS)
         if not valid:
             logger.warning("MCP_TOOLSETS: no valid toolset left; registering all toolsets")
@@ -203,6 +213,12 @@ class ToolFilter:
         if self.toolsets is not None:
             parts.append(f"Only these toolsets are registered: {', '.join(self.toolset_list())}.")
         if self.read_only:
-            parts.append("Read-only mode: write tools are not available.")
-        parts.append("Prompts may mention tools that are not registered here; skip those steps.")
+            parts.append(
+                "Read-only mode: write tools are not available, so a preview_* result is "
+                "impact analysis only (its confirmation token cannot be used here)."
+            )
+        parts.append(
+            "Prompts, workflow suggested_actions and preview instructions may mention tools "
+            "that are not registered here; skip those steps."
+        )
         return "\n## Restricted tool list\n\n" + " ".join(parts) + "\n"

@@ -145,6 +145,33 @@ def test_parse_unknown_toolset_warns_and_is_ignored(caplog):
     assert caplog.records[0].levelno == logging.WARNING
 
 
+def test_parse_unknown_toolset_next_to_all_still_warns(caplog):
+    with caplog.at_level(logging.WARNING, logger="netlicensing_mcp.toolsets"):
+        f = ToolFilter.from_env({"MCP_TOOLSETS": "all,licences"})
+    assert f.toolsets is None
+    messages = [r.getMessage() for r in caplog.records]
+    assert len(messages) == 1
+    assert "licences" in messages[0]
+
+
+@pytest.mark.parametrize("value", ["on", "enabled", "Y", "readonly"])
+def test_parse_read_only_unrecognised_value_warns_and_stays_off(value, caplog):
+    with caplog.at_level(logging.WARNING, logger="netlicensing_mcp.toolsets"):
+        f = ToolFilter.from_env({"MCP_READ_ONLY": value})
+    assert f.read_only is False
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert "MCP_READ_ONLY" in message and "OFF" in message
+    assert caplog.records[0].levelno == logging.WARNING
+
+
+@pytest.mark.parametrize("value", ["", "  ", "true", "1", "YES", "false", "0", "No"])
+def test_parse_read_only_recognised_values_do_not_warn(value, caplog):
+    with caplog.at_level(logging.WARNING, logger="netlicensing_mcp.toolsets"):
+        ToolFilter.from_env({"MCP_READ_ONLY": value})
+    assert caplog.records == []
+
+
 def test_parse_only_unknown_toolsets_falls_back_to_all(caplog):
     with caplog.at_level(logging.WARNING, logger="netlicensing_mcp.toolsets"):
         f = ToolFilter.from_env({"MCP_TOOLSETS": "bogus,nope"})
@@ -235,6 +262,8 @@ def test_instructions_note_read_only():
     assert text.startswith(app.INSTRUCTIONS)
     note = text[len(app.INSTRUCTIONS) :]
     assert "Read-only mode: write tools are not available" in note
+    assert "impact analysis only" in note
+    assert "suggested_actions" in note
     assert note.strip().count("\n") <= 2
 
 

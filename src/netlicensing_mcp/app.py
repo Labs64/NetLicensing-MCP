@@ -191,6 +191,9 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
 - Error results keep ``status`` and ``detail`` (NetLicensing's own message)
   and add ``hint`` (the next step), ``suggested_actions`` (tool names to
   call next) and ``retryable`` (whether the same call may succeed later).
+  ``retryable`` means the failure is transient, not that the call is safe
+  to repeat: a write may already have been applied, so check the current
+  state before retrying one. A rejected ``confirm_token`` has no ``status``.
   The safety rules above still apply to a suggested delete or cascade.
 - Pass ``include_raw=true`` to any tool to receive the sanitized
   NetLicensing API *response* nested under the ``"raw"`` key, alongside
@@ -514,7 +517,7 @@ def _compact_output_schema(schema: dict[str, Any]) -> None:
     """Keep the outputSchema small: it is sent with every tool in tools/list.
 
     Publishes only ``type``, ``additionalProperties``, ``title`` and a short
-    description; the common fields are documented in the server
+    description; the response envelope is documented in the server
     ``instructions`` ("Output conventions") instead.
     """
     schema.pop("properties", None)
