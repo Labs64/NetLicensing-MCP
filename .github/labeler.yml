@@ -3,8 +3,14 @@ mcp:
   - changed-files:
       - any-glob-to-any-file:
           - "src/**/tools/**"
+          - "src/**/mcp_tools/**"
           - "src/**/prompts/**"
+          - "src/**/workflows/**"
           - "src/**/server.py"
+          - "src/**/app.py"
+          - "src/**/toolsets.py"
+          - "src/**/errors.py"
+          - "src/**/readiness.py"
 
 api:
   - changed-files:
@@ -26,6 +32,7 @@ dependencies:
   - changed-files:
       - any-glob-to-any-file:
           - "pyproject.toml"
+          - "uv.lock"
           - "requirements*.txt"
 
 # ── Documentation ──────────────────────────────────────────────────────────

@@ -27,6 +27,8 @@ mypy src/ scripts/
 python scripts/gen_tools_doc.py --check
 ```
 
+The tests expect the default tool registry, so `tests/conftest.py` ignores `MCP_TOOLSETS` and `MCP_READ_ONLY` from your shell for the test session.
+
 The tool reference in [docs/TOOLS.md](docs/TOOLS.md) and the tool and prompt tables in the README are generated from the server's registry. After adding or changing a tool, a prompt, a docstring or an annotation, run `python scripts/gen_tools_doc.py` and commit the updated files; don't edit the generated parts by hand.
 
 `tests/test_http_e2e.py` drives the real HTTP app (`build_http_app()`, what `netlicensing-mcp http` serves) end to end against a fake NetLicensing API, so it needs no network and no API key.

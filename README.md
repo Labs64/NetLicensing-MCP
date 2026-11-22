@@ -278,7 +278,7 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 **Good to know**
 
 - List tools and `validate_licensee` always return `{"type": "list", "count": ..., "items": [...]}`, even for zero or one result. Get, create and update tools return a single object.
-- **Paging:** `count` is the number of items in this response. NetLicensing returns at most 100 items per page, so list results also carry what the API reports about paging: `total` (all matching items), `page` (0-based), `total_pages` and `has_more`. When `has_more` is `true` they also carry `page_size` and a `next_page_hint` with the exact `filter` value for the next page, JSON-quoted (e.g. `filter="active=true;page=1;items=100"`); pass it as `filter` with the other arguments unchanged. `netlicensing_list_bundles` now takes an optional `filter` like the other list tools. Payment methods, licensing models, license types and countries are not paged by NetLicensing, so they get no paging hint.
+- **Paging:** `count` is the number of items in this response. NetLicensing returns at most 100 items per page, so list results also carry what the API reports about paging: `total` (all matching items), `page` (0-based), `total_pages` and `has_more`. When `has_more` is `true` they also carry `page_size` and a `next_page_hint` with the exact `filter` value for the next page, JSON-quoted (e.g. `filter="active=true;page=1;items=100"`); pass it as `filter` with the other arguments unchanged. `netlicensing_list_bundles` takes an optional `filter` like the other list tools. Payment methods, licensing models, license types and countries are not paged by NetLicensing, so they get no paging hint.
 - Every tool accepts `include_raw=true` if you also want the original NetLicensing response.
 - **Response format:** every result is the JSON as text, plus the same object as `structuredContent` for clients that read structured output. A result that is not a JSON object (for example the message of a confirmed delete) comes as `{"result": ...}`. Failed calls are flagged with `isError`, and every tool declares an `outputSchema`.
 - Tools tell your client whether they only read data, write data, or are destructive, so clients can ask for approval at the right moments.
@@ -288,7 +288,7 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 ## Security defaults
 
 - **No silent demo credentials.** If `NETLICENSING_API_KEY` is missing and `NETLICENSING_ALLOW_DEMO` isn't enabled, the server refuses to start (stdio) or answers `503` (HTTP).
-- **Secrets are masked.** Every response, and every log line this server writes, passes through a redaction filter for `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret`. Short values become `****`. Longer ones keep the first 3 and last 4 characters (for example `pk_****W3Od`). Add your own fields with `MCP_REDACT_FIELDS`. Request logs show token paths as `/token/****`; the HTTP libraries' own request and response logging (`httpx`, `httpcore`, `sse_starlette`) is held at `WARNING`, also in verbose mode, because it would write full token numbers and new keys. Verbose mode (`-v` / `MCP_VERBOSE`) also turns on the MCP SDK's and web server's own DEBUG output, which this filter does not cover: use it for local debugging only and don't ship or keep its logs.
+- **Secrets are masked.** Every response, and every log line this server writes, passes through a redaction filter for `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret`. Short values become `****`. Longer ones keep the first 3 and last 4 characters (for example `pk_****W3Od`). Add your own fields with `MCP_REDACT_FIELDS`. Request logs show token paths as `/token/****`; the HTTP libraries' own request and response logging (`httpx`, `httpcore`, `sse_starlette`) is held at `WARNING`, also in verbose mode, because it would write full token numbers and new keys. Verbose mode (`-v` / `MCP_VERBOSE`) also turns on the MCP SDK's own DEBUG output, which this filter does not cover: use it for local debugging only and don't ship or keep its logs.
 - **Credentials appear once.** `create_api_token` and `create_shop_token` mark their response `"shown_once": true`. Later `get_token` and `list_tokens` calls return masked values, and deleting a token shows its number only masked (in the preview, the delete message and confirmation errors).
 - **Deletes need confirmation.** Each delete first returns a preview and a single-use token that expires after 5 minutes. Nothing is deleted until you send that token back. `force_cascade` is a separate option that also removes dependent items, and it's only used when you ask for it.
 - **One key per request in HTTP mode.** Keys come from request headers, never from URLs, so one server can serve several teams safely.
@@ -332,7 +332,7 @@ docker run -d -p 8000:8000 \
 ```
 
 #### Verbose logging (any mode)
-For local debugging only: besides this server's own (redacted) request lines it turns on DEBUG output of the MCP SDK and the web server, which is not filtered. Don't ship or keep these logs.
+For local debugging only: besides this server's own (redacted) request lines it turns on the MCP SDK's own DEBUG output, which is not filtered. Don't ship or keep these logs.
 ```bash
 # CLI flag
 docker run -i --rm \
@@ -550,13 +550,12 @@ Once the server is configured, ask your assistant to **run `netlicensing_server_
 | `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
 | `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs API requests/responses **with sensitive fields automatically redacted** (token paths as `/token/****`). Also turns on the MCP SDK's own DEBUG output, which is not redacted: local debugging only. Can also be set via `-v` CLI flag. |
 | `MCP_REDACT_FIELDS` | No | — | Comma-separated list of additional field names to redact from all tool responses and log output (e.g. `MCP_REDACT_FIELDS=ssn,phone`). Extends the built-in default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. |
-| `MCP_TOOLSETS` | No | `all` | Comma-separated list of toolsets to register (e.g. `licensees,licenses`). Unknown names are ignored with a warning on stderr. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
-| `MCP_READ_ONLY` | No | `false` | Register only read-only tools (`true`, `1`, or `yes`): list, get, `preview_*`, workflows and reference data. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
+| `MCP_TOOLSETS` | No | `all` | Comma-separated list of toolsets to register (e.g. `licensees,licenses`). Unknown names are ignored with a warning on stderr (also when `all` is given). See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
+| `MCP_READ_ONLY` | No | `false` | Register only read-only tools (`true`, `1`, or `yes`): list, get, `preview_*`, workflows and reference data. Any other value except `false`, `0` or `no` leaves read-only mode off and logs a warning on stderr. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
 
 > **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode) or return `503 Service Unavailable` for all tool calls (HTTP mode). This prevents accidental use of demo credentials in production.
 
 > **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header. Query-parameter keys are not supported, because URLs are logged by proxies and load balancers.
-
 
 ### Reduce the tool list / read-only mode
 
@@ -574,7 +573,7 @@ The <!-- count:toolsets -->11<!-- /count:toolsets --> toolsets and their tools a
 MCP_TOOLSETS=licensees,licenses MCP_READ_ONLY=true NETLICENSING_API_KEY=your_key uvx netlicensing-mcp
 ```
 
-All prompts are always available. Some of their steps call tools that may not be registered (for example `audit_expiry` calls `netlicensing_create_shop_token`, which is not available in read-only mode or without the `tokens` toolset, and the setup prompts create entities, which read-only mode does not allow); the assistant then cannot run those steps.
+All prompts are always available. Some of their steps call tools that may not be registered (for example `audit_expiry` calls `netlicensing_create_shop_token`, which is not available in read-only mode or without the `tokens` toolset, and the setup prompts create entities, which read-only mode does not allow); the assistant then cannot run those steps. The same goes for tools named in the `suggested_actions` of the two workflows and in the instructions of a preview: in read-only mode a `preview_*` result is impact analysis only, since the update or delete tool that would take its confirmation token is not registered. The `suggested_actions` of error results name only registered tools.
 
 ---
 
@@ -659,7 +658,7 @@ mcp dev src/netlicensing_mcp/server.py
 
 **Read the error result**
 
-A failed tool call returns `{"error": true, "status": ..., "detail": ...}` (flagged `isError`), where `detail` is NetLicensing's own message. It also carries `hint` (the next step), `suggested_actions` (tools to call next) and `retryable` (whether the same call may succeed later; `retry_after_seconds` on a `429`). For example:
+A failed tool call returns `{"error": true, "status": ..., "detail": ...}` (flagged `isError`), where `detail` is NetLicensing's own message. It also carries `hint` (the next step), `suggested_actions` (tools to call next) and `retryable` (whether the same call may succeed later; `retry_after_seconds` on a `429`). `retryable` means the failure is transient, not that repeating the call is safe: a create or update may already have been applied before the error, so check the current state first (for a write that failed with a server error, the hint names a tool to check with). A rejected confirmation token (`confirm_token`) gives an error without `status`: its `hint` points at the matching `preview_*` tool. For example:
 
 ```json
 {
@@ -681,7 +680,7 @@ A failed tool call returns `{"error": true, "status": ..., "detail": ...}` (flag
 | `500`, `502`, `504` | NetLicensing error, API unreachable or timed out (the hint names the API host only) | yes |
 | `503` | No API key configured (see below); any other `503` counts as a server error like `500` | no |
 
-The hints never contain your API key. A hint about a delete blocked by dependents points at the `preview_delete` tool; `force_cascade` is for an explicit user request only.
+The hints never contain your API key. A hint about a delete blocked by dependents points at the `preview_delete` tool; it mentions `force_cascade` (for an explicit user request only) and deactivating with `active=false` only when that delete or an update tool for the entity offers them, so not for tokens.
 
 **Common issues**
 

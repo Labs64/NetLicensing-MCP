@@ -35,5 +35,5 @@ Only the latest release receives security fixes.
 
 - Use the least powerful API key role that does the job (licensee, analytics, operation, maintenance or admin).
 - Never set `NETLICENSING_ALLOW_DEMO` in production.
-- Use verbose logging (`-v` / `MCP_VERBOSE`) for local debugging only. It also turns on the MCP SDK's and the web server's own DEBUG output (for example a line per incoming message), which this server does not redact. Don't ship or keep verbose logs.
+- Use verbose logging (`-v` / `MCP_VERBOSE`) for local debugging only. It also turns on the MCP SDK's own DEBUG output (for example a line per incoming message), which this server does not redact. Don't ship or keep verbose logs.
 - Serve HTTP mode behind HTTPS only.
