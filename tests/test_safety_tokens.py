@@ -79,13 +79,30 @@ def test_validate_expired():
         datetime.now(timezone.utc) - timedelta(seconds=1),
         safety._owner(),
     )
-    with pytest.raises(ValueError, match="expired"):
+    with pytest.raises(ValueError, match="expired") as info:
         safety.validate_and_consume(token, "delete_product", "P001")
+    assert str(info.value) == "Confirmation token 'CONF-P…' has expired"
 
 
 def test_validate_unknown_token():
-    with pytest.raises(ValueError, match="Invalid"):
+    with pytest.raises(ValueError, match="Invalid") as info:
         safety.validate_and_consume("CONF-NOSUCH01-XXXX", "delete_product", "P001")
+    assert str(info.value) == "Invalid or already used confirmation token: 'CONF-N…'"
+
+
+def test_unknown_token_input_is_not_echoed_in_full():
+    secret = "sk_live_0123456789abcdef"  # e.g. an API key passed as confirm_token
+    with pytest.raises(ValueError) as info:
+        safety.validate_and_consume(secret, "delete_product", "P001")
+    assert secret not in str(info.value)
+    assert secret[6:] not in str(info.value)
+    assert "'sk_liv…'" in str(info.value)
+
+
+def test_short_unknown_token_is_shown_as_is():
+    with pytest.raises(ValueError) as info:
+        safety.validate_and_consume("abc", "delete_product", "P001")
+    assert str(info.value) == "Invalid or already used confirmation token: 'abc'"
 
 
 # ─── Unit: preview builders ───────────────────────────────────────────────────

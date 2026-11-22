@@ -355,6 +355,18 @@ async def test_list_bundles(bundle_response):
 
 
 @pytest.mark.asyncio
+async def test_list_bundles_passes_filter_to_get(bundle_response):
+    mock_get = AsyncMock(return_value=bundle_response)
+    with patch("netlicensing_mcp.tools.bundles.nl_get", new=mock_get):
+        from netlicensing_mcp.tools.bundles import list_bundles
+
+        await list_bundles()
+        await list_bundles(filter_str="active=true;page=1;items=2")
+    assert mock_get.await_args_list[0].args == ("/bundle", None)
+    assert mock_get.await_args_list[1].args == ("/bundle", {"filter": "active=true;page=1;items=2"})
+
+
+@pytest.mark.asyncio
 async def test_get_bundle(bundle_response):
     with patch(
         "netlicensing_mcp.tools.bundles.nl_get", new=AsyncMock(return_value=bundle_response)
@@ -1275,7 +1287,9 @@ async def test_delete_token():
         from netlicensing_mcp.tools.tokens import delete_token
 
         result = await delete_token("TK001")
-        assert "TK001" in result
+        # Task 8b: the number is masked (short values become ****), never echoed.
+        assert "TK001" not in result
+        assert "Token ****" in result
         assert "204" in result
 
 

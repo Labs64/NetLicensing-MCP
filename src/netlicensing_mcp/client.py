@@ -14,7 +14,7 @@ import logging
 import os
 import time
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 
 import httpx
 from dotenv import load_dotenv
@@ -31,9 +31,31 @@ api_key_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
     "api_key", default=os.getenv("NETLICENSING_API_KEY", "")
 )
 
+
+def base_url_host() -> str | None:
+    """Host name of ``BASE_URL`` (no scheme, credentials or path), or ``None``.
+
+    ``None`` when the URL has no host or cannot be parsed (``urlsplit`` raises
+    ``ValueError`` for e.g. ``http://[::1/core``), so callers that must never
+    raise (``netlicensing_server_info``, error hints, ``/ready``) can use it.
+    """
+    try:
+        return urlsplit(BASE_URL).hostname or None
+    except ValueError:
+        return None
+
+
 # ── Demo-mode helpers ─────────────────────────────────────────────────────────
 
 _last_demo_warning_time: float = 0.0
+
+# Logged (throttled) on demo-mode API calls; also a netlicensing_server_info warning.
+DEMO_MODE_WARNING = (
+    "DEMO MODE ACTIVE — using sandbox demo:demo credentials. "
+    "All API calls go to the NetLicensing sandbox. "
+    "Set NETLICENSING_API_KEY for production use. "
+    "Remove NETLICENSING_ALLOW_DEMO=true to disable this mode."
+)
 
 
 def _allow_demo() -> bool:
@@ -54,25 +76,53 @@ def is_demo_mode() -> bool:
 
 
 class NetLicensingError(Exception):
-    """Raised when the NetLicensing API returns a non-2xx status."""
+    """Raised when the NetLicensing API returns a non-2xx status.
 
-    def __init__(self, status_code: int, detail: str) -> None:
+    ``info_ids`` holds the ``id`` of each upstream ``infos.info[]`` entry
+    (e.g. ``NotFoundException``); ``retry_after`` the ``Retry-After`` header
+    in seconds, when the API sent one. Both feed the error hints
+    (``netlicensing_mcp.errors``).
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        detail: str,
+        *,
+        info_ids: tuple[str, ...] = (),
+        retry_after: int | None = None,
+    ) -> None:
         self.status_code = status_code
         self.detail = detail
+        self.info_ids = info_ids
+        self.retry_after = retry_after
         super().__init__(f"HTTP {status_code}: {detail}")
+
+
+def _retry_after_seconds(response: httpx.Response) -> int | None:
+    """``Retry-After`` as whole seconds, or ``None`` (absent or an HTTP date)."""
+    value = response.headers.get("Retry-After", "").strip()
+    return int(value) if value.isascii() and value.isdigit() else None
 
 
 def _raise_on_error(response: httpx.Response) -> None:
     """Raise *NetLicensingError* with the API error body if available."""
     if response.is_success:
         return
+    info_ids: tuple[str, ...] = ()
     try:
         body = response.json()
         infos = body.get("infos", {}).get("info", [])
         detail = "; ".join(i.get("value", "") for i in infos) or response.text
+        info_ids = tuple(str(i["id"]) for i in infos if isinstance(i, dict) and i.get("id"))
     except Exception:
         detail = response.text
-    raise NetLicensingError(response.status_code, detail)
+    raise NetLicensingError(
+        response.status_code,
+        detail,
+        info_ids=info_ids,
+        retry_after=_retry_after_seconds(response),
+    )
 
 
 # ── Path validation ──────────────────────────────────────────────────────────
@@ -151,12 +201,7 @@ def _headers(extra: dict[str, str] | None = None) -> dict[str, str]:
         # Demo mode is explicitly opted-in — emit a loud, throttled warning.
         now = time.monotonic()
         if now - _last_demo_warning_time >= 60:
-            logger.warning(
-                "⚠️  DEMO MODE ACTIVE — using sandbox demo:demo credentials. "
-                "All API calls go to the NetLicensing sandbox. "
-                "Set NETLICENSING_API_KEY for production use. "
-                "Remove NETLICENSING_ALLOW_DEMO=true to disable this mode."
-            )
+            logger.warning("⚠️  %s", DEMO_MODE_WARNING)
             _last_demo_warning_time = now
         auth_str = "demo:demo"
     else:

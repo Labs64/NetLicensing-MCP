@@ -1,6 +1,6 @@
 """P1.8 — Customer Health Summary synthesiser.
 
-Pure module — no I/O. The MCP tool wrapper in server.py fetches the three
+Pure module — no I/O. The MCP tool wrapper in mcp_tools/workflows.py fetches the three
 upstream payloads and passes them here.
 """
 

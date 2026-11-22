@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from netlicensing_mcp.client import api_key_ctx
+from netlicensing_mcp.redaction import mask_token_number
 
 TOKEN_TTL = timedelta(minutes=5)
 
@@ -31,6 +32,30 @@ _store: dict[str, tuple[str, str, datetime, str]] = {}
 # Random per-process salt for the owner label. The label is only compared inside
 # this process and dies with it.
 _OWNER_SALT = secrets.token_bytes(16)
+
+
+#: Operations whose target is a credential: for a token delete the target is the
+#: token number, which for APIKEY and SHOP tokens is the key itself. Their targets
+#: are masked in every message this module builds (preview ``target``, mismatch
+#: error). The store keeps and compares the real target.
+_SECRET_TARGET_OPS = frozenset({"delete_token"})
+
+
+def _shown(operation: str, target: str) -> str:
+    """Return *target* as it may be shown for *operation* (display only)."""
+    return mask_token_number(target) if operation in _SECRET_TARGET_OPS else target
+
+
+_SHOWN_TOKEN_CHARS = 6
+
+
+def _shown_token(token: str) -> str:
+    """Return the caller's ``confirm_token`` input as it may appear in an error.
+
+    Unknown and expired tokens are arbitrary caller input (a key pasted into the
+    wrong argument, say), so only the first characters are repeated.
+    """
+    return token[:_SHOWN_TOKEN_CHARS] + "…" if len(token) > _SHOWN_TOKEN_CHARS else token
 
 
 def _owner() -> str:
@@ -95,16 +120,18 @@ def validate_and_consume(token: str, operation: str, target: str) -> None:
     if entry is not None and not hmac.compare_digest(entry[3], _owner()):
         entry = None
     if entry is None:
-        raise ValueError(f"Invalid or already used confirmation token: {token!r}")
+        raise ValueError(f"Invalid or already used confirmation token: {_shown_token(token)!r}")
 
     stored_op, stored_target, expires_at, _ = entry
     if datetime.now(timezone.utc) > expires_at:
         del _store[token]
-        raise ValueError(f"Confirmation token {token!r} has expired")
+        raise ValueError(f"Confirmation token {_shown_token(token)!r} has expired")
 
     if stored_op != operation or stored_target != target:
+        # The comparison above uses the real targets; only the message masks them.
         raise ValueError(
-            f"Token {token!r} is for {stored_op!r}/{stored_target!r}, not {operation!r}/{target!r}"
+            f"Token {token!r} is for {stored_op!r}/{_shown(stored_op, stored_target)!r}, "
+            f"not {operation!r}/{_shown(operation, target)!r}"
         )
 
     del _store[token]
@@ -116,11 +143,15 @@ def make_delete_preview(
     affected: dict[str, Any],
     samples: dict[str, Any] | None = None,
 ) -> dict:
-    """Build a preview response for a destructive delete and issue a confirmation token."""
+    """Build a preview response for a destructive delete and issue a confirmation token.
+
+    The token is bound to the real *target*; the returned ``target`` is masked
+    for operations whose target is a credential (``delete_token``).
+    """
     token, expires_at = issue_token(operation, target)
     return {
         "operation": operation,
-        "target": target,
+        "target": _shown(operation, target),
         "affected": affected,
         "samples": samples or {},
         "confirmation_token": token,

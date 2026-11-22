@@ -1,16 +1,20 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Labs64/netlicensing-mcp",
   "title": "NetLicensing MCP Server",
-  "description": "Official Labs64 NetLicensing MCP server: manage products, licensees, licenses and entitlements in plain language.",
+  "description": "Official Labs64 NetLicensing MCP server: manage products, licensees, licenses and entitlements.",
   "version": "${VERSION}",
-  "homepage": "https://github.com/Labs64/NetLicensing-MCP",
-  "license": "Apache-2.0",
+  "websiteUrl": "https://netlicensing.io",
+  "repository": {
+    "url": "https://github.com/Labs64/NetLicensing-MCP",
+    "source": "github"
+  },
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "netlicensing-mcp",
       "version": "${VERSION}",
+      "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
       },
@@ -18,55 +22,47 @@
         {
           "name": "NETLICENSING_API_KEY",
           "description": "Your NetLicensing API key. Required unless NETLICENSING_ALLOW_DEMO is true.",
-          "required": true,
+          "isRequired": true,
           "isSecret": true
         },
         {
           "name": "NETLICENSING_ALLOW_DEMO",
           "description": "Set to true to run against the NetLicensing sandbox with demo credentials. Never use in production.",
-          "required": false,
+          "format": "boolean",
           "default": "false"
         },
         {
           "name": "NETLICENSING_BASE_URL",
           "description": "Override the NetLicensing API base URL",
-          "required": false,
           "default": "https://go.netlicensing.io/core/v2/rest"
-        },
-        {
-          "name": "MCP_TRANSPORT",
-          "description": "Transport mode: stdio (default) or http",
-          "required": false,
-          "default": "stdio"
         },
         {
           "name": "MCP_VERBOSE",
           "description": "Enable verbose debug logging (true/false)",
-          "required": false,
+          "format": "boolean",
           "default": "false"
         },
         {
-          "name": "MCP_HOST",
-          "description": "Bind address in HTTP mode",
-          "required": false,
-          "default": "127.0.0.1"
-        },
-        {
-          "name": "MCP_PORT",
-          "description": "Bind port in HTTP mode",
-          "required": false,
-          "default": "8000"
-        },
-        {
           "name": "MCP_REDACT_FIELDS",
-          "description": "Comma-separated extra field names to redact from responses and logs",
-          "required": false
+          "description": "Comma-separated extra field names to redact from responses and logs"
+        },
+        {
+          "name": "MCP_TOOLSETS",
+          "description": "Comma-separated toolsets to register: products, bundles, modules, templates, licensees, licenses, tokens, transactions, payments, system, workflows, or all",
+          "default": "all"
+        },
+        {
+          "name": "MCP_READ_ONLY",
+          "description": "Register only read-only tools (true/false)",
+          "format": "boolean",
+          "default": "false"
         }
       ]
     },
     {
       "registryType": "oci",
       "identifier": "ghcr.io/labs64/netlicensing-mcp:${VERSION}",
+      "runtimeHint": "docker",
       "transport": {
         "type": "stdio"
       },
@@ -74,56 +70,42 @@
         {
           "name": "NETLICENSING_API_KEY",
           "description": "Your NetLicensing API key. Required unless NETLICENSING_ALLOW_DEMO is true.",
-          "required": true,
+          "isRequired": true,
           "isSecret": true
         },
         {
           "name": "NETLICENSING_ALLOW_DEMO",
           "description": "Set to true to run against the NetLicensing sandbox with demo credentials. Never use in production.",
-          "required": false,
+          "format": "boolean",
           "default": "false"
         },
         {
           "name": "NETLICENSING_BASE_URL",
           "description": "Override the NetLicensing API base URL",
-          "required": false,
           "default": "https://go.netlicensing.io/core/v2/rest"
-        },
-        {
-          "name": "MCP_TRANSPORT",
-          "description": "Transport mode: stdio (default) or http",
-          "required": false,
-          "default": "stdio"
         },
         {
           "name": "MCP_VERBOSE",
           "description": "Enable verbose debug logging (true/false)",
-          "required": false,
+          "format": "boolean",
           "default": "false"
         },
         {
-          "name": "MCP_HOST",
-          "description": "Bind address in HTTP mode",
-          "required": false,
-          "default": "127.0.0.1"
-        },
-        {
-          "name": "MCP_PORT",
-          "description": "Bind port in HTTP mode",
-          "required": false,
-          "default": "8000"
-        },
-        {
           "name": "MCP_REDACT_FIELDS",
-          "description": "Comma-separated extra field names to redact from responses and logs",
-          "required": false
+          "description": "Comma-separated extra field names to redact from responses and logs"
+        },
+        {
+          "name": "MCP_TOOLSETS",
+          "description": "Comma-separated toolsets to register: products, bundles, modules, templates, licensees, licenses, tokens, transactions, payments, system, workflows, or all",
+          "default": "all"
+        },
+        {
+          "name": "MCP_READ_ONLY",
+          "description": "Register only read-only tools (true/false)",
+          "format": "boolean",
+          "default": "false"
         }
       ]
     }
-  ],
-  "websiteUrl": "https://netlicensing.io",
-  "repository": {
-    "url": "https://github.com/Labs64/NetLicensing-MCP",
-    "source": "github"
-  }
+  ]
 }

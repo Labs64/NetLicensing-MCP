@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
-from mcp.types import PromptMessage, TextContent
+from mcp.server.fastmcp.prompts.base import UserMessage
+from mcp.types import TextContent
+
+from netlicensing_mcp.prompts import clean_doc
 
 
 def register_audit_prompts(mcp: FastMCP) -> None:
@@ -12,15 +15,20 @@ def register_audit_prompts(mcp: FastMCP) -> None:
     # ── 1. Full account audit ────────────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_full(product_number: str) -> list[PromptMessage]:
-        """Run a comprehensive license audit across all customers of a product.
+    @clean_doc
+    def audit_full(product_number: str) -> list[UserMessage]:
+        """Run a full entitlement audit across all customers of a product.
+
+        Lists the product's modules and licensees, validates every licensee and
+        lists their licenses, then reports compliant, failing and at-risk
+        customers (expiring within 30 days or under 10% quota left), statistics
+        and prioritized actions.
 
         Args:
             product_number: The NetLicensing product number to audit (e.g. 'P001')
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -90,15 +98,20 @@ Numbered list for the account owner, ordered by entitlement risk and customer im
     # ── 2. Single-customer deep-dive ─────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_customer(licensee_number: str) -> list[PromptMessage]:
-        """Deep-dive audit for a single customer's license health.
+    @clean_doc
+    def audit_customer(licensee_number: str) -> list[UserMessage]:
+        """Deep-dive audit of a single customer's license health.
+
+        Checks the licensee's profile, validates every module and lists its
+        licenses, then reports the overall status, issues and recommended
+        actions. For an expired or invalid entitlement it also generates a Shop
+        renewal URL.
 
         Args:
             licensee_number: The licensee number to audit (e.g. 'I001')
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -150,19 +163,23 @@ with licensee_number="{licensee_number}" and include the renewal URL in the repo
     # ── 3. Expiry sweep ──────────────────────────────────────────────────────
 
     @mcp.prompt()
+    @clean_doc
     def audit_expiry(
         product_number: str,
         days_threshold: int = 30,
-    ) -> list[PromptMessage]:
-        """Find all customers with licenses expiring within N days.
+    ) -> list[UserMessage]:
+        """Find customers whose licenses expired or expire within N days, with renewal URLs.
+
+        Validates every licensee of the product, lists the already expired and
+        the soon-expiring entitlements, and generates a Shop renewal URL for
+        each expired or at-risk customer.
 
         Args:
             product_number: Product number to sweep
             days_threshold: Flag licenses expiring within this many days (default 30)
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -214,15 +231,20 @@ Present as:
     # ── 4. Cleanup audit ─────────────────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_cleanup(product_number: str) -> list[PromptMessage]:
+    @clean_doc
+    def audit_cleanup(product_number: str) -> list[UserMessage]:
         """Identify inactive, unused, or orphaned licenses for cleanup.
+
+        Finds licensees of the product with no active license, with a mix of
+        active and inactive licenses, or with floating / quantity quota used up,
+        and recommends deactivation, deletion or a renewal. It changes nothing
+        without the user's confirmation.
 
         Args:
             product_number: Product number to inspect
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""
@@ -271,15 +293,21 @@ without explicit confirmation from the user after they review this report.
     # ── 5. Anomaly detection ─────────────────────────────────────────────────
 
     @mcp.prompt()
-    def audit_anomaly(product_number: str) -> list[PromptMessage]:
+    @clean_doc
+    def audit_anomaly(product_number: str) -> list[UserMessage]:
         """Detect anomalous usage patterns across all customers.
+
+        Validates every licensee of the product and lists their licenses, then
+        looks for usage anomalies (high consumption, maxed-out floating seats),
+        configuration anomalies (licenses from inactive templates, duplicates)
+        and compliance anomalies (validation fails although licenses are
+        active), ranked by severity.
 
         Args:
             product_number: Product number to analyse
         """
         return [
-            PromptMessage(
-                role="user",
+            UserMessage(
                 content=TextContent(
                     type="text",
                     text=f"""

@@ -6,9 +6,15 @@ from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 from netlicensing_mcp.tools.helpers import first_item_property, strip_output_fields
 
 
-async def list_bundles() -> dict:
-    """List all bundles in the account."""
-    return strip_output_fields(await nl_get("/bundle"))
+async def list_bundles(filter_str: str | None = None) -> dict:
+    """List all bundles in the account.
+
+    filter_str: optional server-side filter expression (e.g. 'active=true').
+    """
+    params: dict[str, str] = {}
+    if filter_str:
+        params["filter"] = filter_str
+    return strip_output_fields(await nl_get("/bundle", params or None))
 
 
 async def get_bundle(bundle_number: str) -> dict:

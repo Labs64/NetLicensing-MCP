@@ -1,6 +1,6 @@
 """P1.9 — Smart Validation Explainer synthesiser.
 
-Pure module — no I/O. The MCP tool wrapper in server.py calls
+Pure module — no I/O. The MCP tool wrapper in mcp_tools/workflows.py calls
 validate_licensee(dry_run=True) and passes the response here.
 """
 

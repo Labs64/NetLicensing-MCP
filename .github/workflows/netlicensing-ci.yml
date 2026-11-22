@@ -35,7 +35,10 @@ jobs:
         run: ruff format --check .
 
       - name: Type check (mypy)
-        run: mypy src/
+        run: mypy src/ scripts/
+
+      - name: Tool docs in sync (docs/TOOLS.md, README)
+        run: python scripts/gen_tools_doc.py --check
 
   security:
     name: Security audit

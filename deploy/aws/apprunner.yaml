@@ -72,6 +72,14 @@ Resources:
 
   McpService:
     Type: AWS::AppRunner::Service
+    Metadata:
+      # cfn-lint W3697: App Runner is in maintenance mode (closed to new
+      # customers). Intentional: this template exists only for accounts that
+      # already use App Runner (see README); Fargate is the recommended path.
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3697
     Properties:
       ServiceName: !Ref AWS::StackName
       SourceConfiguration:
@@ -105,10 +113,18 @@ Resources:
         HealthyThreshold: 1
         UnhealthyThreshold: 3
 
-  # ── Auto-Scaling (supports scale-to-zero) ──────────────────────────────
+  # ── Auto-Scaling (minimum 1 instance; no scale-to-zero) ────────────────
 
   AutoScaling:
     Type: AWS::AppRunner::AutoScalingConfiguration
+    Metadata:
+      # cfn-lint W3697: App Runner is in maintenance mode (closed to new
+      # customers). Intentional: this template exists only for accounts that
+      # already use App Runner (see README); Fargate is the recommended path.
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W3697
     Properties:
       AutoScalingConfigurationName: !Sub "${AWS::StackName}-scaling"
       MinSize: !Ref MinSize

@@ -415,14 +415,16 @@ async def test_n6_server_info(monkeypatch):
     monkeypatch.setattr(client, "BASE_URL", "https://user:pw@go.netlicensing.io/core/v2/rest")
     token = client.api_key_ctx.set("secret-key")
     try:
-        out = json.loads(await netlicensing_server_info())
+        # Task 6: server_info now adds fields and, by default, calls the API.
+        out = json.loads(await netlicensing_server_info(check_connection=False))
     finally:
         client.api_key_ctx.reset(token)
-    assert out == {
+    assert {k: out[k] for k in ("version", "base_url", "demo_mode")} == {
         "version": version("netlicensing-mcp"),
         "base_url": "go.netlicensing.io",
         "demo_mode": False,
     }
+    assert "secret-key" not in json.dumps(out)
 
 
 async def test_n1_validate_surfaces_info_refusal():

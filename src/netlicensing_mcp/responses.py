@@ -19,6 +19,9 @@ Contract:
   ``{"type": "list", "kind": "...", "count": N, "items": [...]}`` — also for
   zero or one item (they call :func:`wrap` with ``as_list=True``).
 * **get / create / update return a single envelope** — a flat dict.
+* List envelopes add the paging data upstream reports (``total``, ``page``,
+  ``total_pages``, ``has_more``, ``page_size``, ``next_page_hint``); ``count``
+  stays the number of items in this response.
 
 Nested ``list`` groups inside an item (e.g. the per-session data Core returns
 for a Floating ``ProductModuleValidation``) are kept, flattened the same way,
@@ -38,6 +41,7 @@ Usage::
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -196,6 +200,88 @@ def _wrap_item(
     return envelope
 
 
+# ── Pagination ────────────────────────────────────────────────────────────────
+
+#: Filter keys that select the page (``page`` is 0-based, ``items`` is the
+#: page size; default 100, maximum 100 — https://netlicensing.io/wiki/api-conventions).
+_PAGING_FILTER_KEYS = frozenset({"page", "items"})
+
+
+def _int_attr(items_obj: dict, name: str) -> int | None:
+    """Return ``items_obj[name]`` as a non-negative int, or ``None``."""
+    try:
+        value = int(str(items_obj[name]).strip())
+    except (KeyError, TypeError, ValueError):
+        return None
+    return value if value >= 0 else None
+
+
+def _bool_attr(items_obj: dict, name: str) -> bool | None:
+    """Return ``items_obj[name]`` (``"true"`` / ``"false"``) as a bool, or ``None``."""
+    value = str(items_obj.get(name, "")).strip().lower()
+    return {"true": True, "false": False}.get(value)
+
+
+def next_page_filter(user_filter: str, page: int, page_size: int) -> str:
+    """Return the ``filter`` value that fetches *page* with *page_size* items.
+
+    Keeps every ``key=value`` pair of *user_filter* except ``page`` / ``items``
+    (any case), then appends ``page=<page>;items=<page_size>``.
+    """
+    parts = [
+        p.strip()
+        for p in user_filter.split(";")
+        if p.strip() and p.split("=", 1)[0].strip().lower() not in _PAGING_FILTER_KEYS
+    ]
+    parts += [f"page={page}", f"items={page_size}"]
+    return ";".join(parts)
+
+
+def _paging_fields(items_obj: dict, paging_filter: str | None) -> dict[str, Any]:
+    """Map the upstream ``items`` paging attributes to list-envelope fields.
+
+    NetLicensing (XSD ``netlicensing-context-2.1.xsd``) sends ``pagenumber``
+    (0-based), ``itemsnumber`` (items on this page), ``totalpages``,
+    ``totalitems`` and ``hasnext`` as strings; some endpoints send them as
+    ``null``.  Only values that are present and parse are reported:
+
+    * ``total`` ← ``totalitems``; ``page`` ← ``pagenumber``;
+      ``total_pages`` ← ``totalpages``; ``has_more`` ← ``hasnext``.
+    * ``page_size`` ← ``itemsnumber``, only when ``hasnext`` is true: every
+      page but the last is full, so its item count is the page size.
+    * ``next_page_hint`` only when *paging_filter* is not ``None`` (the tool
+      pages through its ``filter`` argument; the value is the caller's
+      filter), ``has_more`` is true and ``page`` / ``page_size`` are known.
+    """
+    fields: dict[str, Any] = {}
+    for key, attr in (
+        ("total", "totalitems"),
+        ("page", "pagenumber"),
+        ("total_pages", "totalpages"),
+    ):
+        value = _int_attr(items_obj, attr)
+        if value is not None:
+            fields[key] = value
+    has_more = _bool_attr(items_obj, "hasnext")
+    if has_more is None:
+        return fields
+    fields["has_more"] = has_more
+    if not has_more:
+        return fields
+    page_size = _int_attr(items_obj, "itemsnumber")
+    if not page_size:
+        return fields
+    fields["page_size"] = page_size
+    page = fields.get("page")
+    if paging_filter is not None and page is not None:
+        nxt = next_page_filter(paging_filter, page + 1, page_size)
+        fields["next_page_hint"] = (
+            f"More items available: call this tool again with the same other "
+            f"arguments and filter={json.dumps(nxt, ensure_ascii=False)} (page is 0-based)."
+        )
+    return fields
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
@@ -208,6 +294,7 @@ def wrap(
     raw: dict | None = None,
     as_list: bool = False,
     warn_info_types: tuple[str, ...] = DEFAULT_WARN_INFO_TYPES,
+    paging_filter: str | None = None,
 ) -> dict[str, Any]:
     """Normalise a NetLicensing API response into a flat envelope with console_url.
 
@@ -225,6 +312,9 @@ def wrap(
               "type": "list",
               "kind": "<EntityKind>",
               "count": N,
+              # paging fields, each only when upstream reports it:
+              "total": T, "page": P, "total_pages": TP, "page_size": S,
+              "has_more": bool, "next_page_hint": "...",
               "items": [<envelope>, ...],
               "warnings": [],
               "suggested_actions": []
@@ -249,6 +339,14 @@ def wrap(
                            Validate adds ``INFO``: Core reports a refused
                            checkOut (``NoFreeSessions``) or node binding
                            (``NoFreeNodes``) as INFO.
+        paging_filter:     The caller's ``filter`` argument (``""`` when empty)
+                           for tools that page through ``filter``; enables
+                           ``next_page_hint``.  ``None`` (default) for tools
+                           without a ``filter`` parameter.
+
+    ``count`` is always the number of items in *this* response; ``total`` and
+    the other paging fields come from the upstream ``items`` attributes (see
+    :func:`_paging_fields`).
     """
     items_obj = entity.get("items", {})
     item_list = items_obj.get("item", []) if isinstance(items_obj, dict) else []
@@ -286,6 +384,7 @@ def wrap(
             "type": "list",
             "kind": effective_kind or "",
             "count": len(wrapped_items),
+            **(_paging_fields(items_obj, paging_filter) if isinstance(items_obj, dict) else {}),
             "items": wrapped_items,
             "warnings": [],
             "suggested_actions": suggested_actions or [],
