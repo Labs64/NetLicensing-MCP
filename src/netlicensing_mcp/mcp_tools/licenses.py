@@ -228,7 +228,9 @@ async def netlicensing_delete_license(
     """
     try:
         if confirm_token:
-            safety.validate_and_consume(confirm_token, "delete_license", license_number)
+            safety.validate_and_consume(
+                confirm_token, "delete_license", license_number, force_cascade
+            )
             return await licenses.delete_license(license_number, force_cascade)
 
         # No token — always show preview; deletion is never allowed without confirmation.
@@ -244,6 +246,7 @@ async def netlicensing_delete_license(
                     "template": props.get("licenseTemplateNumber", ""),
                     "price": _fmt_price(props.get("price"), props.get("currency")) or "",
                 },
+                force_cascade=force_cascade,
             )
         )
     except ValueError as exc:

@@ -40,11 +40,10 @@ def test_issue_token_unique_for_same_target():
     assert t1 != t2
 
 
-def test_second_issue_invalidates_first():
+def test_second_issue_keeps_first_valid():
     t1, _ = safety.issue_token("delete_product", "P001")
     safety.issue_token("delete_product", "P001")
-    with pytest.raises(ValueError, match="Invalid"):
-        safety.validate_and_consume(t1, "delete_product", "P001")
+    safety.validate_and_consume(t1, "delete_product", "P001")
 
 
 def test_validate_and_consume_success():
@@ -78,6 +77,7 @@ def test_validate_expired():
         "P001",
         datetime.now(timezone.utc) - timedelta(seconds=1),
         safety._owner(),
+        False,
     )
     with pytest.raises(ValueError, match="expired") as info:
         safety.validate_and_consume(token, "delete_product", "P001")

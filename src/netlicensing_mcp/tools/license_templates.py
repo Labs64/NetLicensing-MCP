@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 from netlicensing_mcp.tools.helpers import (
+    delete_result,
     CustomPropertyValue,
     first_item_property,
     merge_custom_properties,
@@ -169,4 +170,6 @@ async def delete_license_template(template_number: str, force_cascade: bool = Fa
     if force_cascade:
         params["forceCascade"] = "true"
     status = await nl_delete(f"/licensetemplate/{template_number}", params or None)
-    return f"Template {template_number} deleted (HTTP {status})."
+    return delete_result(
+        "delete_license_template", "Template", template_number, status, force_cascade
+    )

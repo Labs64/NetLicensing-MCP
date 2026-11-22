@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from netlicensing_mcp.client import NetLicensingError
@@ -116,3 +117,24 @@ def strip_output_fields(data: Any, fields: frozenset[str] = STRIP_OUTPUT_FIELDS)
             ]
         return result
     return data
+
+
+def delete_result(
+    operation: str, label: str, shown: str, status: int, cascade: bool = False
+) -> str:
+    """Return the JSON string a successful delete tool sends back.
+
+    *shown* is the target as it may be displayed (masked for token deletes).
+    """
+    return json.dumps(
+        {
+            "operation": operation,
+            "target": shown,
+            "deleted": True,
+            "status": status,
+            "cascade": cascade,
+            "message": f"{label} {shown} deleted (HTTP {status}).",
+            "warnings": [],
+            "suggested_actions": [],
+        }
+    )

@@ -224,38 +224,44 @@ async def netlicensing_update_product(
         return _error(exc, "netlicensing_update_product")
 
 
+async def _product_delete_preview(product_number: str, force_cascade: bool) -> str:
+    await products.get_product(product_number)  # raises if it does not exist
+    modules_resp = await product_modules.list_product_modules(
+        product_number, page=0, items_per_page=1
+    )
+    licensees_resp = await licensees.list_licensees(product_number, page=0, items_per_page=100)
+    modules_n = _total_items(modules_resp)
+    licensees_n = _total_items(licensees_resp)
+    return _json(
+        safety.make_delete_preview(
+            "delete_product",
+            product_number,
+            affected={"product_modules": modules_n, "licensees": licensees_n},
+            samples={"licensees": _sample_numbers(licensees_resp)},
+            force_cascade=force_cascade,
+            blocking={"product_modules": modules_n, "licensees": licensees_n},
+        )
+    )
+
+
 @tool(title="Preview deletion of product", annotations=_READONLY)
-async def netlicensing_preview_delete_product(product_number: str) -> str:
+async def netlicensing_preview_delete_product(
+    product_number: str, force_cascade: bool = False
+) -> str:
     """Preview what would be deleted when deleting a product.
 
-    Returns affected counts, sample entity identifiers, and a short-lived
-    confirmation token. Pass the token to netlicensing_delete_product within
-    5 minutes to confirm the deletion.
+    Returns affected counts, sample entity identifiers, `requires_force_cascade`
+    and `blocking_dependencies` (a product with modules or licensees cannot be
+    deleted without force_cascade), and a short-lived confirmation token. The
+    token is bound to the force_cascade value used here: pass the same value,
+    with the token, to netlicensing_delete_product within 5 minutes.
 
     Args:
         product_number: Product to preview deletion for
+        force_cascade: Preview a cascade delete (also removes dependent modules, templates, licensees and licenses)
     """
     try:
-        # Use filter-embedded pagination to get accurate total counts from
-        # the API metadata (``totalitems``), not just the current page.
-        # items=1 for modules — only total count is needed, no samples.
-        # items=100 for licensees — fetch enough to also extract samples.
-        await products.get_product(product_number)  # raises if it does not exist
-        modules_resp = await product_modules.list_product_modules(
-            product_number, page=0, items_per_page=1
-        )
-        licensees_resp = await licensees.list_licensees(product_number, page=0, items_per_page=100)
-        return _json(
-            safety.make_delete_preview(
-                "delete_product",
-                product_number,
-                affected={
-                    "product_modules": _total_items(modules_resp),
-                    "licensees": _total_items(licensees_resp),
-                },
-                samples={"licensees": _sample_numbers(licensees_resp)},
-            )
-        )
+        return await _product_delete_preview(product_number, force_cascade)
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_preview_delete_product")
 
@@ -269,9 +275,12 @@ async def netlicensing_delete_product(
     """Delete a product permanently.
 
     Always requires a two-step confirmation:
-    1. Call without confirm_token (or call netlicensing_preview_delete_product)
-       to receive a preview and a short-lived confirmation token.
-    2. Call again with the confirm_token within 5 minutes to execute.
+    1. Call without confirm_token (or call netlicensing_preview_delete_product,
+       which shows the dependencies and whether force_cascade is required) to
+       receive a preview and a short-lived confirmation token.
+    2. Call again with the confirm_token and the same force_cascade value within
+       5 minutes to execute. A token issued for a non-cascade delete is rejected
+       for force_cascade=true and the reverse.
 
     Args:
         product_number: Product to delete
@@ -280,26 +289,13 @@ async def netlicensing_delete_product(
     """
     try:
         if confirm_token:
-            safety.validate_and_consume(confirm_token, "delete_product", product_number)
+            safety.validate_and_consume(
+                confirm_token, "delete_product", product_number, force_cascade
+            )
             return await products.delete_product(product_number, force_cascade)
 
-        # No token — always show preview; deletion is never allowed without confirmation.
-        await products.get_product(product_number)  # raises if it does not exist
-        modules_resp = await product_modules.list_product_modules(
-            product_number, page=0, items_per_page=1
-        )
-        licensees_resp = await licensees.list_licensees(product_number, page=0, items_per_page=100)
-        return _json(
-            safety.make_delete_preview(
-                "delete_product",
-                product_number,
-                affected={
-                    "product_modules": _total_items(modules_resp),
-                    "licensees": _total_items(licensees_resp),
-                },
-                samples={"licensees": _sample_numbers(licensees_resp)},
-            )
-        )
+        # No token: always show the preview; deletion is never allowed without confirmation.
+        return await _product_delete_preview(product_number, force_cascade)
     except ValueError as exc:
         return _confirm_error(exc, "netlicensing_delete_product")
     except NetLicensingError as exc:

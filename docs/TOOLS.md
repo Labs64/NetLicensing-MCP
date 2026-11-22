@@ -120,13 +120,16 @@ Changing licenseeAutoCreate or vatMode requires a confirmation token
 
 Preview what would be deleted when deleting a product.
 
-Returns affected counts, sample entity identifiers, and a short-lived
-confirmation token. Pass the token to netlicensing_delete_product within
-5 minutes to confirm the deletion.
+Returns affected counts, sample entity identifiers, `requires_force_cascade`
+and `blocking_dependencies` (a product with modules or licensees cannot be
+deleted without force_cascade), and a short-lived confirmation token. The
+token is bound to the force_cascade value used here: pass the same value,
+with the token, to netlicensing_delete_product within 5 minutes.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `product_number` | string | yes | — | Product to preview deletion for |
+| `force_cascade` | boolean | no | `false` | Preview a cascade delete (also removes dependent modules, templates, licensees and licenses) |
 
 ### `netlicensing_delete_product`
 
@@ -135,9 +138,12 @@ confirmation token. Pass the token to netlicensing_delete_product within
 Delete a product permanently.
 
 Always requires a two-step confirmation:
-1. Call without confirm_token (or call netlicensing_preview_delete_product)
-   to receive a preview and a short-lived confirmation token.
-2. Call again with the confirm_token within 5 minutes to execute.
+1. Call without confirm_token (or call netlicensing_preview_delete_product,
+   which shows the dependencies and whether force_cascade is required) to
+   receive a preview and a short-lived confirmation token.
+2. Call again with the confirm_token and the same force_cascade value within
+   5 minutes to execute. A token issued for a non-cascade delete is rejected
+   for force_cascade=true and the reverse.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|

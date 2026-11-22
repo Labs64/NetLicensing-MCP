@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from netlicensing_mcp.tools.helpers import first_item_property, scoped_filter
+from netlicensing_mcp.tools.helpers import delete_result, first_item_property, scoped_filter
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 
 
@@ -182,4 +182,4 @@ async def delete_license(license_number: str, force_cascade: bool = False) -> st
     if force_cascade:
         params["forceCascade"] = "true"
     status = await nl_delete(f"/license/{license_number}", params or None)
-    return f"License {license_number} deleted (HTTP {status})."
+    return delete_result("delete_license", "License", license_number, status, force_cascade)

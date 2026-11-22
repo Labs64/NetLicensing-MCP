@@ -173,8 +173,10 @@ async def test_plain_text_result_is_wrapped():
             "netlicensing_delete_product", {"product_number": "P001", "confirm_token": token}
         )
 
-    assert _text(result) == "Product P001 deleted (HTTP 204)."
-    assert result.structuredContent == {"result": "Product P001 deleted (HTTP 204)."}
+    assert json.loads(_text(result))["message"] == "Product P001 deleted (HTTP 204)."
+    assert result.structuredContent is not None
+    assert result.structuredContent["deleted"] is True
+    assert result.structuredContent["operation"] == "delete_product"
     assert result.isError is False
 
 

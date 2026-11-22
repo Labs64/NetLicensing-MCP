@@ -1033,7 +1033,7 @@
     {
       "name": "netlicensing_delete_product",
       "title": "Delete product",
-      "description": "Delete a product permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_product)\n   to receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token within 5 minutes to execute.\n\nArgs:\n    product_number: Product to delete\n    force_cascade: Also delete all dependent modules, templates, licensees, and licenses\n    confirm_token: Confirmation token from a previous preview call",
+      "description": "Delete a product permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_product,\n   which shows the dependencies and whether force_cascade is required) to\n   receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token and the same force_cascade value within\n   5 minutes to execute. A token issued for a non-cascade delete is rejected\n   for force_cascade=true and the reverse.\n\nArgs:\n    product_number: Product to delete\n    force_cascade: Also delete all dependent modules, templates, licensees, and licenses\n    confirm_token: Confirmation token from a previous preview call",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -2159,12 +2159,17 @@
     {
       "name": "netlicensing_preview_delete_product",
       "title": "Preview deletion of product",
-      "description": "Preview what would be deleted when deleting a product.\n\nReturns affected counts, sample entity identifiers, and a short-lived\nconfirmation token. Pass the token to netlicensing_delete_product within\n5 minutes to confirm the deletion.\n\nArgs:\n    product_number: Product to preview deletion for",
+      "description": "Preview what would be deleted when deleting a product.\n\nReturns affected counts, sample entity identifiers, `requires_force_cascade`\nand `blocking_dependencies` (a product with modules or licensees cannot be\ndeleted without force_cascade), and a short-lived confirmation token. The\ntoken is bound to the force_cascade value used here: pass the same value,\nwith the token, to netlicensing_delete_product within 5 minutes.\n\nArgs:\n    product_number: Product to preview deletion for\n    force_cascade: Preview a cascade delete (also removes dependent modules, templates, licensees and licenses)",
       "inputSchema": {
         "properties": {
           "product_number": {
             "title": "Product Number",
             "type": "string"
+          },
+          "force_cascade": {
+            "default": false,
+            "title": "Force Cascade",
+            "type": "boolean"
           }
         },
         "required": [

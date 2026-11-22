@@ -24,10 +24,10 @@ TOKEN_TTL = timedelta(minutes=5)
 
 _SUFFIX_LENGTH = 10
 
-# token_str → (operation, target, expires_at, owner)
+# token_str → (operation, target, expires_at, owner, force_cascade)
 # *owner* is a keyed digest of the caller's API key, so in a shared HTTP deployment
 # one tenant cannot consume or invalidate another tenant's confirmation token.
-_store: dict[str, tuple[str, str, datetime, str]] = {}
+_store: dict[str, tuple[str, str, datetime, str, bool]] = {}
 
 # Random per-process salt for the owner label. The label is only compared inside
 # this process and dies with it.
@@ -73,26 +73,19 @@ def _owner() -> str:
 
 def _purge_expired() -> None:
     now = datetime.now(timezone.utc)
-    for k in [k for k, (_, _, exp, _o) in _store.items() if exp < now]:
+    for k in [k for k, entry in _store.items() if entry[2] < now]:
         del _store[k]
 
 
-def issue_token(operation: str, target: str) -> tuple[str, datetime]:
-    """Issue a single-use confirmation token scoped to (operation, target).
+def issue_token(operation: str, target: str, force_cascade: bool = False) -> tuple[str, datetime]:
+    """Issue a single-use confirmation token scoped to (operation, target, force_cascade).
 
-    Any previously issued token for the same (operation, target) pair is
-    invalidated before the new token is created.
+    Earlier tokens for the same pair stay valid until they expire or are used, so
+    repeated previews (or a preview after a token-less delete call) never burn a
+    token the user may already hold. Each token is single-use.
     """
     _purge_expired()
-    # Invalidate existing tokens for this (operation, target)
     owner = _owner()
-    stale = [
-        k
-        for k, (op, tgt, _, own) in _store.items()
-        if op == operation and tgt == target and hmac.compare_digest(own, owner)
-    ]
-    for k in stale:
-        del _store[k]
 
     # The token deliberately does not embed the target: for a token delete the
     # target is the API key itself.
@@ -105,11 +98,13 @@ def issue_token(operation: str, target: str) -> tuple[str, datetime]:
             break
 
     expires_at = datetime.now(timezone.utc) + TOKEN_TTL
-    _store[token] = (operation, target, expires_at, owner)
+    _store[token] = (operation, target, expires_at, owner, force_cascade)
     return token, expires_at
 
 
-def validate_and_consume(token: str, operation: str, target: str) -> None:
+def validate_and_consume(
+    token: str, operation: str, target: str, force_cascade: bool = False
+) -> None:
     """Validate and consume a confirmation token.
 
     Raises ValueError if the token is unknown, expired, issued under a different
@@ -122,7 +117,7 @@ def validate_and_consume(token: str, operation: str, target: str) -> None:
     if entry is None:
         raise ValueError(f"Invalid or already used confirmation token: {_shown_token(token)!r}")
 
-    stored_op, stored_target, expires_at, _ = entry
+    stored_op, stored_target, expires_at, _, stored_cascade = entry
     if datetime.now(timezone.utc) > expires_at:
         del _store[token]
         raise ValueError(f"Confirmation token {_shown_token(token)!r} has expired")
@@ -134,6 +129,16 @@ def validate_and_consume(token: str, operation: str, target: str) -> None:
             f"not {operation!r}/{_shown(operation, target)!r}"
         )
 
+    if stored_cascade != force_cascade:
+        # Not consumed: the token stays usable with the matching force_cascade value.
+        issued = "a cascade" if stored_cascade else "a non-cascade"
+        used = "force_cascade=true" if force_cascade else "force_cascade=false"
+        raise ValueError(
+            f"This token was issued for {issued} delete but was used with {used}. "
+            "Request a new preview with the matching force_cascade value, or retry "
+            f"with force_cascade={'true' if stored_cascade else 'false'}."
+        )
+
     del _store[token]
 
 
@@ -142,24 +147,42 @@ def make_delete_preview(
     target: str,
     affected: dict[str, Any],
     samples: dict[str, Any] | None = None,
+    force_cascade: bool = False,
+    blocking: dict[str, int] | None = None,
 ) -> dict:
     """Build a preview response for a destructive delete and issue a confirmation token.
 
     The token is bound to the real *target*; the returned ``target`` is masked
     for operations whose target is a credential (``delete_token``).
     """
-    token, expires_at = issue_token(operation, target)
-    return {
+    token, expires_at = issue_token(operation, target, force_cascade)
+    preview: dict[str, Any] = {
         "operation": operation,
         "target": _shown(operation, target),
         "affected": affected,
         "samples": samples or {},
+        "force_cascade": force_cascade,
         "confirmation_token": token,
         "expires_at": expires_at.isoformat(),
-        "instructions": (
-            f"To execute this deletion, call the delete tool again with confirm_token={token!r}"
-        ),
     }
+    cascade_arg = ", force_cascade=true" if force_cascade else ""
+    instructions = (
+        f"To execute this deletion, call the delete tool again with confirm_token={token!r}"
+        f"{cascade_arg}."
+    )
+    if blocking is not None:
+        blocking = {k: v for k, v in blocking.items() if v}
+        preview["requires_force_cascade"] = bool(blocking)
+        preview["blocking_dependencies"] = blocking
+        if blocking and not force_cascade:
+            found = ", ".join(f"{n} {k.replace('_', ' ')}" for k, n in blocking.items())
+            instructions = (
+                f"This delete will fail without force_cascade: it has {found}. "
+                "Request a preview with force_cascade=true to delete them too (the token "
+                "is bound to that choice), or remove them first. " + instructions
+            )
+    preview["instructions"] = instructions
+    return preview
 
 
 def make_update_preview(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 from netlicensing_mcp.tools.helpers import (
+    delete_result,
     CustomPropertyValue,
     merge_custom_properties,
     scoped_filter,
@@ -126,4 +127,4 @@ async def delete_product_module(module_number: str, force_cascade: bool = False)
     if force_cascade:
         params["forceCascade"] = "true"
     status = await nl_delete(f"/productmodule/{module_number}", params or None)
-    return f"Module {module_number} deleted (HTTP {status})."
+    return delete_result("delete_product_module", "Module", module_number, status, force_cascade)

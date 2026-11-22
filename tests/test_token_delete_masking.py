@@ -161,8 +161,9 @@ async def test_round_trip_preview_then_delete_masks_the_message(token_type):
     # The real number reached the API.
     deleted.assert_awaited_once_with(f"/token/{KEY}")
     assert result.isError is False
-    assert _text(result) == f"Token {KEY_MASKED} deleted (HTTP 204)."
-    assert result.structuredContent == {"result": f"Token {KEY_MASKED} deleted (HTTP 204)."}
+    assert json.loads(_text(result))["message"] == f"Token {KEY_MASKED} deleted (HTTP 204)."
+    assert result.structuredContent is not None
+    assert result.structuredContent["target"] == KEY_MASKED
     assert KEY not in _everything(result)
     assert again.isError is True
     assert KEY not in _everything(again)
@@ -173,7 +174,8 @@ async def test_tools_layer_delete_message_is_masked():
         from netlicensing_mcp.tools.tokens import delete_token
 
         message = await delete_token(KEY)
-    assert message == f"Token {KEY_MASKED} deleted (HTTP 204)."
+    assert json.loads(message)["message"] == f"Token {KEY_MASKED} deleted (HTTP 204)."
+    assert json.loads(message)["target"] == KEY_MASKED
 
 
 # ── 3. Confirm-token mismatch error ──────────────────────────────────────────

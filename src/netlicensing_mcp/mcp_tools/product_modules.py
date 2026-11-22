@@ -209,7 +209,9 @@ async def netlicensing_delete_product_module(
     """
     try:
         if confirm_token:
-            safety.validate_and_consume(confirm_token, "delete_product_module", module_number)
+            safety.validate_and_consume(
+                confirm_token, "delete_product_module", module_number, force_cascade
+            )
             return await product_modules.delete_product_module(module_number, force_cascade)
 
         # No token — always show preview; deletion is never allowed without confirmation.
@@ -223,6 +225,7 @@ async def netlicensing_delete_product_module(
                 module_number,
                 affected={"license_templates": _total_items(templates_resp)},
                 samples={"license_templates": _sample_numbers(templates_resp)},
+                force_cascade=force_cascade,
             )
         )
     except ValueError as exc:

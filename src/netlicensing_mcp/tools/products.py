@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import strip_output_fields
+from netlicensing_mcp.tools.helpers import delete_result, strip_output_fields
 
 
 async def list_products(filter_str: str | None = None) -> dict:
@@ -101,9 +101,9 @@ async def update_product(
 
 
 async def delete_product(product_number: str, force_cascade: bool = False) -> str:
-    """Delete a product. Returns confirmation message."""
+    """Delete a product. Returns a JSON result."""
     params: dict[str, str] = {}
     if force_cascade:
         params["forceCascade"] = "true"
     status = await nl_delete(f"/product/{product_number}", params or None)
-    return f"Product {product_number} deleted (HTTP {status})."
+    return delete_result("delete_product", "Product", product_number, status, force_cascade)

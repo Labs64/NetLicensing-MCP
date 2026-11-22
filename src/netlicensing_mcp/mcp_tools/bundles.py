@@ -188,7 +188,9 @@ async def netlicensing_delete_bundle(
     """
     try:
         if confirm_token:
-            safety.validate_and_consume(confirm_token, "delete_bundle", bundle_number)
+            safety.validate_and_consume(
+                confirm_token, "delete_bundle", bundle_number, force_cascade
+            )
             return await bundles.delete_bundle(bundle_number, force_cascade)
 
         # No token — always show preview; deletion is never allowed without confirmation.
@@ -203,6 +205,7 @@ async def netlicensing_delete_bundle(
                     "bundle_name": props.get("name", ""),
                     "price": _fmt_price(props.get("price"), props.get("currency")) or "",
                 },
+                force_cascade=force_cascade,
             )
         )
     except ValueError as exc:

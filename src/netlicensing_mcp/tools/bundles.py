@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import first_item_property, strip_output_fields
+from netlicensing_mcp.tools.helpers import delete_result, first_item_property, strip_output_fields
 
 
 async def list_bundles(filter_str: str | None = None) -> dict:
@@ -94,12 +94,12 @@ async def update_bundle(
 
 
 async def delete_bundle(bundle_number: str, force_cascade: bool = False) -> str:
-    """Delete a bundle. Returns confirmation message."""
+    """Delete a bundle. Returns a JSON result."""
     params: dict[str, str] = {}
     if force_cascade:
         params["forceCascade"] = "true"
     status = await nl_delete(f"/bundle/{bundle_number}", params or None)
-    return f"Bundle {bundle_number} deleted (HTTP {status})."
+    return delete_result("delete_bundle", "Bundle", bundle_number, status, force_cascade)
 
 
 async def obtain_bundle(

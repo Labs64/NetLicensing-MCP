@@ -184,7 +184,9 @@ async def netlicensing_delete_licensee(
     """
     try:
         if confirm_token:
-            safety.validate_and_consume(confirm_token, "delete_licensee", licensee_number)
+            safety.validate_and_consume(
+                confirm_token, "delete_licensee", licensee_number, force_cascade
+            )
             return await licensees.delete_licensee(licensee_number, force_cascade)
 
         # No token — always show preview; deletion is never allowed without confirmation.
@@ -196,6 +198,7 @@ async def netlicensing_delete_licensee(
                 licensee_number,
                 affected={"licenses": _total_items(licenses_resp)},
                 samples={"licenses": _sample_numbers(licenses_resp)},
+                force_cascade=force_cascade,
             )
         )
     except ValueError as exc:

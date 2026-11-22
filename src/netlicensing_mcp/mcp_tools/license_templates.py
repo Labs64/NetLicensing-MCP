@@ -293,7 +293,9 @@ async def netlicensing_delete_license_template(
     """
     try:
         if confirm_token:
-            safety.validate_and_consume(confirm_token, "delete_license_template", template_number)
+            safety.validate_and_consume(
+                confirm_token, "delete_license_template", template_number, force_cascade
+            )
             return await license_templates.delete_license_template(template_number, force_cascade)
 
         template_resp = await license_templates.get_license_template(template_number)
@@ -309,6 +311,7 @@ async def netlicensing_delete_license_template(
                     "template_name": props.get("name", ""),
                     "price": _fmt_price(props.get("price"), props.get("currency")) or "",
                 },
+                force_cascade=force_cascade,
             )
         )
     except ValueError as exc:
