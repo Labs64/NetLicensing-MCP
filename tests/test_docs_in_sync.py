@@ -127,7 +127,10 @@ async def test_prompt_descriptions_are_documented(registry):
 
 async def test_readme_prompt_examples_use_real_arguments():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    examples = readme.split("<!-- prompts:end -->", 1)[1].split("\n---", 1)[0]
+    # From the end of the generated prompt tables up to the next Markdown heading.
+    after_tables = readme.split("<!-- prompts:end -->", 1)[1]
+    examples = re.split(r"^#{1,6} ", after_tables, maxsplit=1, flags=re.MULTILINE)[0]
+    assert "**Examples**" in examples
     args = {p.name: {a.name for a in p.arguments or []} for p in await server.mcp.list_prompts()}
     seen = set()
     for line in examples.splitlines():

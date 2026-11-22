@@ -144,8 +144,9 @@ async def test_reports_a_restricted_tool_list(key_default, fake_http, monkeypatc
 
 
 def test_instructions_point_at_server_info():
-    assert "run\n  `netlicensing_server_info` first" in app.INSTRUCTIONS
-    assert "on every new connection" not in app.INSTRUCTIONS
+    flat = " ".join(app.INSTRUCTIONS.split())  # line breaks and indentation do not matter
+    assert "run `netlicensing_server_info` first" in flat
+    assert "on every new connection" not in flat
 
 
 # ── Valid key ────────────────────────────────────────────────────────────────
