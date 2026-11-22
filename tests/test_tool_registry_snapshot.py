@@ -80,3 +80,26 @@ async def test_snapshot_covers_every_tool():
 async def test_default_registry_has_61_tools():
     # Without MCP_TOOLSETS / MCP_READ_ONLY every tool is registered.
     assert len(await mcp.list_tools()) == 61
+
+
+async def test_tool_descriptions_have_no_source_indentation():
+    """FastMCP sends the docstring as the description; on Python 3.12 it kept the
+    source indentation, and Markdown clients show lines indented by 4+ spaces as
+    code blocks. Only the entries of a Google-style ``Args:`` section stay
+    indented by 4+ spaces (they continue the ``Args:`` paragraph, and
+    scripts/gen_tools_doc.py reads the parameter descriptions from them); the
+    3-space continuation of a numbered list item is fine."""
+    tools = await mcp.list_tools()
+    assert len(tools) == 61
+    for tool in tools:
+        assert tool.description
+        assert tool.description == tool.description.strip()
+        in_args = False
+        for line in tool.description.splitlines():
+            if not line.strip():
+                continue
+            if not line[:1].isspace():
+                in_args = line.strip() == "Args:"
+                continue
+            if line.startswith("    "):
+                assert in_args, f"{tool.name}: code-block indent outside Args: {line!r}"

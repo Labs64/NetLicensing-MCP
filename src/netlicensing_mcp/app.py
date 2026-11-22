@@ -603,7 +603,17 @@ _TOOL_SPECS: list[_ToolSpec] = []
 
 
 def _add(server: FastMCP, spec: _ToolSpec) -> None:
-    server.add_tool(spec.fn, name=spec.name, title=spec.title, annotations=spec.annotations)
+    # FastMCP would send fn.__doc__ as is: on Python 3.12 that keeps the source
+    # indentation, which Markdown clients render as code blocks (3.13+ strips it
+    # at compile time). spec.fn is a functools.wraps wrapper, so __doc__ is the
+    # tool's own docstring.
+    server.add_tool(
+        spec.fn,
+        name=spec.name,
+        title=spec.title,
+        description=inspect.cleandoc(spec.fn.__doc__ or ""),
+        annotations=spec.annotations,
+    )
 
 
 def tool(

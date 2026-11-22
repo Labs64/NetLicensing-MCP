@@ -11,6 +11,9 @@ mcp:
           - "src/**/toolsets.py"
           - "src/**/errors.py"
           - "src/**/readiness.py"
+          - "src/**/safety.py"
+          - "src/**/responses.py"
+          - "src/**/redaction.py"
 
 api:
   - changed-files:

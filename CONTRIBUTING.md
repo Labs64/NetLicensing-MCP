@@ -27,7 +27,7 @@ mypy src/ scripts/
 python scripts/gen_tools_doc.py --check
 ```
 
-The tests expect the default tool registry, so `tests/conftest.py` ignores `MCP_TOOLSETS` and `MCP_READ_ONLY` from your shell for the test session.
+The tests expect the default tool registry, so `tests/conftest.py` ignores `MCP_TOOLSETS` and `MCP_READ_ONLY` from your shell or `.env` file for the test session (the pytest header says so when it does).
 
 The tool reference in [docs/TOOLS.md](docs/TOOLS.md) and the tool and prompt tables in the README are generated from the server's registry. After adding or changing a tool, a prompt, a docstring or an annotation, run `python scripts/gen_tools_doc.py` and commit the updated files; don't edit the generated parts by hand.
 
