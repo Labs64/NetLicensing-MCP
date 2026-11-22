@@ -8,7 +8,6 @@ import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urlsplit
 
 import httpx
 
@@ -299,7 +298,7 @@ async def netlicensing_server_info(check_connection: bool = True) -> str:
     """
     source = _auth_source()
     transport = active_transport()
-    host = urlsplit(_client.BASE_URL).hostname or ""
+    host = _client.base_url_host() or ""
     configured = source != "none"
     level = "ok"
     valid: bool | None = None

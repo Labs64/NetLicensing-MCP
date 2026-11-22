@@ -30,7 +30,6 @@ from __future__ import annotations
 
 from collections.abc import Container
 from typing import Any
-from urllib.parse import urlsplit
 
 from netlicensing_mcp import client
 from netlicensing_mcp.client import NetLicensingError
@@ -149,7 +148,7 @@ class _Tools:
 
 
 def _host() -> str:
-    return urlsplit(client.BASE_URL).hostname or "the NETLICENSING_BASE_URL host"
+    return client.base_url_host() or "the NETLICENSING_BASE_URL host"
 
 
 def _result(
@@ -242,7 +241,8 @@ def error_hint(
     tools = _Tools(available)
     status = exc.status_code
     verb = _verb(tool_name)
-    entity = _message_entity(exc.detail) or _tool_entity(tool_name)
+    named = _message_entity(exc.detail)
+    entity = named or _tool_entity(tool_name)
     phrase = _ENTITIES[entity][0] if entity else "entity"
 
     if status == 503 and exc.detail.startswith(_NO_KEY_PREFIX):
@@ -273,7 +273,10 @@ def error_hint(
             f"with a higher role in {_KEY_SETTINGS}.",
             [],
         )
-    if _is_not_found(exc):
+    # A create cannot miss its own entity: "... does not exist" there is about a
+    # referenced value (e.g. "Licensing model 'Foo' does not exist"), so without
+    # a recognised entity in the message it is a validation error, not not-found.
+    if _is_not_found(exc) and not (verb == "create" and named is None):
         lookup = tools.for_entity("list", entity)
         with_tool = f", or look it up with {lookup}" if lookup else ""
         return _result(

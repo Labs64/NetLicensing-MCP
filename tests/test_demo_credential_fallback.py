@@ -220,6 +220,39 @@ class TestJsonDemoModeTag:
         finally:
             nl_client.api_key_ctx.reset(token)
 
+    async def test_error_blob_tagged_in_demo_mode(self, monkeypatch):
+        """API error blobs (_error) carry the tag too, after the hint keys."""
+        import json
+
+        from netlicensing_mcp import server as srv
+
+        monkeypatch.setenv("NETLICENSING_ALLOW_DEMO", "true")
+        token = nl_client.api_key_ctx.set("")
+        try:
+            with patch(
+                "netlicensing_mcp.tools.products.nl_get",
+                new=AsyncMock(side_effect=NetLicensingError(500, "boom")),
+            ):
+                parsed = json.loads(await srv.netlicensing_get_product("P1"))
+            assert parsed["error"] is True
+            assert parsed["demo_mode"] is True
+            assert list(parsed)[-1] == "demo_mode"
+        finally:
+            nl_client.api_key_ctx.reset(token)
+
+    def test_error_blob_not_tagged_with_key(self, monkeypatch):
+        import json
+
+        from netlicensing_mcp.app import _error
+
+        monkeypatch.setenv("NETLICENSING_ALLOW_DEMO", "true")
+        token = nl_client.api_key_ctx.set("real-key")
+        try:
+            parsed = json.loads(_error(NetLicensingError(500, "boom"), "netlicensing_get_product"))
+            assert "demo_mode" not in parsed
+        finally:
+            nl_client.api_key_ctx.reset(token)
+
     def test_non_dict_not_modified(self, monkeypatch):
         """Non-dict values (e.g. list) must not be wrapped even in demo mode."""
         from netlicensing_mcp.server import _json

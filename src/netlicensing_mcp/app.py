@@ -385,10 +385,14 @@ def _error(exc: NetLicensingError, tool_name: str | None = None) -> str:
     ``error`` / ``status`` / ``detail`` come first, then the next-step keys
     from :func:`netlicensing_mcp.errors.error_hint` (``hint``,
     ``suggested_actions``, ``retryable`` and, for 429, ``retry_after_seconds``).
-    Suggestions name only tools that are registered on this server.
+    Suggestions name only tools that are registered on this server. In demo
+    mode the blob is tagged ``"demo_mode": true`` like every other JSON object
+    response.
     """
-    blob = {"error": True, "status": exc.status_code, "detail": exc.detail}
+    blob: dict[str, Any] = {"error": True, "status": exc.status_code, "detail": exc.detail}
     blob.update(error_hint(exc, tool_name, available=_registered_tool_names()))
+    if is_demo_mode():
+        blob["demo_mode"] = True
     return json.dumps(blob, indent=2)
 
 

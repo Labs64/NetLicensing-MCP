@@ -30,7 +30,6 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from urllib.parse import urlsplit
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -62,10 +61,7 @@ class UpstreamStatus:
 
 def upstream_host() -> str:
     """Host name of ``NETLICENSING_BASE_URL`` (no scheme, credentials or path)."""
-    try:
-        return urlsplit(_client.BASE_URL).hostname or "unknown"
-    except ValueError:
-        return "unknown"
+    return _client.base_url_host() or "unknown"
 
 
 class UpstreamProbe:

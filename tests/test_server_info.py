@@ -331,6 +331,40 @@ async def test_transport_error_means_unreachable(key_default, fake_http, exc):
     _assert_no_key(text, ENV_KEY)
 
 
+_MALFORMED_BASE_URL = "http://[::1/core/v2/rest"  # urlsplit(): "Invalid IPv6 URL"
+
+
+@pytest.mark.parametrize("exc", [httpx.ConnectError("refused"), httpx.InvalidURL("bad")])
+async def test_malformed_base_url_never_raises(key_default, fake_http, monkeypatch, exc):
+    # ConnectError goes through the error-hint path (_unreachable → _hint),
+    # InvalidURL (what httpx raises for such a URL) through the generic handler.
+    monkeypatch.setattr(client, "BASE_URL", _MALFORMED_BASE_URL)
+    key_default(ENV_KEY)
+    fake_http.get.side_effect = exc
+    out, text = await _info()
+    assert out["base_url"] == ""
+    assert out["status"] in ("warning", "error")
+    assert out["next_steps"]
+    assert "[::1" not in text
+    _assert_no_key(text, ENV_KEY)
+
+
+async def test_malformed_base_url_over_mcp(key_default, fake_http, monkeypatch):
+    from mcp.shared.memory import create_connected_server_and_client_session
+
+    monkeypatch.setattr(client, "BASE_URL", _MALFORMED_BASE_URL)
+    key_default(ENV_KEY)
+    fake_http.get.side_effect = httpx.ConnectError("refused")
+    async with create_connected_server_and_client_session(server.mcp) as session:
+        result = await session.call_tool("netlicensing_server_info", {})
+    assert result.isError is False
+    info = result.structuredContent
+    assert info is not None
+    assert info["base_url"] == ""
+    assert info["status"] == "error"
+    assert _check(info, "reachable")["ok"] is False
+
+
 async def test_slow_api_hits_the_short_timeout(key_default, fake_http, monkeypatch):
     key_default(ENV_KEY)
     monkeypatch.setattr(utilities, "_CHECK_TIMEOUT_SECONDS", 0.05)

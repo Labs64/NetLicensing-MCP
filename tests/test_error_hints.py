@@ -127,6 +127,24 @@ def test_not_found_detected_from_message_without_info_id():
     assert h["suggested_actions"] == ["netlicensing_list_bundles"]
 
 
+@pytest.mark.parametrize("info_ids", [(), ("NotFoundException",)])
+def test_create_with_unnamed_missing_value_is_a_validation_error(info_ids):
+    # The missing thing is a referenced value, not the product module being created.
+    exc = NetLicensingError(400, "Licensing model 'Foo' does not exist", info_ids=info_ids)
+    h = error_hint(exc, "netlicensing_create_product_module")
+    assert "not found" not in h["hint"]
+    assert "product module" not in h["hint"]
+    assert "'detail'" in h["hint"] and "required fields" in h["hint"]
+    assert h["suggested_actions"] == []
+    assert h["retryable"] is False
+
+
+def test_create_with_named_missing_parent_is_still_not_found():
+    h = error_hint(_nf("licensee"), "netlicensing_create_license")
+    assert "licensee was not found" in h["hint"]
+    assert h["suggested_actions"] == ["netlicensing_list_licensees"]
+
+
 def test_not_found_without_known_entity_has_no_suggestion():
     h = error_hint(NetLicensingError(404, "gone"), None)
     assert h["suggested_actions"] == []
@@ -313,6 +331,23 @@ def test_5xx_is_retryable_and_names_only_the_host(status, detail, monkeypatch):
     assert "nl.example.com" in h["hint"]
     for leak in ("pw", "user:", "/core", "8443", "https://"):
         assert leak not in h["hint"]
+
+
+@pytest.mark.parametrize(
+    ("status", "detail"),
+    [
+        (500, "boom"),
+        (502, "Could not reach the NetLicensing API"),
+        (502, "NetLicensing API returned a non-JSON response"),
+        (504, "NetLicensing API request timed out"),
+    ],
+)
+def test_malformed_base_url_does_not_raise(status, detail, monkeypatch):
+    # urlsplit() raises ValueError ("Invalid IPv6 URL") for this URL.
+    monkeypatch.setattr(client, "BASE_URL", "http://[::1/core/v2/rest")
+    h = error_hint(NetLicensingError(status, detail), "netlicensing_list_products")
+    assert "the NETLICENSING_BASE_URL host" in h["hint"]
+    assert "[::1" not in h["hint"]
 
 
 def test_unreachable_default_host_mentions_documented_backup_host(monkeypatch):

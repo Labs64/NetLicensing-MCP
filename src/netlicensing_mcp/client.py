@@ -14,7 +14,7 @@ import logging
 import os
 import time
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 
 import httpx
 from dotenv import load_dotenv
@@ -30,6 +30,20 @@ BASE_URL: str = os.getenv(
 api_key_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
     "api_key", default=os.getenv("NETLICENSING_API_KEY", "")
 )
+
+
+def base_url_host() -> str | None:
+    """Host name of ``BASE_URL`` (no scheme, credentials or path), or ``None``.
+
+    ``None`` when the URL has no host or cannot be parsed (``urlsplit`` raises
+    ``ValueError`` for e.g. ``http://[::1/core``), so callers that must never
+    raise (``netlicensing_server_info``, error hints, ``/ready``) can use it.
+    """
+    try:
+        return urlsplit(BASE_URL).hostname or None
+    except ValueError:
+        return None
+
 
 # ── Demo-mode helpers ─────────────────────────────────────────────────────────
 
