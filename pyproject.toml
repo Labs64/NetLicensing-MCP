@@ -44,7 +44,7 @@ classifiers = [
     "Topic :: Security",
 ]
 dependencies = [
-    "mcp[cli]>=1.7.0,<2.0.0",
+    "mcp[cli]>=1.21.1,<2.0.0",
     "httpx>=0.27.0",
     "python-dotenv>=1.0.0",
 ]
