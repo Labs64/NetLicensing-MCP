@@ -24,7 +24,10 @@ pytest tests/ -v
 ruff check .
 ruff format --check .
 mypy src/
+python scripts/gen_tools_doc.py --check
 ```
+
+The tool reference in [docs/TOOLS.md](docs/TOOLS.md) and the tool and prompt tables in the README are generated from the server's registry. After adding or changing a tool, a prompt, a docstring or an annotation, run `python scripts/gen_tools_doc.py` and commit the updated files; don't edit the generated parts by hand.
 
 ## Guidelines
 

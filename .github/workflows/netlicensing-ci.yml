@@ -37,6 +37,9 @@ jobs:
       - name: Type check (mypy)
         run: mypy src/
 
+      - name: Tool docs in sync (docs/TOOLS.md, README)
+        run: python scripts/gen_tools_doc.py --check
+
   security:
     name: Security audit
     runs-on: ubuntu-latest
