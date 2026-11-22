@@ -51,6 +51,7 @@ from netlicensing_mcp.app import (
     _fmt_price,
     _price_active_diff,
     set_transport,
+    enable_verbose_logging,
 )
 from netlicensing_mcp.client import NetLicensingError, api_key_ctx, is_demo_mode
 from netlicensing_mcp.prompts.audit import register_audit_prompts
@@ -363,7 +364,8 @@ def main() -> None:
     verbose = args.verbose or os.getenv("MCP_VERBOSE", "").lower() in ("1", "true", "yes")
 
     if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+        # Root at DEBUG; httpx/httpcore stay at WARNING (they log full token URLs).
+        enable_verbose_logging()
         logger.debug("Verbose logging enabled — API requests/responses will be logged")
 
     logger.info("Starting NetLicensing MCP server (transport=%s, verbose=%s)", transport, verbose)

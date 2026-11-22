@@ -116,7 +116,7 @@ Environment variables (all optional):
 - `NETLICENSING_BASE_URL` — defaults to `https://go.netlicensing.io/core/v2/rest`
 - `MCP_TRANSPORT` — `stdio` (default) or `http`; also via positional CLI arg
 - `MCP_HOST` / `MCP_PORT` — HTTP bind (default `127.0.0.1:8000`)
-- `MCP_VERBOSE` — `true|1|yes` enables debug logging of API requests/responses (sensitive fields automatically redacted); also via `-v` flag
+- `MCP_VERBOSE` — `true|1|yes` enables debug logging of API requests/responses (sensitive fields automatically redacted, token paths as `/token/****`); also via `-v` flag. Goes through `app.enable_verbose_logging()`, which keeps `httpx`/`httpcore`/`sse_starlette` at `WARNING` (`app.quiet_http_loggers()`, also applied at import): they log full request URLs and response chunks, i.e. token numbers and newly created keys. The MCP SDK's own DEBUG output is not redacted, so verbose mode is for local debugging only
 - `MCP_REDACT_FIELDS` — comma-separated extra field names to add to the redaction set (e.g. `ssn,phone`); default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`
 - `MCP_CONSOLE_BASE_URL` — Console UI base for `console_url` deep links emitted by the normalized response envelope; default `https://ui.netlicensing.io/#`
 - `MCP_TOOLSETS` — comma-separated toolsets to register (`products`, `bundles`, `modules`, `templates`, `licensees`, `licenses`, `tokens`, `transactions`, `payments`, `system`, `workflows`, or `all` = default). Unknown names log a warning and are ignored; if none is valid, all are registered

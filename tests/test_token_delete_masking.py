@@ -227,6 +227,39 @@ def test_mismatch_from_another_tool_masks_the_stored_token_number():
     assert "'delete_product'/'P001'" in message
 
 
+async def test_product_confirmation_on_delete_token_masks_the_key():
+    """A preview_delete_product token presented to delete_token: key masked, nothing deleted."""
+    one = {"items": {"item": [{"type": "Product", "property": []}]}}
+    empty: dict = {"items": {"item": []}}
+    deleted = AsyncMock(return_value=204)
+    with (
+        patch("netlicensing_mcp.tools.products.get_product", AsyncMock(return_value=one)),
+        patch(
+            "netlicensing_mcp.tools.product_modules.list_product_modules",
+            AsyncMock(return_value=empty),
+        ),
+        patch("netlicensing_mcp.tools.licensees.list_licensees", AsyncMock(return_value=empty)),
+        patch("netlicensing_mcp.tools.tokens.nl_delete", deleted),
+    ):
+        preview = await _call("netlicensing_preview_delete_product", {"product_number": "P001"})
+        assert preview.structuredContent is not None
+        token = preview.structuredContent["confirmation_token"]
+        result = await _call(
+            "netlicensing_delete_token", {"token_number": KEY, "confirm_token": token}
+        )
+
+    deleted.assert_not_awaited()
+    assert result.isError is True
+    sc = result.structuredContent
+    assert sc is not None
+    assert sc == json.loads(_text(result))
+    assert sc["detail"] == (
+        f"Token {token!r} is for 'delete_product'/'P001', not 'delete_token'/{KEY_MASKED!r}"
+    )
+    assert KEY not in _everything(result)
+    assert KEY_MASKED in _text(result)
+
+
 def test_mismatch_between_non_secret_operations_is_unchanged():
     token, _ = safety.issue_token("delete_product", "P001")
     with pytest.raises(ValueError) as info:

@@ -84,7 +84,7 @@ NetLicensing supports several licensing models, such as Try & Buy, Subscription,
 ## Security defaults
 
 - **No silent demo credentials.** If `NETLICENSING_API_KEY` is missing and `NETLICENSING_ALLOW_DEMO` isn't enabled, the server refuses to start (stdio) or answers `503` (HTTP).
-- **Secrets are masked.** Every response and log line passes through a redaction filter for `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret`. Short values become `****`. Longer ones keep the first 3 and last 4 characters (for example `pk_****W3Od`). Add your own fields with `MCP_REDACT_FIELDS`.
+- **Secrets are masked.** Every response, and every log line this server writes, passes through a redaction filter for `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret`. Short values become `****`. Longer ones keep the first 3 and last 4 characters (for example `pk_****W3Od`). Add your own fields with `MCP_REDACT_FIELDS`. Request logs show token paths as `/token/****`; the HTTP libraries' own request and response logging (`httpx`, `httpcore`, `sse_starlette`) is held at `WARNING`, also in verbose mode, because it would write full token numbers and new keys. Verbose mode (`-v` / `MCP_VERBOSE`) also turns on the MCP SDK's and web server's own DEBUG output, which this filter does not cover: use it for local debugging only and don't ship or keep its logs.
 - **Credentials appear once.** `create_api_token` and `create_shop_token` mark their response `"shown_once": true`. Later `get_token` and `list_tokens` calls return masked values, and deleting a token shows its number only masked (in the preview, the delete message and confirmation errors).
 - **Deletes need confirmation.** Each delete first returns a preview and a single-use token that expires after 5 minutes. Nothing is deleted until you send that token back. `force_cascade` is a separate option that also removes dependent items, and it's only used when you ask for it.
 - **One key per request in HTTP mode.** Keys come from request headers, never from URLs, so one server can serve several teams safely.
@@ -127,6 +127,7 @@ docker run -d -p 8000:8000 \
 ```
 
 #### Verbose logging (any mode)
+For local debugging only: besides this server's own (redacted) request lines it turns on DEBUG output of the MCP SDK and the web server, which is not filtered. Don't ship or keep these logs.
 ```bash
 # CLI flag
 docker run -i --rm \
@@ -166,7 +167,7 @@ docker run -i --rm \
 | `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` (default) or `http`. Can also be passed as a CLI argument. |
 | `MCP_HOST` | No | `127.0.0.1` | Host address to bind the HTTP server (HTTP mode only). |
 | `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
-| `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs raw API requests/responses **with sensitive fields automatically redacted**. Can also be set via `-v` CLI flag. |
+| `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs API requests/responses **with sensitive fields automatically redacted** (token paths as `/token/****`). Also turns on the MCP SDK's own DEBUG output, which is not redacted: local debugging only. Can also be set via `-v` CLI flag. |
 | `MCP_REDACT_FIELDS` | No | — | Comma-separated list of additional field names to redact from all tool responses and log output (e.g. `MCP_REDACT_FIELDS=ssn,phone`). Extends the built-in default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. |
 | `MCP_TOOLSETS` | No | `all` | Comma-separated list of toolsets to register (e.g. `licensees,licenses`). Unknown names are ignored with a warning on stderr. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
 | `MCP_READ_ONLY` | No | `false` | Register only read-only tools (`true`, `1`, or `yes`): list, get, `preview_*`, workflows and reference data. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |

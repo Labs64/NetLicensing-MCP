@@ -42,6 +42,33 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stderr)],
 )
 
+#: Third-party loggers that write credentials: httpx logs every request URL at
+#: INFO (``HTTP Request: DELETE https://…/token/<number>``; for APIKEY and SHOP
+#: tokens the number in the path is the credential), httpcore request details at
+#: DEBUG, and sse_starlette every response chunk at DEBUG (HTTP mode), which
+#: includes a new API key or shop URL shown once by the create-token tools.
+_LEAKY_LOGGERS = ("httpx", "httpcore", "sse_starlette")
+
+
+def quiet_http_loggers() -> None:
+    """Hold the httpx/httpcore/sse_starlette loggers at WARNING, whatever the root level.
+
+    An explicit level on these loggers is not raised by a DEBUG root logger, so
+    verbose mode does not turn their logging back on. The client's own debug
+    lines (``client._log_path``) mask token paths and show the requests instead.
+    """
+    for name in _LEAKY_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+
+def enable_verbose_logging() -> None:
+    """Verbose mode (``-v`` / ``MCP_VERBOSE``): root logger at DEBUG, leaky loggers kept quiet."""
+    logging.getLogger().setLevel(logging.DEBUG)
+    quiet_http_loggers()
+
+
+quiet_http_loggers()
+
 INSTRUCTIONS = """
 You are connected to the Labs64 NetLicensing REST API — a cloud-based
 online license and entitlements management system for software vendors.
