@@ -23,7 +23,7 @@ These are the same checks CI runs:
 pytest tests/ -v
 ruff check .
 ruff format --check .
-mypy src/
+mypy src/ scripts/
 python scripts/gen_tools_doc.py --check
 ```
 

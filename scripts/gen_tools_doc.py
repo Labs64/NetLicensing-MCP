@@ -98,6 +98,7 @@ class PromptDoc:
     group: str
     title: str
     summary: str
+    body: str
     args: tuple[PromptArg, ...]
 
 
@@ -234,7 +235,7 @@ async def _collect_prompts() -> list[PromptDoc]:
         holder = new_server(ToolFilter())
         register(holder)
         for prompt in await holder.list_prompts():
-            summary, _body, arg_docs = _split_doc(prompt.description)
+            summary, body, arg_docs = _split_doc(prompt.description)
             args = tuple(
                 PromptArg(
                     name=a.name,
@@ -243,7 +244,7 @@ async def _collect_prompts() -> list[PromptDoc]:
                 )
                 for a in prompt.arguments or []
             )
-            docs.append(PromptDoc(prompt.name, group, prompt.title or "", summary, args))
+            docs.append(PromptDoc(prompt.name, group, prompt.title or "", summary, body, args))
     served = [p.name for p in await server.mcp.list_prompts()]
     if sorted(served) != sorted(p.name for p in docs):
         raise RuntimeError(
@@ -381,7 +382,7 @@ def render_tools_md(reg: Registry) -> str:
             out += [f"#### `{p.name}`", ""]
             if p.title:
                 out += [f"**{p.title}**", ""]
-            out += [p.summary, ""]
+            out += [p.body, ""]
             if p.args:
                 out += ["| Argument | Required | Description |", "|---|---|---|"]
                 for a in p.args:
@@ -405,9 +406,14 @@ def render_readme_tools(reg: Registry) -> str:
     ]
     for name in TOOLSET_NAMES:
         tools = reg.toolset(name)
-        out += [f"**Toolset `{name}`** ({len(tools)} tools)", ""]
+        # Folded so the README stays scannable; docs/TOOLS.md has everything unfolded.
+        out += [
+            "<details>",
+            f"<summary>Toolset <code>{name}</code> ({len(tools)} tools)</summary>",
+            "",
+        ]
         out += _tool_table(tools, lambda n: f"docs/TOOLS.md#{_tool_anchor(n)}")
-        out.append("")
+        out += ["", "</details>", ""]
     return "\n".join(out)
 
 
@@ -492,11 +498,18 @@ def expected_files(root: Path | None = None, reg: Registry | None = None) -> dic
     }
 
 
-def stale_files(root: Path | None = None, reg: Registry | None = None) -> list[Path]:
-    """Managed files whose committed content differs from the generated one."""
+def stale_files(
+    root: Path | None = None,
+    reg: Registry | None = None,
+    files: dict[Path, str] | None = None,
+) -> list[Path]:
+    """Managed files whose committed content differs from the generated one.
+
+    *files* is the output of :func:`expected_files`, computed when not given.
+    """
     root = root or ROOT
     stale = []
-    for rel, text in expected_files(root, reg).items():
+    for rel, text in (files if files is not None else expected_files(root, reg)).items():
         path = root / rel
         if not path.exists() or _read(path) != text:
             stale.append(rel)
@@ -514,8 +527,9 @@ def main(argv: list[str] | None = None) -> int:
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)
 
+    files = expected_files()
+    stale = stale_files(files=files)
     if args.check:
-        stale = stale_files()
         for rel in stale:
             print(
                 f"error: {rel.as_posix()} is out of date with the tool registry.", file=sys.stderr
@@ -524,11 +538,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Run `{COMMAND}` and commit the result.", file=sys.stderr)
         return 1 if stale or problems else 0
 
-    for rel, text in expected_files().items():
-        path = ROOT / rel
-        if not path.exists() or _read(path) != text:
-            _write(path, text)
-            print(f"updated {rel.as_posix()}", file=sys.stderr)
+    for rel in stale:
+        _write(ROOT / rel, files[rel])
+        print(f"updated {rel.as_posix()}", file=sys.stderr)
     return 1 if problems else 0
 
 

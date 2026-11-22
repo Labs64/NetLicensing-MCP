@@ -65,7 +65,7 @@
   "tools": [
     {
       "name": "netlicensing_create_api_token",
-      "title": "Create api token",
+      "title": "Create API token",
       "description": "Create a scoped API token.\n\nArgs:\n    api_key_role: ROLE_APIKEY_LICENSEE | ROLE_APIKEY_ANALYTICS |\n          ROLE_APIKEY_OPERATION | ROLE_APIKEY_MAINTENANCE | ROLE_APIKEY_ADMIN\n    licensee_number: Optional — scope token to a specific licensee\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {

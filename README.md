@@ -61,7 +61,8 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 
 61 tools in 11 toolsets, plus 11 prompts. **R** = read-only, **W** = writes data, **D** = destructive (deletes data). Parameters for every tool: [docs/TOOLS.md](docs/TOOLS.md).
 
-**Toolset `products`** (7 tools)
+<details>
+<summary>Toolset <code>products</code> (7 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -73,7 +74,10 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_preview_delete_product`](docs/TOOLS.md#netlicensing_preview_delete_product) | Preview deletion of product | R | Preview what would be deleted when deleting a product. |
 | [`netlicensing_delete_product`](docs/TOOLS.md#netlicensing_delete_product) | Delete product | D | Delete a product permanently. |
 
-**Toolset `bundles`** (7 tools)
+</details>
+
+<details>
+<summary>Toolset <code>bundles</code> (7 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -85,7 +89,10 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_delete_bundle`](docs/TOOLS.md#netlicensing_delete_bundle) | Delete bundle | D | Delete a bundle permanently. |
 | [`netlicensing_obtain_bundle`](docs/TOOLS.md#netlicensing_obtain_bundle) | Obtain bundle | W | Obtain a bundle for a customer — creates licenses from all license templates included in the bundle for the specified licensee. |
 
-**Toolset `modules`** (6 tools)
+</details>
+
+<details>
+<summary>Toolset <code>modules</code> (6 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -96,7 +103,10 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_preview_delete_product_module`](docs/TOOLS.md#netlicensing_preview_delete_product_module) | Preview deletion of product module | R | Preview what would be deleted when deleting a product module. |
 | [`netlicensing_delete_product_module`](docs/TOOLS.md#netlicensing_delete_product_module) | Delete product module | D | Delete a product module. |
 
-**Toolset `templates`** (7 tools)
+</details>
+
+<details>
+<summary>Toolset <code>templates</code> (7 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -108,7 +118,10 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_preview_delete_license_template`](docs/TOOLS.md#netlicensing_preview_delete_license_template) | Preview deletion of license template | R | Preview what would be deleted when deleting a license template. |
 | [`netlicensing_delete_license_template`](docs/TOOLS.md#netlicensing_delete_license_template) | Delete license template | D | Delete a license template. |
 
-**Toolset `licensees`** (8 tools)
+</details>
+
+<details>
+<summary>Toolset <code>licensees</code> (8 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -121,7 +134,10 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_validate_licensee`](docs/TOOLS.md#netlicensing_validate_licensee) | Validate licensee | W | Validate a customer's licenses across all product modules. |
 | [`netlicensing_transfer_licenses`](docs/TOOLS.md#netlicensing_transfer_licenses) | Transfer licenses | W | Transfer all licenses from one licensee to another. |
 
-**Toolset `licenses`** (6 tools)
+</details>
+
+<details>
+<summary>Toolset <code>licenses</code> (6 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -132,18 +148,24 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_preview_delete_license`](docs/TOOLS.md#netlicensing_preview_delete_license) | Preview deletion of license | R | Preview what would be deleted when deleting a license. |
 | [`netlicensing_delete_license`](docs/TOOLS.md#netlicensing_delete_license) | Delete license | D | Delete a license permanently. |
 
-**Toolset `tokens`** (6 tools)
+</details>
+
+<details>
+<summary>Toolset <code>tokens</code> (6 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
 | [`netlicensing_list_tokens`](docs/TOOLS.md#netlicensing_list_tokens) | List tokens | R | List all active tokens in the account. |
 | [`netlicensing_get_token`](docs/TOOLS.md#netlicensing_get_token) | Get token | R | Get details of a specific token. |
 | [`netlicensing_create_shop_token`](docs/TOOLS.md#netlicensing_create_shop_token) | Create shop token | W | Generate a NetLicensing Shop one-time checkout URL for a customer. |
-| [`netlicensing_create_api_token`](docs/TOOLS.md#netlicensing_create_api_token) | Create api token | W | Create a scoped API token. |
+| [`netlicensing_create_api_token`](docs/TOOLS.md#netlicensing_create_api_token) | Create API token | W | Create a scoped API token. |
 | [`netlicensing_preview_delete_token`](docs/TOOLS.md#netlicensing_preview_delete_token) | Preview deletion of token | R | Preview what would be revoked when deleting a token. |
 | [`netlicensing_delete_token`](docs/TOOLS.md#netlicensing_delete_token) | Delete token | D | Revoke an API or shop token. |
 
-**Toolset `transactions`** (4 tools)
+</details>
+
+<details>
+<summary>Toolset <code>transactions</code> (4 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -152,7 +174,10 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_create_transaction`](docs/TOOLS.md#netlicensing_create_transaction) | Create transaction | W | Create a new transaction. |
 | [`netlicensing_update_transaction`](docs/TOOLS.md#netlicensing_update_transaction) | Update transaction | W | Update a transaction's status or properties. |
 
-**Toolset `payments`** (4 tools)
+</details>
+
+<details>
+<summary>Toolset <code>payments</code> (4 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -161,7 +186,10 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_preview_update_payment_method`](docs/TOOLS.md#netlicensing_preview_update_payment_method) | Preview update of payment method | R | Preview a sensitive payment method update (active state change). |
 | [`netlicensing_update_payment_method`](docs/TOOLS.md#netlicensing_update_payment_method) | Update payment method | W | Update a payment method's configuration. |
 
-**Toolset `system`** (4 tools)
+</details>
+
+<details>
+<summary>Toolset <code>system</code> (4 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
@@ -170,12 +198,17 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 | [`netlicensing_list_countries`](docs/TOOLS.md#netlicensing_list_countries) | List countries | R | List all countries available for VAT and localization settings. |
 | [`netlicensing_server_info`](docs/TOOLS.md#netlicensing_server_info) | Get server info | R | Check this MCP server's setup and its NetLicensing connection. |
 
-**Toolset `workflows`** (2 tools)
+</details>
+
+<details>
+<summary>Toolset <code>workflows</code> (2 tools)</summary>
 
 | Tool | Title | Access | Description |
 |---|---|---|---|
 | [`netlicensing_get_customer_health`](docs/TOOLS.md#netlicensing_get_customer_health) | Get customer health | R | Return a normalized health summary for one licensee. |
 | [`netlicensing_explain_validation`](docs/TOOLS.md#netlicensing_explain_validation) | Explain validation | R | Run a dry-run validation and return a plain-language explanation. |
+
+</details>
 
 <!-- tools:end -->
 
@@ -424,9 +457,9 @@ The server ships <!-- count:prompts -->11<!-- /count:prompts --> prompt template
 
 | Prompt | Purpose | Arguments |
 |---|---|---|
-| [`audit_full`](docs/TOOLS.md#audit_full) | Run a comprehensive license audit across all customers of a product. | `product_number` |
-| [`audit_customer`](docs/TOOLS.md#audit_customer) | Deep-dive audit for a single customer's license health. | `licensee_number` |
-| [`audit_expiry`](docs/TOOLS.md#audit_expiry) | Find all customers with licenses expiring within N days. | `product_number`, `days_threshold` (optional) |
+| [`audit_full`](docs/TOOLS.md#audit_full) | Run a full entitlement audit across all customers of a product. | `product_number` |
+| [`audit_customer`](docs/TOOLS.md#audit_customer) | Deep-dive audit of a single customer's license health. | `licensee_number` |
+| [`audit_expiry`](docs/TOOLS.md#audit_expiry) | Find customers whose licenses expired or expire within N days, with renewal URLs. | `product_number`, `days_threshold` (optional) |
 | [`audit_cleanup`](docs/TOOLS.md#audit_cleanup) | Identify inactive, unused, or orphaned licenses for cleanup. | `product_number` |
 | [`audit_anomaly`](docs/TOOLS.md#audit_anomaly) | Detect anomalous usage patterns across all customers. | `product_number` |
 
@@ -434,16 +467,30 @@ The server ships <!-- count:prompts -->11<!-- /count:prompts --> prompt template
 
 | Prompt | Purpose | Arguments |
 |---|---|---|
-| [`setup_subscription_product`](docs/TOOLS.md#setup_subscription_product) | Create a product with a Subscription module and one license template per plan. | `product_name`, `plans` |
-| [`setup_trial`](docs/TOOLS.md#setup_trial) | Add a Try & Buy module with a free trial template and a full-version template. | `product_number`, `trial_days` (optional) |
-| [`onboard_customer`](docs/TOOLS.md#onboard_customer) | Create a licensee, assign a license from a template and validate it. | `customer_name`, `product_number`, `licensee_number` (optional), `module_number` (optional), `license_template_number` (optional) |
-| [`migrate_customer`](docs/TOOLS.md#migrate_customer) | Preview and then transfer all licenses from one licensee to another. | `from_licensee_number`, `to_licensee_number` |
-| [`troubleshoot_validation`](docs/TOOLS.md#troubleshoot_validation) | Find out why a licensee's validation fails and how to fix it, without side effects. | `licensee_number`, `product_number` (optional), `product_module_number` (optional) |
-| [`issue_api_key`](docs/TOOLS.md#issue_api_key) | Create a least-privilege NetLicensing API key; the key is shown once. | `purpose` |
+| [`setup_subscription_product`](docs/TOOLS.md#setup_subscription_product) | Create a product with a Subscription module and one TIMEVOLUME template per plan. | `product_name`, `plans` |
+| [`setup_trial`](docs/TOOLS.md#setup_trial) | Add a Try & Buy module to a product: a free, automatic TIMEVOLUME trial template and a FEATURE full-version template. | `product_number`, `trial_days` (optional) |
+| [`onboard_customer`](docs/TOOLS.md#onboard_customer) | Create a licensee, assign a license from a template (or a bundle) and validate it with a dry run. | `customer_name`, `product_number`, `licensee_number` (optional), `module_number` (optional), `license_template_number` (optional) |
+| [`migrate_customer`](docs/TOOLS.md#migrate_customer) | Preview both licensees and their licenses, then move all licenses from one licensee to another with `netlicensing_transfer_licenses`. | `from_licensee_number`, `to_licensee_number` |
+| [`troubleshoot_validation`](docs/TOOLS.md#troubleshoot_validation) | Find out why a licensee's validation fails and how to fix it, without side effects: setup check, dry-run validation, plain-language explanation, customer health. | `licensee_number`, `product_number` (optional), `product_module_number` (optional) |
+| [`issue_api_key`](docs/TOOLS.md#issue_api_key) | Pick the least-privilege API key role for a purpose and create the key, which is shown once. | `purpose` |
 
 Argument details (formats, defaults): [docs/TOOLS.md](docs/TOOLS.md#prompts).
 
 <!-- prompts:end -->
+
+**Examples** (prompt name and argument values; how you pick a prompt and fill in its arguments depends on your client):
+
+- `audit_full` product_number="P001"
+- `audit_customer` licensee_number="I001"
+- `audit_expiry` product_number="P001" days_threshold="30"
+- `audit_cleanup` product_number="P001"
+- `audit_anomaly` product_number="P001"
+- `setup_subscription_product` product_name="Acme Cloud" plans="1 MONTH 9.99 EUR; 1 YEAR 99.00 EUR"
+- `setup_trial` product_number="P001" trial_days="14"
+- `onboard_customer` customer_name="Acme Corp" product_number="P001" (optional: licensee_number, module_number, license_template_number)
+- `migrate_customer` from_licensee_number="I001" to_licensee_number="I002"
+- `troubleshoot_validation` licensee_number="I001" (optional: product_number, product_module_number)
+- `issue_api_key` purpose="license validation in our desktop app"
 
 The setup prompts follow the server's safety rules: they show the plan and ask for confirmation before each write, never delete anything themselves (a removal goes through the `preview_delete_*` tool and never uses `force_cascade` unless you ask for it), prefer deactivating to deleting, and do not repeat secrets such as a new API key after showing it once.
 

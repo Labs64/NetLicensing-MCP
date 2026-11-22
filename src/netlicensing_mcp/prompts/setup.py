@@ -71,7 +71,13 @@ def register_setup_prompts(mcp: FastMCP) -> None:
             ),
         ],
     ) -> list[UserMessage]:
-        """Create a product with a Subscription module and one license template per plan."""
+        """Create a product with a Subscription module and one TIMEVOLUME template per plan.
+
+        Checks that the Subscription model and the TIMEVOLUME type are available,
+        plans the product, module and one license template per plan (period and
+        price), optionally with a grace period or a free evaluation template,
+        and creates them after confirmation.
+        """
         return _messages(f"""
 {_ROLE} Set up the new subscription product **{product_name}** with these
 plans: **{plans}**.
@@ -147,7 +153,14 @@ buy or renew a plan through a checkout link from
             int, Field(ge=1, description="Length of the free trial in days (default 14)")
         ] = 14,
     ) -> list[UserMessage]:
-        """Add a Try & Buy module with a free trial template and a full-version template."""
+        """Add a Try & Buy module to a product: a free, automatic TIMEVOLUME trial
+        template and a FEATURE full-version template.
+
+        The trial template is hidden in the Shop; the full version carries the
+        purchase price. An existing automatic trial is reused instead of
+        creating a second one, and licenseeAutoCreate can be turned on after a
+        preview.
+        """
         return _messages(f"""
 {_ROLE} Add a free **{trial_days}-day trial** to product **{product_number}**
 using the Try & Buy licensing model.
@@ -234,7 +247,13 @@ selling the full version with
             str, Field(description="License template to assign (optional; asked when empty)")
         ] = "",
     ) -> list[UserMessage]:
-        """Create a licensee, assign a license from a template and validate it."""
+        """Create a licensee, assign a license from a template (or a bundle) and
+        validate it with a dry run.
+
+        Reuses a matching existing licensee if the user agrees, assigns the
+        license after confirmation, explains a failed validation, and can create
+        a one-time Shop checkout URL.
+        """
         if licensee_number:
             existing = f"""Call `netlicensing_get_licensee(licensee_number="{licensee_number}")`.
 - Not found: create it in Step 5 with this number.
@@ -340,7 +359,13 @@ checkout URL is shown once: hand it to the user and do not repeat it later.
         from_licensee_number: Annotated[str, Field(description="Source licensee")],
         to_licensee_number: Annotated[str, Field(description="Destination licensee")],
     ) -> list[UserMessage]:
-        """Preview and then transfer all licenses from one licensee to another."""
+        """Preview both licensees and their licenses, then move all licenses from one
+        licensee to another with `netlicensing_transfer_licenses`.
+
+        After confirmation it prepares the licensees where needed
+        (markedForTransfer on the source, active state) before the transfer.
+        The source licensee is consumed by the transfer.
+        """
         src = from_licensee_number
         dst = to_licensee_number
         return _messages(f"""
@@ -413,7 +438,13 @@ follow the safety rules below (preview first, prefer deactivation with
             str, Field(description="Product module that fails (optional)")
         ] = "",
     ) -> list[UserMessage]:
-        """Find out why a licensee's validation fails and how to fix it, without side effects."""
+        """Find out why a licensee's validation fails and how to fix it, without side
+        effects: setup check, dry-run validation, plain-language explanation,
+        customer health.
+
+        Ends with a diagnosis per module and the tool calls that fix it, which
+        are run only after the user confirms.
+        """
         lic = licensee_number
         focus = f" Product: **{product_number}**." if product_number else ""
         if product_module_number:
@@ -504,7 +535,12 @@ validate again with dry_run=true.
             ),
         ],
     ) -> list[UserMessage]:
-        """Create a least-privilege NetLicensing API key; the key is shown once."""
+        """Pick the least-privilege API key role for a purpose and create the key,
+        which is shown once.
+
+        The key can be scoped to one licensee. It is created after confirmation
+        and never repeated afterwards; the prompt also explains how to revoke it.
+        """
         return _messages(f"""
 {_ROLE} Issue a new NetLicensing API key for this purpose: **{purpose}**.
 

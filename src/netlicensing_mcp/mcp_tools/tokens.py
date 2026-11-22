@@ -99,7 +99,7 @@ async def netlicensing_create_shop_token(
         return _error(exc, "netlicensing_create_shop_token")
 
 
-@tool(title="Create api token", annotations=_WRITE)
+@tool(title="Create API token", annotations=_WRITE)
 async def netlicensing_create_api_token(
     api_key_role: str = "ROLE_APIKEY_LICENSEE",
     licensee_number: str = "",

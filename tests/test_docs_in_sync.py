@@ -108,6 +108,43 @@ def test_readme_counts_match_registry(registry):
         assert readme.count(f"<!-- {marker}:end -->") == 1
 
 
+def test_readme_folds_toolsets_and_tools_md_does_not():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    block = readme.split("<!-- tools:start -->", 1)[1].split("<!-- tools:end -->", 1)[0]
+    assert block.count("<details>") == block.count("</details>") == len(gen.TOOLSET_NAMES)
+    for name in gen.TOOLSET_NAMES:
+        assert f"<summary>Toolset <code>{name}</code> (" in block
+    assert "<details>" not in _tools_md()
+
+
+async def test_prompt_descriptions_are_documented(registry):
+    text = _tools_md()
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for prompt in registry.prompts:
+        assert prompt.body and prompt.body in text, prompt.name
+        assert f"| {prompt.summary} |" in readme, prompt.name
+
+
+async def test_readme_prompt_examples_use_real_arguments():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    examples = readme.split("<!-- prompts:end -->", 1)[1].split("\n---", 1)[0]
+    args = {p.name: {a.name for a in p.arguments or []} for p in await server.mcp.list_prompts()}
+    seen = set()
+    for line in examples.splitlines():
+        match = re.match(r"- `(\w+)` (.*)$", line)
+        if not match:
+            continue
+        name, rest = match.groups()
+        assert name in args, name
+        seen.add(name)
+        used = set(re.findall(r"(\w+)=", rest))
+        optional = re.search(r"\(optional: ([^)]*)\)", rest)
+        if optional:
+            used |= {part.strip() for part in optional.group(1).split(",")}
+        assert used <= args[name], (name, used - args[name])
+    assert seen == set(args)
+
+
 def test_badges_follow_annotations(registry):
     by_name = {t.name: t for t in registry.tools}
     assert by_name["netlicensing_list_products"].badge == "R"
@@ -119,7 +156,7 @@ def test_badges_follow_annotations(registry):
     assert gen._badge({}) == "D"
 
 
-def test_generation_is_deterministic(registry):
+def test_generation_is_deterministic():
     first = gen.expected_files(ROOT, gen.collect())
     second = gen.expected_files(ROOT, gen.collect())
     assert first == second

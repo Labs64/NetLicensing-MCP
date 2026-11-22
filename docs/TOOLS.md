@@ -747,7 +747,7 @@ Always requires a two-step confirmation:
 | [`netlicensing_list_tokens`](#netlicensing_list_tokens) | List tokens | R | List all active tokens in the account. |
 | [`netlicensing_get_token`](#netlicensing_get_token) | Get token | R | Get details of a specific token. |
 | [`netlicensing_create_shop_token`](#netlicensing_create_shop_token) | Create shop token | W | Generate a NetLicensing Shop one-time checkout URL for a customer. |
-| [`netlicensing_create_api_token`](#netlicensing_create_api_token) | Create api token | W | Create a scoped API token. |
+| [`netlicensing_create_api_token`](#netlicensing_create_api_token) | Create API token | W | Create a scoped API token. |
 | [`netlicensing_preview_delete_token`](#netlicensing_preview_delete_token) | Preview deletion of token | R | Preview what would be revoked when deleting a token. |
 | [`netlicensing_delete_token`](#netlicensing_delete_token) | Delete token | D | Revoke an API or shop token. |
 
@@ -792,7 +792,7 @@ Generate a NetLicensing Shop one-time checkout URL for a customer.
 
 ### `netlicensing_create_api_token`
 
-**Create api token** · W · `destructiveHint=false`, `openWorldHint=true`, `readOnlyHint=false`
+**Create API token** · W · `destructiveHint=false`, `openWorldHint=true`, `readOnlyHint=false`
 
 Create a scoped API token.
 
@@ -1072,15 +1072,20 @@ Prompts are always registered, whatever `MCP_TOOLSETS` and `MCP_READ_ONLY` say.
 
 | Prompt | Purpose | Arguments |
 |---|---|---|
-| [`audit_full`](#audit_full) | Run a comprehensive license audit across all customers of a product. | `product_number` |
-| [`audit_customer`](#audit_customer) | Deep-dive audit for a single customer's license health. | `licensee_number` |
-| [`audit_expiry`](#audit_expiry) | Find all customers with licenses expiring within N days. | `product_number`, `days_threshold` (optional) |
+| [`audit_full`](#audit_full) | Run a full entitlement audit across all customers of a product. | `product_number` |
+| [`audit_customer`](#audit_customer) | Deep-dive audit of a single customer's license health. | `licensee_number` |
+| [`audit_expiry`](#audit_expiry) | Find customers whose licenses expired or expire within N days, with renewal URLs. | `product_number`, `days_threshold` (optional) |
 | [`audit_cleanup`](#audit_cleanup) | Identify inactive, unused, or orphaned licenses for cleanup. | `product_number` |
 | [`audit_anomaly`](#audit_anomaly) | Detect anomalous usage patterns across all customers. | `product_number` |
 
 #### `audit_full`
 
-Run a comprehensive license audit across all customers of a product.
+Run a full entitlement audit across all customers of a product.
+
+Lists the product's modules and licensees, validates every licensee and
+lists their licenses, then reports compliant, failing and at-risk
+customers (expiring within 30 days or under 10% quota left), statistics
+and prioritized actions.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1088,7 +1093,12 @@ Run a comprehensive license audit across all customers of a product.
 
 #### `audit_customer`
 
-Deep-dive audit for a single customer's license health.
+Deep-dive audit of a single customer's license health.
+
+Checks the licensee's profile, validates every module and lists its
+licenses, then reports the overall status, issues and recommended
+actions. For an expired or invalid entitlement it also generates a Shop
+renewal URL.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1096,7 +1106,11 @@ Deep-dive audit for a single customer's license health.
 
 #### `audit_expiry`
 
-Find all customers with licenses expiring within N days.
+Find customers whose licenses expired or expire within N days, with renewal URLs.
+
+Validates every licensee of the product, lists the already expired and
+the soon-expiring entitlements, and generates a Shop renewal URL for
+each expired or at-risk customer.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1107,6 +1121,11 @@ Find all customers with licenses expiring within N days.
 
 Identify inactive, unused, or orphaned licenses for cleanup.
 
+Finds licensees of the product with no active license, with a mix of
+active and inactive licenses, or with floating / quantity quota used up,
+and recommends deactivation, deletion or a renewal. It changes nothing
+without the user's confirmation.
+
 | Argument | Required | Description |
 |---|---|---|
 | `product_number` | yes | Product number to inspect |
@@ -1114,6 +1133,12 @@ Identify inactive, unused, or orphaned licenses for cleanup.
 #### `audit_anomaly`
 
 Detect anomalous usage patterns across all customers.
+
+Validates every licensee of the product and lists their licenses, then
+looks for usage anomalies (high consumption, maxed-out floating seats),
+configuration anomalies (licenses from inactive templates, duplicates)
+and compliance anomalies (validation fails although licenses are
+active), ranked by severity.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1123,18 +1148,23 @@ Detect anomalous usage patterns across all customers.
 
 | Prompt | Purpose | Arguments |
 |---|---|---|
-| [`setup_subscription_product`](#setup_subscription_product) | Create a product with a Subscription module and one license template per plan. | `product_name`, `plans` |
-| [`setup_trial`](#setup_trial) | Add a Try & Buy module with a free trial template and a full-version template. | `product_number`, `trial_days` (optional) |
-| [`onboard_customer`](#onboard_customer) | Create a licensee, assign a license from a template and validate it. | `customer_name`, `product_number`, `licensee_number` (optional), `module_number` (optional), `license_template_number` (optional) |
-| [`migrate_customer`](#migrate_customer) | Preview and then transfer all licenses from one licensee to another. | `from_licensee_number`, `to_licensee_number` |
-| [`troubleshoot_validation`](#troubleshoot_validation) | Find out why a licensee's validation fails and how to fix it, without side effects. | `licensee_number`, `product_number` (optional), `product_module_number` (optional) |
-| [`issue_api_key`](#issue_api_key) | Create a least-privilege NetLicensing API key; the key is shown once. | `purpose` |
+| [`setup_subscription_product`](#setup_subscription_product) | Create a product with a Subscription module and one TIMEVOLUME template per plan. | `product_name`, `plans` |
+| [`setup_trial`](#setup_trial) | Add a Try & Buy module to a product: a free, automatic TIMEVOLUME trial template and a FEATURE full-version template. | `product_number`, `trial_days` (optional) |
+| [`onboard_customer`](#onboard_customer) | Create a licensee, assign a license from a template (or a bundle) and validate it with a dry run. | `customer_name`, `product_number`, `licensee_number` (optional), `module_number` (optional), `license_template_number` (optional) |
+| [`migrate_customer`](#migrate_customer) | Preview both licensees and their licenses, then move all licenses from one licensee to another with `netlicensing_transfer_licenses`. | `from_licensee_number`, `to_licensee_number` |
+| [`troubleshoot_validation`](#troubleshoot_validation) | Find out why a licensee's validation fails and how to fix it, without side effects: setup check, dry-run validation, plain-language explanation, customer health. | `licensee_number`, `product_number` (optional), `product_module_number` (optional) |
+| [`issue_api_key`](#issue_api_key) | Pick the least-privilege API key role for a purpose and create the key, which is shown once. | `purpose` |
 
 #### `setup_subscription_product`
 
 **Set up a subscription product**
 
-Create a product with a Subscription module and one license template per plan.
+Create a product with a Subscription module and one TIMEVOLUME template per plan.
+
+Checks that the Subscription model and the TIMEVOLUME type are available,
+plans the product, module and one license template per plan (period and
+price), optionally with a grace period or a free evaluation template,
+and creates them after confirmation.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1145,7 +1175,13 @@ Create a product with a Subscription module and one license template per plan.
 
 **Add a free trial to a product**
 
-Add a Try & Buy module with a free trial template and a full-version template.
+Add a Try & Buy module to a product: a free, automatic TIMEVOLUME trial
+template and a FEATURE full-version template.
+
+The trial template is hidden in the Shop; the full version carries the
+purchase price. An existing automatic trial is reused instead of
+creating a second one, and licenseeAutoCreate can be turned on after a
+preview.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1156,7 +1192,12 @@ Add a Try & Buy module with a free trial template and a full-version template.
 
 **Onboard a customer**
 
-Create a licensee, assign a license from a template and validate it.
+Create a licensee, assign a license from a template (or a bundle) and
+validate it with a dry run.
+
+Reuses a matching existing licensee if the user agrees, assigns the
+license after confirmation, explains a failed validation, and can create
+a one-time Shop checkout URL.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1170,7 +1211,12 @@ Create a licensee, assign a license from a template and validate it.
 
 **Move a customer's licenses to another licensee**
 
-Preview and then transfer all licenses from one licensee to another.
+Preview both licensees and their licenses, then move all licenses from one
+licensee to another with `netlicensing_transfer_licenses`.
+
+After confirmation it prepares the licensees where needed
+(markedForTransfer on the source, active state) before the transfer.
+The source licensee is consumed by the transfer.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1181,7 +1227,12 @@ Preview and then transfer all licenses from one licensee to another.
 
 **Troubleshoot a failing validation**
 
-Find out why a licensee's validation fails and how to fix it, without side effects.
+Find out why a licensee's validation fails and how to fix it, without side
+effects: setup check, dry-run validation, plain-language explanation,
+customer health.
+
+Ends with a diagnosis per module and the tool calls that fix it, which
+are run only after the user confirms.
 
 | Argument | Required | Description |
 |---|---|---|
@@ -1193,7 +1244,11 @@ Find out why a licensee's validation fails and how to fix it, without side effec
 
 **Issue a scoped API key**
 
-Create a least-privilege NetLicensing API key; the key is shown once.
+Pick the least-privilege API key role for a purpose and create the key,
+which is shown once.
+
+The key can be scoped to one licensee. It is created after confirmation
+and never repeated afterwards; the prompt also explains how to revoke it.
 
 | Argument | Required | Description |
 |---|---|---|

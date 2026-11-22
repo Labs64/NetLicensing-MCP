@@ -26,7 +26,7 @@ pytest tests/ -v --no-cov                  # disable coverage for faster iterati
 # Lint / format / type-check (these are the exact CI checks)
 ruff check .
 ruff format --check .       # use `ruff format .` to apply
-mypy src/
+mypy src/ scripts/
 python scripts/gen_tools_doc.py --check    # docs/TOOLS.md + README tool/prompt tables in sync
 
 # Regenerate docs/TOOLS.md and the README tool/prompt tables after changing a tool or prompt
@@ -100,7 +100,7 @@ Preserve this pattern when adding tools — clients (LLMs) will frequently pass 
 
 ### Prompts
 
-Eleven `@mcp.prompt()` templates, registered from `server.py` after all tools (prompt modules must not import `server.py`):
+The `@mcp.prompt()` templates (listed with their arguments in `docs/TOOLS.md`), registered from `server.py` after all tools (prompt modules must not import `server.py`):
 
 - `prompts/audit.py` — `register_audit_prompts(mcp)`: `audit_full`, `audit_customer`, `audit_expiry`, `audit_cleanup`, `audit_anomaly`.
 - `prompts/setup.py` — `register_setup_prompts(mcp)`: `setup_subscription_product`, `setup_trial`, `onboard_customer`, `migrate_customer`, `troubleshoot_validation`, `issue_api_key`. They declare arguments as `Annotated[..., Field(description=...)]` so clients see argument descriptions, have a `title`, and end with a shared safety-rules block (confirm before writes, preview before delete, no `force_cascade` unless asked, prefer deactivation, never repeat secrets).
