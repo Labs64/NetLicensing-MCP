@@ -327,11 +327,11 @@ def render_tools_md(reg: Registry) -> str:
         "(../README.md#reduce-the-tool-list--read-only-mode).",
         "",
         f"Badges: {BADGE_LEGEND}. They follow the tool annotations "
-        "(`readOnlyHint`, `destructiveHint`) that the server sends to clients.",
+        + "(`readOnlyHint`, `destructiveHint`) that the server sends to clients.",
         "",
         "Every parameter that is not required may be left out; the default is what the "
-        'tool then uses. String parameters with the default `""` mean '
-        '"not set" (on updates: "leave unchanged").',
+        + 'tool then uses. String parameters with the default `""` mean '
+        + '"not set" (on updates: "leave unchanged").',
         "",
         "## Contents",
         "",

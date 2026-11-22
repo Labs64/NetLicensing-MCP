@@ -294,7 +294,8 @@ async def test_decorator_skips_filtered_tool_but_returns_function(monkeypatch):
     read = app.tool(title="r", annotations=app._READONLY)(netlicensing_get_product)
     assert write is netlicensing_create_product
     assert read is netlicensing_get_product
-    assert json.loads(await write()) == {"ok": True}
+    result = json.loads(await write())
+    assert result == {"ok": True}
     assert [t.name for t in await server.list_tools()] == ["netlicensing_get_product"]
     # The spec is recorded either way, so a fresh server can still get it.
     assert [s.name for s in app._TOOL_SPECS] == [

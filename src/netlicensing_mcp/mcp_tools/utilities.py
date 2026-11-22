@@ -268,14 +268,14 @@ def _no_key_steps(transport: str) -> list[str]:
     if transport == "http":
         return [
             "Send your NetLicensing API key with every request in the "
-            "X-NetLicensing-API-Key header, or as Authorization: Bearer <key>."
+            + "X-NetLicensing-API-Key header, or as Authorization: Bearer <key>."
         ]
     return [
         "Set NETLICENSING_API_KEY to your NetLicensing API key (sign in at "
-        "https://ui.netlicensing.io, open your API keys and create one) in the env "
-        "settings of this server in your MCP client, then restart the client.",
+        + "https://ui.netlicensing.io, open your API keys and create one) in the env "
+        + "settings of this server in your MCP client, then restart the client.",
         "To try the public sandbox without an account, set NETLICENSING_ALLOW_DEMO=true "
-        "instead (sandbox data only; never in production).",
+        + "instead (sandbox data only; never in production).",
     ]
 
 
