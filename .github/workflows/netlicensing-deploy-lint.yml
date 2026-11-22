@@ -1,5 +1,7 @@
 name: NetLicensing MCP - Deploy lint
 
+# GitHub has no per-job path filters: pyproject.toml, uv.lock and src/** are
+# here because the Docker smoke job builds the image from them.
 on:
   push:
     branches: [master]
@@ -7,6 +9,9 @@ on:
       - "deploy/**"
       - "Dockerfile"
       - "healthcheck.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
       - ".github/workflows/netlicensing-deploy-lint.yml"
   pull_request:
     branches: [master]
@@ -14,6 +19,9 @@ on:
       - "deploy/**"
       - "Dockerfile"
       - "healthcheck.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
       - ".github/workflows/netlicensing-deploy-lint.yml"
 
 permissions:
@@ -27,6 +35,7 @@ jobs:
   deploy-templates:
     name: CloudFormation & deploy script
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -59,6 +68,7 @@ jobs:
   docker-smoke:
     name: Docker build & /health smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
@@ -82,6 +92,7 @@ jobs:
       - name: Run HTTP mode and probe /health
         run: |
           cid=$(docker run -d -p 8000:8000 -e MCP_HOST=0.0.0.0 netlicensing-mcp:ci http)
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
           status=starting
           for _ in $(seq 1 60); do
             status=$(docker inspect -f '{{.State.Health.Status}}' "$cid")
@@ -92,9 +103,8 @@ jobs:
           docker logs "$cid"
           echo "Docker HEALTHCHECK status: $status"
           [ "$status" = healthy ]
-          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS --max-time 10 http://127.0.0.1:8000/health
           echo
-          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/mcp)
+          code=$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/mcp)
           echo "POST /mcp without a key: $code"
           [ "$code" = 401 ]
-          docker rm -f "$cid"

@@ -33,7 +33,7 @@ The tool reference in [docs/TOOLS.md](docs/TOOLS.md) and the tool and prompt tab
 
 ### Deploy files
 
-Changes to `deploy/**`, `Dockerfile` or `healthcheck.py` also run the deploy lint workflow (`.github/workflows/netlicensing-deploy-lint.yml`). To run its checks locally (needs [ShellCheck](https://www.shellcheck.net/); keep cfn-lint out of the project environment):
+Changes to `deploy/**`, `Dockerfile`, `healthcheck.py`, `pyproject.toml`, `uv.lock` or `src/**` also run the deploy lint workflow (`.github/workflows/netlicensing-deploy-lint.yml`); the package files are included because the workflow builds the Docker image from them. To run its checks locally (needs [ShellCheck](https://www.shellcheck.net/); keep cfn-lint out of the project environment):
 
 ```bash
 python -m venv /tmp/cfn-lint-venv

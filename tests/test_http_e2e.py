@@ -14,6 +14,7 @@ import asyncio
 import base64
 import json
 from collections.abc import Iterator
+from importlib.metadata import version as pkg_version
 from typing import Any
 
 import httpx
@@ -185,6 +186,10 @@ def test_initialize_with_header_key(http: TestClient):
     assert result["serverInfo"]["name"] == "netlicensing-mcp"
     assert "tools" in result["capabilities"]
     assert "NetLicensing" in result["instructions"]
+    # The netlicensing-mcp version, not the MCP SDK's (the SDK's fallback).
+    assert result["serverInfo"]["version"] == server._server_version()
+    assert result["serverInfo"]["version"] == pkg_version("netlicensing-mcp")
+    assert result["serverInfo"]["version"] != pkg_version("mcp")
 
 
 def test_initialize_with_bearer_key(http: TestClient):

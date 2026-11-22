@@ -29,6 +29,7 @@ from pydantic import BaseModel, ConfigDict
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from netlicensing_mcp import __version__
 from netlicensing_mcp.client import NetLicensingError, is_demo_mode
 from netlicensing_mcp.errors import confirmation_hint, error_hint
 from netlicensing_mcp.redaction import redact, redact_token_read
@@ -204,7 +205,7 @@ def new_server(tool_filter: ToolFilter) -> FastMCP:
     restricts the tool list, a short note about it. Tools are added by the
     ``tool`` decorator (shared :data:`mcp`) or :func:`register_tools`.
     """
-    return FastMCP(
+    server = FastMCP(
         "netlicensing-mcp",
         # Stateless HTTP: every request gets a fresh transport and context, so the
         # per-request API key set by ApiKeyMiddleware is the one the tool uses. In
@@ -215,6 +216,10 @@ def new_server(tool_filter: ToolFilter) -> FastMCP:
         host=os.getenv("MCP_HOST", "127.0.0.1"),
         port=int(os.getenv("MCP_PORT", "8000")),
     )
+    # FastMCP takes no version argument, and the low-level server falls back to
+    # the MCP SDK's own version for ``initialize``'s ``serverInfo.version``.
+    server._mcp_server.version = __version__
+    return server
 
 
 # MCP_TOOLSETS / MCP_READ_ONLY, read once at import; the tool decorator

@@ -7,12 +7,12 @@ import contextvars
 import json
 import logging
 from dataclasses import dataclass, field
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
 
+from netlicensing_mcp import __version__
 from netlicensing_mcp import client as _client
 from netlicensing_mcp.app import (
     _READONLY,
@@ -81,11 +81,12 @@ async def netlicensing_list_countries(include_raw: bool = False) -> str:
 
 
 def _server_version() -> str:
-    """Installed package version (from package metadata, not a literal)."""
-    try:
-        return _pkg_version("netlicensing-mcp")
-    except PackageNotFoundError:
-        return "unknown"
+    """Installed package version (from package metadata, not a literal).
+
+    ``netlicensing_mcp.__version__``: also what ``initialize`` reports as
+    ``serverInfo.version``; ``"unknown"`` when the package is not installed.
+    """
+    return __version__
 
 
 # ── server_info: first-run check ─────────────────────────────────────────────
