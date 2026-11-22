@@ -1,0 +1,100 @@
+name: NetLicensing MCP - Deploy lint
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "deploy/**"
+      - "Dockerfile"
+      - "healthcheck.py"
+      - ".github/workflows/netlicensing-deploy-lint.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "deploy/**"
+      - "Dockerfile"
+      - "healthcheck.py"
+      - ".github/workflows/netlicensing-deploy-lint.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-templates:
+    name: CloudFormation & deploy script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      # Pinned so a new cfn-lint release cannot fail an unrelated PR. The App
+      # Runner template silences W3697 (App Runner is in maintenance mode) per
+      # resource in its own Metadata; every other finding fails this step.
+      - name: Install cfn-lint
+        run: pip install --upgrade pip && pip install "cfn-lint==1.61.0"
+
+      - name: cfn-lint
+        run: cfn-lint deploy/aws/*.yaml
+
+      # shellcheck ships with the ubuntu-latest runner image; install it only
+      # if a future image drops it.
+      - name: shellcheck
+        run: |
+          command -v shellcheck >/dev/null || { sudo apt-get update && sudo apt-get install -y shellcheck; }
+          shellcheck --version
+          shellcheck deploy/aws/deploy.sh
+
+      - name: deploy.sh help works without AWS credentials
+        run: |
+          env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN -u AWS_PROFILE \
+            bash deploy/aws/deploy.sh help
+
+  docker-smoke:
+    name: Docker build & /health smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # hatch-vcs derives the wheel version from git tags
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      # Same steps as the release workflow: the Dockerfile installs dist/*.whl.
+      - name: Build wheel
+        run: |
+          pip install --upgrade pip && pip install hatch hatch-vcs
+          rm -rf dist/
+          hatch build --target wheel
+
+      - name: Build image
+        run: docker build -t netlicensing-mcp:ci .
+
+      # No API key: /health is unauthenticated and /mcp must answer 401.
+      - name: Run HTTP mode and probe /health
+        run: |
+          cid=$(docker run -d -p 8000:8000 -e MCP_HOST=0.0.0.0 netlicensing-mcp:ci http)
+          status=starting
+          for _ in $(seq 1 60); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' "$cid")
+            [ "$status" = healthy ] && break
+            [ "$(docker inspect -f '{{.State.Running}}' "$cid")" = true ] || break
+            sleep 2
+          done
+          docker logs "$cid"
+          echo "Docker HEALTHCHECK status: $status"
+          [ "$status" = healthy ]
+          curl -fsS http://127.0.0.1:8000/health
+          echo
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/mcp)
+          echo "POST /mcp without a key: $code"
+          [ "$code" = 401 ]
+          docker rm -f "$cid"
