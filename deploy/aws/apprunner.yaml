@@ -113,7 +113,7 @@ Resources:
         HealthyThreshold: 1
         UnhealthyThreshold: 3
 
-  # ── Auto-Scaling (supports scale-to-zero) ──────────────────────────────
+  # ── Auto-Scaling (minimum 1 instance; no scale-to-zero) ────────────────
 
   AutoScaling:
     Type: AWS::AppRunner::AutoScalingConfiguration

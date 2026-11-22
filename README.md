@@ -73,7 +73,7 @@ On Windows, single-quoted JSON doesn't work in `cmd.exe` or older PowerShell ver
 
 ### No account yet? Demo mode
 
-Demo mode runs against the NetLicensing sandbox with demo credentials, so you need no key. Every result is tagged `"demo_mode": true`. Never use it in production.
+Demo mode runs against the NetLicensing sandbox with demo credentials, so you need no key. Every JSON result, error results included, is tagged `"demo_mode": true` (plain-text delete confirmations are not). Demo mode is for stdio only: in HTTP mode every request needs a key header. Never use it in production.
 
 ```bash
 claude mcp add netlicensing-demo -e NETLICENSING_ALLOW_DEMO=true -- uvx netlicensing-mcp
@@ -287,7 +287,7 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 
 ## Security defaults
 
-- **No silent demo credentials.** If `NETLICENSING_API_KEY` is missing and `NETLICENSING_ALLOW_DEMO` isn't enabled, the server refuses to start (stdio) or answers `503` (HTTP).
+- **No silent demo credentials.** In stdio mode, if `NETLICENSING_API_KEY` is missing and `NETLICENSING_ALLOW_DEMO` isn't enabled, the server refuses to start. In HTTP mode, every request without an `X-NetLicensing-API-Key` or `Authorization: Bearer` header gets `401`, before any tool runs (demo mode does not apply there).
 - **Secrets are masked.** Every response, and every log line this server writes, passes through a redaction filter for `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret`. Short values become `****`. Longer ones keep the first 3 and last 4 characters (for example `pk_****W3Od`). Add your own fields with `MCP_REDACT_FIELDS`. Request logs show token paths as `/token/****`; the HTTP libraries' own request and response logging (`httpx`, `httpcore`, `sse_starlette`) is held at `WARNING`, also in verbose mode, because it would write full token numbers and new keys. Verbose mode (`-v` / `MCP_VERBOSE`) also turns on the MCP SDK's own DEBUG output, which this filter does not cover: use it for local debugging only and don't ship or keep its logs.
 - **Credentials appear once.** `create_api_token` and `create_shop_token` mark their response `"shown_once": true`. Later `get_token` and `list_tokens` calls return masked values, and deleting a token shows its number only masked (in the preview, the delete message and confirmation errors).
 - **Deletes need confirmation.** Each delete first returns a preview and a single-use token that expires after 5 minutes. Nothing is deleted until you send that token back. `force_cascade` is a separate option that also removes dependent items, and it's only used when you ask for it.
@@ -327,9 +327,9 @@ docker run -i --rm \
 ```bash
 docker run -d -p 8000:8000 \
   -e MCP_HOST=0.0.0.0 \
-  -e NETLICENSING_API_KEY=your_key \
   ghcr.io/labs64/netlicensing-mcp:latest http
 ```
+HTTP mode does not use `NETLICENSING_API_KEY`: each client sends its key with every request, as `X-NetLicensing-API-Key: your_key` or `Authorization: Bearer your_key` (requests without one get `401`). See [Connect MCP clients to the public URL](#connect-mcp-clients-to-the-public-url).
 
 #### Verbose logging (any mode)
 For local debugging only: besides this server's own (redacted) request lines it turns on the MCP SDK's own DEBUG output, which is not filtered. Don't ship or keep these logs.
@@ -355,8 +355,9 @@ docker run -i --rm \
 
 > **No API key?** Set `NETLICENSING_ALLOW_DEMO=true` to run against NetLicensing's built-in
 > sandbox with demo credentials — no account required.
-> The server will tag every response with `"demo_mode": true` and emit a periodic warning
-> so it is always clear you are not using a real account.
+> The server will tag every JSON response (error results included; plain-text delete
+> confirmations are not tagged) with `"demo_mode": true` and emit a periodic warning
+> so it is always clear you are not using a real account. Demo mode applies to stdio only.
 
 ---
 
@@ -543,7 +544,7 @@ Once the server is configured, ask your assistant to **run `netlicensing_server_
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `NETLICENSING_API_KEY` | **Yes*** | — | NetLicensing API key. Required unless `NETLICENSING_ALLOW_DEMO=true` is set. |
-| `NETLICENSING_ALLOW_DEMO` | No | `false` | Set to `true` to explicitly opt in to sandbox demo mode when no API key is configured. Every tool response is tagged with `"demo_mode": true` and a warning is logged every 60 seconds. **Never set this in production.** |
+| `NETLICENSING_ALLOW_DEMO` | No | `false` | Set to `true` to explicitly opt in to sandbox demo mode when no API key is configured. Every JSON tool response, error results included, is tagged with `"demo_mode": true` (plain-text delete confirmations are not) and a warning is logged every 60 seconds. stdio only: HTTP mode always requires a key header. **Never set this in production.** |
 | `NETLICENSING_BASE_URL` | No | `https://go.netlicensing.io/core/v2/rest` | Override the NetLicensing REST API base URL (e.g. for on-prem deployments). |
 | `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` (default) or `http`. Can also be passed as a CLI argument. |
 | `MCP_HOST` | No | `127.0.0.1` | Host address to bind the HTTP server (HTTP mode only). |
@@ -553,9 +554,9 @@ Once the server is configured, ask your assistant to **run `netlicensing_server_
 | `MCP_TOOLSETS` | No | `all` | Comma-separated list of toolsets to register (e.g. `licensees,licenses`). Unknown names are ignored with a warning on stderr (also when `all` is given). See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
 | `MCP_READ_ONLY` | No | `false` | Register only read-only tools (`true`, `1`, or `yes`): list, get, `preview_*`, workflows and reference data. Any other value except `false`, `0` or `no` leaves read-only mode off and logs a warning on stderr. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
 
-> **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode) or return `503 Service Unavailable` for all tool calls (HTTP mode). This prevents accidental use of demo credentials in production.
+> **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode). This prevents accidental use of demo credentials in production. HTTP mode does not read either variable for authentication: a request without a key header gets `401 Unauthorized` before any tool runs.
 
-> **Note on HTTP deployments (e.g. AWS):** When running in HTTP mode over a network, you can skip setting `NETLICENSING_API_KEY` on the server. The MCP server will automatically extract the key per-request if the connecting client provides it via the `X-NetLicensing-API-Key` HTTP header, `Authorization: Bearer <key>` header. Query-parameter keys are not supported, because URLs are logged by proxies and load balancers.
+> **Note on HTTP deployments (e.g. AWS):** In HTTP mode the server does not use `NETLICENSING_API_KEY`, so don't set it there. It takes the key per request from the `X-NetLicensing-API-Key` header or `Authorization: Bearer <key>`, and answers `401` when neither is present. Query-parameter keys are not supported, because URLs are logged by proxies and load balancers.
 
 ### Reduce the tool list / read-only mode
 
@@ -689,7 +690,8 @@ The hints never contain your API key. A hint about a delete blocked by dependent
 | `401 Unauthorized` responses | Invalid or expired API key | Regenerate your key at [ui.netlicensing.io](https://ui.netlicensing.io) |
 | Server not listed in Claude | Config file JSON syntax error | Validate with `python -m json.tool claude_desktop_config.json` |
 | `uvx: command not found` | `uv` not installed | `pip install uv` or see [docs.astral.sh/uv](https://docs.astral.sh/uv) |
-| Server exits immediately / `503` on all calls | `NETLICENSING_API_KEY` not set and demo mode not enabled | Set `NETLICENSING_API_KEY`, or set `NETLICENSING_ALLOW_DEMO=true` for sandbox testing |
+| Server exits immediately (stdio) | `NETLICENSING_API_KEY` not set and demo mode not enabled | Set `NETLICENSING_API_KEY`, or set `NETLICENSING_ALLOW_DEMO=true` for sandbox testing |
+| `401` on every request (HTTP mode) | The client sends no `X-NetLicensing-API-Key` / `Authorization: Bearer` header | Add the header to the client's server configuration (see [Connect MCP clients to the public URL](#connect-mcp-clients-to-the-public-url)) |
 | Demo data instead of live data | `NETLICENSING_API_KEY` not set; `NETLICENSING_ALLOW_DEMO=true` active | Ensure `NETLICENSING_API_KEY` is exported in the shell that starts the client and unset `NETLICENSING_ALLOW_DEMO` |
 
 ---

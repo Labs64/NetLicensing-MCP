@@ -18,7 +18,7 @@ netlicensing_list_products()
 netlicensing_list_licensing_models()
 ```
 
-`netlicensing_server_info` reports `status` (`ok`, `warning` or `error`), where the credentials come from (`auth.source`: `demo` here) and `next_steps` if something needs fixing. In demo mode every result carries `"demo_mode": true` and the status is `warning`, so you can't mistake the sandbox for your real account.
+`netlicensing_server_info` reports `status` (`ok`, `warning` or `error`), where the credentials come from (`auth.source`: `demo` here) and `next_steps` if something needs fixing. In demo mode every JSON result, errors included, carries `"demo_mode": true` and the status is `warning`, so you can't mistake the sandbox for your real account.
 
 ## 2. Launch a subscription product and sign up the first customer
 
