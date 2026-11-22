@@ -40,6 +40,8 @@ claude mcp add netlicensing -e NETLICENSING_API_KEY=YOUR_API_KEY -- uvx netlicen
 code --add-mcp '{"name":"netlicensing","type":"stdio","command":"uvx","args":["netlicensing-mcp"],"env":{"NETLICENSING_API_KEY":"YOUR_API_KEY"}}'
 ```
 
+On Windows, single-quoted JSON doesn't work in `cmd.exe` or older PowerShell versions; use the [`.vscode/mcp.json`](#vs-code--github-copilot) form instead.
+
 **Cursor**: add this to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
 
 ```json
@@ -69,7 +71,7 @@ code --add-mcp '{"name":"netlicensing","type":"stdio","command":"uvx","args":["n
 }
 ```
 
-#### No account yet? Demo mode
+### No account yet? Demo mode
 
 Demo mode runs against the NetLicensing sandbox with demo credentials, so you need no key. Every result is tagged `"demo_mode": true`. Never use it in production.
 
@@ -455,7 +457,7 @@ In Claude Desktop open **Settings → Developer → Edit Config**. This opens (a
       "command": "uvx",
       "args": ["netlicensing-mcp"],
       "env": {
-        "NETLICENSING_API_KEY": "your_key_here"
+        "NETLICENSING_API_KEY": "YOUR_API_KEY"
       }
     }
   }
@@ -471,7 +473,7 @@ Or use the official Docker image (stdio):
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-e", "NETLICENSING_API_KEY=your_key_here",
+        "-e", "NETLICENSING_API_KEY=YOUR_API_KEY",
         "ghcr.io/labs64/netlicensing-mcp:latest"
       ]
     }
@@ -634,12 +636,19 @@ Ask your assistant to run `netlicensing_server_info` (see [First run](#first-run
 
 **Check MCP server logs**
 
+Claude Desktop writes this server's stderr to `mcp-server-netlicensing.log` (and general MCP connection messages to `mcp.log`) in its log folder: `~/Library/Logs/Claude` (macOS), `%APPDATA%\Claude\logs` (Windows), `~/.config/Claude/logs` (Linux).
+
 ```bash
-# macOS / Claude Desktop
+# macOS
 tail -f ~/Library/Logs/Claude/mcp-server-netlicensing.log
 
-# Windows
-Get-Content "$env:APPDATA\Claude\Logs\mcp-server-netlicensing.log" -Wait
+# Linux
+tail -f ~/.config/Claude/logs/mcp-server-netlicensing.log
+```
+
+```powershell
+# Windows (PowerShell)
+Get-Content "$env:APPDATA\Claude\logs\mcp-server-netlicensing.log" -Wait
 ```
 
 **Run the MCP Inspector** (browser UI at `http://localhost:5173`)

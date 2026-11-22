@@ -37,30 +37,10 @@
           "default": "https://go.netlicensing.io/core/v2/rest"
         },
         {
-          "name": "MCP_TRANSPORT",
-          "description": "Transport mode: stdio (default) or http",
-          "choices": [
-            "stdio",
-            "http"
-          ],
-          "default": "stdio"
-        },
-        {
           "name": "MCP_VERBOSE",
           "description": "Enable verbose debug logging (true/false)",
           "format": "boolean",
           "default": "false"
-        },
-        {
-          "name": "MCP_HOST",
-          "description": "Bind address in HTTP mode",
-          "default": "127.0.0.1"
-        },
-        {
-          "name": "MCP_PORT",
-          "description": "Bind port in HTTP mode",
-          "format": "number",
-          "default": "8000"
         },
         {
           "name": "MCP_REDACT_FIELDS",
@@ -105,30 +85,10 @@
           "default": "https://go.netlicensing.io/core/v2/rest"
         },
         {
-          "name": "MCP_TRANSPORT",
-          "description": "Transport mode: stdio (default) or http",
-          "choices": [
-            "stdio",
-            "http"
-          ],
-          "default": "stdio"
-        },
-        {
           "name": "MCP_VERBOSE",
           "description": "Enable verbose debug logging (true/false)",
           "format": "boolean",
           "default": "false"
-        },
-        {
-          "name": "MCP_HOST",
-          "description": "Bind address in HTTP mode",
-          "default": "127.0.0.1"
-        },
-        {
-          "name": "MCP_PORT",
-          "description": "Bind port in HTTP mode",
-          "format": "number",
-          "default": "8000"
         },
         {
           "name": "MCP_REDACT_FIELDS",

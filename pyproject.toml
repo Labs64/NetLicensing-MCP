@@ -42,8 +42,6 @@ classifiers = [
     "Topic :: Office/Business",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Security",
-    "Topic :: Software Development :: Libraries",
-    "Typing :: Typed",
 ]
 dependencies = [
     "mcp[cli]>=1.7.0,<2.0.0",

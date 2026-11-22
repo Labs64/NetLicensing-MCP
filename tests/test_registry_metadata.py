@@ -68,6 +68,9 @@ def test_release_workflow_still_substitutes_and_publishes():
     text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
     assert 'sed -i "s/\\${VERSION}/${REF_NAME}/g" server.json' in text
     assert "mcp-publisher publish" in text
+    # The registry checks that the OCI image exists, so publish after the Docker job.
+    job = text.split("  publish-mcp-registry:\n", 1)[1].split("\n  # ", 1)[0]
+    assert "needs: [publish-pypi, publish-docker]" in job
 
 
 def test_server_json_declares_the_vendored_schema():
@@ -119,6 +122,8 @@ def test_server_json_environment_variables():
     assert [n for n, v in variables.items() if v.get("isRequired")] == ["NETLICENSING_API_KEY"]
     for name in ("NETLICENSING_ALLOW_DEMO", "MCP_VERBOSE", "MCP_READ_ONLY"):
         assert variables[name]["format"] == "boolean", name
+    # Both packages declare stdio; HTTP-mode settings would break that transport.
+    assert not {"MCP_TRANSPORT", "MCP_HOST", "MCP_PORT"} & set(variables)
 
 
 def test_names_and_descriptions_agree():

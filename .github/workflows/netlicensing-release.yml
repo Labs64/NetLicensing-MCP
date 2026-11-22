@@ -144,7 +144,8 @@ jobs:
   publish-mcp-registry:
     name: Publish to MCP Registry
     runs-on: ubuntu-latest
-    needs: publish-pypi
+    # The registry checks that the PyPI package and the OCI image in server.json exist.
+    needs: [publish-pypi, publish-docker]
     permissions:
       contents: read
       id-token: write
