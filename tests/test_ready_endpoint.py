@@ -335,7 +335,9 @@ def test_unexpected_probe_error_is_a_503_not_a_500(
         r = http.get("/ready")
     assert r.status_code == 503
     body = r.json()
-    assert body["reason"] == "NetLicensing API at upstream.test is unreachable (probe_error)"
+    # A probe bug says nothing about the upstream: the reason must not claim it is unreachable.
+    assert body["reason"] == "readiness check failed (probe_error)"
+    assert "unreachable" not in body["reason"]
     assert body["checks"]["upstream"]["error"] == "probe_error"
     assert r.headers["cache-control"] == "no-store"
     _assert_no_secrets(r.text)

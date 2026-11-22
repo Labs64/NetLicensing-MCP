@@ -16,6 +16,8 @@ from mcp.server.fastmcp.prompts.base import UserMessage
 from mcp.types import TextContent
 from pydantic import Field
 
+from netlicensing_mcp.prompts import clean_doc
+
 _ROLE = """You are a Labs64 NetLicensing assistant for an online license and
 entitlements management system."""
 
@@ -57,6 +59,7 @@ def register_setup_prompts(mcp: FastMCP) -> None:
     # ── 1. Subscription product ──────────────────────────────────────────────
 
     @mcp.prompt(title="Set up a subscription product")
+    @clean_doc
     def setup_subscription_product(
         product_name: Annotated[
             str, Field(description="Name of the new product, e.g. 'Acme Cloud'")
@@ -147,6 +150,7 @@ buy or renew a plan through a checkout link from
     # ── 2. Try & Buy trial ───────────────────────────────────────────────────
 
     @mcp.prompt(title="Add a free trial to a product")
+    @clean_doc
     def setup_trial(
         product_number: Annotated[str, Field(description="Existing product to add the trial to")],
         trial_days: Annotated[
@@ -233,6 +237,7 @@ selling the full version with
     # ── 3. Customer onboarding ───────────────────────────────────────────────
 
     @mcp.prompt(title="Onboard a customer")
+    @clean_doc
     def onboard_customer(
         customer_name: Annotated[str, Field(description="Customer (licensee) display name")],
         product_number: Annotated[str, Field(description="Product the customer licenses")],
@@ -355,6 +360,7 @@ checkout URL is shown once: hand it to the user and do not repeat it later.
     # ── 4. Customer migration (license transfer) ─────────────────────────────
 
     @mcp.prompt(title="Move a customer's licenses to another licensee")
+    @clean_doc
     def migrate_customer(
         from_licensee_number: Annotated[str, Field(description="Source licensee")],
         to_licensee_number: Annotated[str, Field(description="Destination licensee")],
@@ -429,6 +435,7 @@ follow the safety rules below (preview first, prefer deactivation with
     # ── 5. Validation troubleshooting ────────────────────────────────────────
 
     @mcp.prompt(title="Troubleshoot a failing validation")
+    @clean_doc
     def troubleshoot_validation(
         licensee_number: Annotated[str, Field(description="Licensee whose validation fails")],
         product_number: Annotated[
@@ -524,6 +531,7 @@ validate again with dry_run=true.
     # ── 6. API key issuance ──────────────────────────────────────────────────
 
     @mcp.prompt(title="Issue a scoped API key")
+    @clean_doc
     def issue_api_key(
         purpose: Annotated[
             str,

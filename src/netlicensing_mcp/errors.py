@@ -81,6 +81,19 @@ _VERBS = (
 )
 _WRITE_VERBS = frozenset({"create", "update", "delete", "obtain", "validate", "transfer"})
 
+# Delete tools with a ``force_cascade`` parameter (``tests/test_error_hints.py``
+# checks this against the registry).
+CASCADE_DELETE_TOOLS = frozenset(
+    {
+        "netlicensing_delete_product",
+        "netlicensing_delete_product_module",
+        "netlicensing_delete_license_template",
+        "netlicensing_delete_licensee",
+        "netlicensing_delete_license",
+        "netlicensing_delete_bundle",
+    }
+)
+
 _NO_KEY_PREFIX = "No NetLicensing API key configured"
 _KEY_SETTINGS = (
     "NETLICENSING_API_KEY (stdio) or the X-NetLicensing-API-Key / "
@@ -252,11 +265,12 @@ def error_hint(
         )
     if status == 403:
         return _result(
-            "The API key's role does not allow this operation (roles, lowest first: LICENSEE, "
-            "ANALYTICS, OPERATION, MAINTENANCE, ADMIN; reads need ANALYTICS, writes to licensees "
-            "and licenses OPERATION, writes to products, modules and templates MAINTENANCE): "
-            "use a key with a higher role in "
-            f"{_KEY_SETTINGS}.",
+            "The API key's role does not allow this operation. Roles are cumulative, lowest "
+            "first: LICENSEE (validate, transfer, create a shop token), ANALYTICS (plus read "
+            "access to all entities), OPERATION (plus create, update and delete for licensees "
+            "and licenses), MAINTENANCE (plus create, update and delete for products, product "
+            "modules and license templates), ADMIN (everything an API key can do). Use a key "
+            f"with a higher role in {_KEY_SETTINGS}.",
             [],
         )
     if _is_not_found(exc):
@@ -271,11 +285,21 @@ def error_hint(
         preview = tools.for_entity("preview_delete", entity)
         update = tools.for_entity("update", entity)
         review = f" Review them with {preview}." if preview else ""
+        cascade = (
+            " Pass force_cascade=true only if the user explicitly asks to delete all "
+            "dependents too."
+            if tool_name in CASCADE_DELETE_TOOLS
+            else ""
+        )
+        deactivate = (
+            f" To disable rather than remove, prefer deactivating (active=false with "
+            f"{update}) over deleting."
+            if update
+            else ""
+        )
         return _result(
             f"NetLicensing refused to delete the {phrase} because other entities still depend "
-            f"on it (see 'detail').{review} Pass force_cascade=true only if the user explicitly "
-            "asks to delete all dependents too; to disable rather than remove, prefer "
-            "deactivating (active=false) over deleting.",
+            f"on it (see 'detail').{review}{cascade}{deactivate}",
             [preview, update],
         )
     text = exc.detail.lower()

@@ -364,7 +364,8 @@ def main() -> None:
     verbose = args.verbose or os.getenv("MCP_VERBOSE", "").lower() in ("1", "true", "yes")
 
     if verbose:
-        # Root at DEBUG; httpx/httpcore stay at WARNING (they log full token URLs).
+        # Root at DEBUG; httpx/httpcore/sse_starlette stay at WARNING (they log
+        # full token URLs and response chunks with new keys).
         enable_verbose_logging()
         logger.debug("Verbose logging enabled — API requests/responses will be logged")
 

@@ -46,6 +46,18 @@ def _shown(operation: str, target: str) -> str:
     return mask_token_number(target) if operation in _SECRET_TARGET_OPS else target
 
 
+_SHOWN_TOKEN_CHARS = 6
+
+
+def _shown_token(token: str) -> str:
+    """Return the caller's ``confirm_token`` input as it may appear in an error.
+
+    Unknown and expired tokens are arbitrary caller input (a key pasted into the
+    wrong argument, say), so only the first characters are repeated.
+    """
+    return token[:_SHOWN_TOKEN_CHARS] + "…" if len(token) > _SHOWN_TOKEN_CHARS else token
+
+
 def _owner() -> str:
     """Return an opaque label for the current caller's API key (never the key).
 
@@ -108,12 +120,12 @@ def validate_and_consume(token: str, operation: str, target: str) -> None:
     if entry is not None and not hmac.compare_digest(entry[3], _owner()):
         entry = None
     if entry is None:
-        raise ValueError(f"Invalid or already used confirmation token: {token!r}")
+        raise ValueError(f"Invalid or already used confirmation token: {_shown_token(token)!r}")
 
     stored_op, stored_target, expires_at, _ = entry
     if datetime.now(timezone.utc) > expires_at:
         del _store[token]
-        raise ValueError(f"Confirmation token {token!r} has expired")
+        raise ValueError(f"Confirmation token {_shown_token(token)!r} has expired")
 
     if stored_op != operation or stored_target != target:
         # The comparison above uses the real targets; only the message masks them.

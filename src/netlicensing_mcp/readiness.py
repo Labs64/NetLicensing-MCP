@@ -5,13 +5,18 @@ Readiness probe (``GET /ready``)
 whether this instance can serve MCP traffic now:
 
 1. **app** — the MCP session manager is running (the ASGI lifespan started);
-   before that, ``/mcp`` requests fail.
+   before that, ``/mcp`` requests fail. This reads private SDK attributes; if
+   a future SDK no longer has them the check fails open (assumes running and
+   logs at debug), while a manager that is ``None`` or not started fails it.
 2. **upstream** — the NetLicensing API (``NETLICENSING_BASE_URL``) answers.
    One unauthenticated ``GET`` of the base URL through the shared HTTP client,
    3 s timeout. *Any* HTTP response (also 401 / 404 / 5xx) counts as
    reachable; timeouts, connection / transport errors and a malformed URL do not. The
    result is cached (success 15 s, failure 5 s) so probes cannot hammer the
-   upstream, and concurrent checks share one probe.
+   upstream, and concurrent checks share one probe. An unexpected exception
+   in the probe itself gives ``503`` with error ``probe_error`` and reason
+   ``readiness check failed (probe_error)`` (only the exception type is
+   logged), never a ``500``.
 
 An API key is *not* a readiness criterion: in HTTP mode every request brings
 its own key. The probe sends no credentials, never reads the upstream body and
@@ -179,7 +184,10 @@ def register_ready_route(server: FastMCP, version: Callable[[], str]) -> None:
         reasons = []
         if not app_ok:
             reasons.append("MCP session manager is not running")
-        if not upstream.ok:
+        if upstream.error == "probe_error":
+            # The probe itself failed: nothing is known about the upstream.
+            reasons.append("readiness check failed (probe_error)")
+        elif not upstream.ok:
             reasons.append(f"NetLicensing API at {host} is unreachable ({upstream.error})")
 
         body: dict[str, object] = {

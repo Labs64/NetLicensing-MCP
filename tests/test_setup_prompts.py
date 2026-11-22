@@ -488,3 +488,27 @@ def test_consistency_parser_catches_drift():
         ("netlicensing_x", "a"),
         ("netlicensing_x", "c"),
     ]
+
+
+# ── Prompt descriptions ─────────────────────────────────────────────────────
+
+
+async def test_prompt_descriptions_have_no_source_indentation():
+    """FastMCP sends the docstring as the description; on Python 3.12 it kept the
+    source indentation, and Markdown clients show lines indented by 4+ spaces as
+    code blocks. Only the entries of a Google-style ``Args:`` section stay
+    indented (they continue the ``Args:`` paragraph, and scripts/gen_tools_doc.py
+    reads the argument descriptions from them)."""
+    prompts = await server.mcp.list_prompts()
+    assert len(prompts) == len(AUDIT_PROMPTS) + len(SETUP_PROMPTS)
+    for prompt in prompts:
+        assert prompt.description
+        assert prompt.description == prompt.description.strip()
+        in_args = False
+        for line in prompt.description.splitlines():
+            if not line.strip():
+                continue
+            if not line[:1].isspace():
+                in_args = line.strip() == "Args:"
+                continue
+            assert in_args, f"{prompt.name}: indented line outside Args: {line!r}"

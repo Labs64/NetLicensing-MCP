@@ -31,7 +31,7 @@ import netlicensing_mcp.client as client
 from netlicensing_mcp import safety, server
 from netlicensing_mcp.app import to_call_tool_result
 from netlicensing_mcp.client import NetLicensingError
-from netlicensing_mcp.errors import confirmation_hint, error_hint
+from netlicensing_mcp.errors import CASCADE_DELETE_TOOLS, confirmation_hint, error_hint
 from netlicensing_mcp.server import mcp
 from netlicensing_mcp.toolsets import TOOLSETS, ToolFilter
 
@@ -151,6 +151,11 @@ def test_403_mentions_role_and_key_settings():
     )
     assert "role" in h["hint"]
     assert "MAINTENANCE" in h["hint"] or "higher role" in h["hint"]
+    # Role ladder as on https://netlicensing.io/wiki/api-conventions (cumulative, lowest first).
+    ladder = ["LICENSEE (", "ANALYTICS (", "OPERATION (", "MAINTENANCE (", "ADMIN ("]
+    positions = [h["hint"].index(role) for role in ladder]
+    assert positions == sorted(positions)
+    assert "cumulative" in h["hint"]
     assert "NETLICENSING_API_KEY" in h["hint"]
     assert "X-NetLicensing-API-Key" in h["hint"]
     assert h["retryable"] is False
@@ -206,7 +211,7 @@ def test_duplicate_number(tool, exc, suggestions):
 
 
 @pytest.mark.parametrize(
-    ("tool", "exc", "suggestions"),
+    ("tool", "exc", "suggestions", "cascade_and_update"),
     [
         (
             "netlicensing_delete_product",
@@ -214,27 +219,43 @@ def test_duplicate_number(tool, exc, suggestions):
                 400, "This product has Licensees.", info_ids=("IllegalOperationException",)
             ),
             ["netlicensing_preview_delete_product", "netlicensing_update_product"],
+            True,
         ),
         (
             "netlicensing_delete_licensee",
             NetLicensingError(409, "conflict"),
             ["netlicensing_preview_delete_licensee", "netlicensing_update_licensee"],
+            True,
         ),
         (
-            # Tokens cannot be deactivated: no update tool to suggest.
+            # Tokens cannot be deactivated (no update tool) and delete_token has
+            # no force_cascade parameter: the hint mentions neither.
             "netlicensing_delete_token",
             NetLicensingError(409, "conflict"),
             ["netlicensing_preview_delete_token"],
+            False,
         ),
     ],
 )
-def test_delete_blocked_by_dependents(tool, exc, suggestions):
+def test_delete_blocked_by_dependents(tool, exc, suggestions, cascade_and_update):
     h = error_hint(exc, tool)
     assert h["suggested_actions"] == suggestions
-    assert "force_cascade" in h["hint"]
-    assert "explicitly" in h["hint"]
-    assert "active=false" in h["hint"]
+    assert ("force_cascade" in h["hint"]) is cascade_and_update
+    assert ("explicitly" in h["hint"]) is cascade_and_update
+    assert ("active=false" in h["hint"]) is cascade_and_update
+    assert suggestions[0] in h["hint"]
     assert h["retryable"] is False
+
+
+async def test_cascade_delete_tools_match_the_registry():
+    tools = await mcp.list_tools()
+    with_cascade = {
+        t.name
+        for t in tools
+        if t.name.startswith("netlicensing_delete_")
+        and "force_cascade" in t.inputSchema["properties"]
+    }
+    assert with_cascade == CASCADE_DELETE_TOOLS
 
 
 def test_illegal_operation_outside_delete_is_a_validation_error():

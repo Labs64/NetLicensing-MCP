@@ -6,6 +6,8 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.prompts.base import UserMessage
 from mcp.types import TextContent
 
+from netlicensing_mcp.prompts import clean_doc
+
 
 def register_audit_prompts(mcp: FastMCP) -> None:
     """Register NetLicensing license and entitlement audit prompts on the MCP server."""
@@ -13,6 +15,7 @@ def register_audit_prompts(mcp: FastMCP) -> None:
     # ── 1. Full account audit ────────────────────────────────────────────────
 
     @mcp.prompt()
+    @clean_doc
     def audit_full(product_number: str) -> list[UserMessage]:
         """Run a full entitlement audit across all customers of a product.
 
@@ -95,6 +98,7 @@ Numbered list for the account owner, ordered by entitlement risk and customer im
     # ── 2. Single-customer deep-dive ─────────────────────────────────────────
 
     @mcp.prompt()
+    @clean_doc
     def audit_customer(licensee_number: str) -> list[UserMessage]:
         """Deep-dive audit of a single customer's license health.
 
@@ -159,6 +163,7 @@ with licensee_number="{licensee_number}" and include the renewal URL in the repo
     # ── 3. Expiry sweep ──────────────────────────────────────────────────────
 
     @mcp.prompt()
+    @clean_doc
     def audit_expiry(
         product_number: str,
         days_threshold: int = 30,
@@ -226,6 +231,7 @@ Present as:
     # ── 4. Cleanup audit ─────────────────────────────────────────────────────
 
     @mcp.prompt()
+    @clean_doc
     def audit_cleanup(product_number: str) -> list[UserMessage]:
         """Identify inactive, unused, or orphaned licenses for cleanup.
 
@@ -287,6 +293,7 @@ without explicit confirmation from the user after they review this report.
     # ── 5. Anomaly detection ─────────────────────────────────────────────────
 
     @mcp.prompt()
+    @clean_doc
     def audit_anomaly(product_number: str) -> list[UserMessage]:
         """Detect anomalous usage patterns across all customers.
 
