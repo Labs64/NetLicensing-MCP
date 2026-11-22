@@ -11,8 +11,8 @@ FROM python:3.12-slim
 
 # Consolidated labels (single layer)
 LABEL io.modelcontextprotocol.server.name="io.github.Labs64/netlicensing-mcp" \
-      org.opencontainers.image.title="netlicensing-mcp" \
-      org.opencontainers.image.description="Official Labs64 NetLicensing MCP server: manage products, licensees, licenses and entitlements in plain language." \
+      org.opencontainers.image.title="NetLicensing MCP Server" \
+      org.opencontainers.image.description="Official Labs64 NetLicensing MCP server: manage products, licensees, licenses and entitlements." \
       org.opencontainers.image.vendor="Labs64" \
       org.opencontainers.image.url="https://netlicensing.io" \
       org.opencontainers.image.documentation="https://github.com/Labs64/NetLicensing-MCP#readme" \

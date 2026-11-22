@@ -122,6 +122,12 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
+          # Keep the Dockerfile's labels: without these the action would set title,
+          # description and url from the GitHub repository and override them.
+          labels: |
+            org.opencontainers.image.title=NetLicensing MCP Server
+            org.opencontainers.image.description=Official Labs64 NetLicensing MCP server: manage products, licensees, licenses and entitlements.
+            org.opencontainers.image.url=https://netlicensing.io
 
       - name: Build and push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
