@@ -14,13 +14,72 @@
 
 **The official [Labs64 NetLicensing](https://netlicensing.io) MCP server.** Connect your AI assistant to NetLicensing and manage products, customers, licenses and entitlements by simply asking.
 
-It works with Claude Desktop, Claude Code, GitHub Copilot (Agent mode), VS Code, JetBrains IDEs, and any other MCP-compatible client.
+It works with Claude Desktop, Claude Code, Cursor, GitHub Copilot (Agent mode) in VS Code and JetBrains IDEs, and any other MCP-compatible client.
 
 **Who is it for?**
 
 - **Customer service and support teams** who need a quick answer to "why can't this customer use the product?" or want to renew or transfer a license without opening the console.
 - **IT and system administrators** who audit accounts, clean up unused licenses and run the server for a team.
 - **Developers and vendors** who set up products, license templates and shop checkouts, or test their licensing model while they build.
+
+---
+
+## Connect in 30 seconds
+
+You need a NetLicensing API key (create one at [ui.netlicensing.io](https://ui.netlicensing.io)) and either [uv](https://docs.astral.sh/uv/) (for `uvx`) or Docker. Replace `YOUR_API_KEY` with your key. No account yet? Use [demo mode](#no-account-yet-demo-mode).
+
+**Claude Code**
+
+```bash
+claude mcp add netlicensing -e NETLICENSING_API_KEY=YOUR_API_KEY -- uvx netlicensing-mcp
+```
+
+**VS Code (GitHub Copilot)**
+
+```bash
+code --add-mcp '{"name":"netlicensing","type":"stdio","command":"uvx","args":["netlicensing-mcp"],"env":{"NETLICENSING_API_KEY":"YOUR_API_KEY"}}'
+```
+
+**Cursor**: add this to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
+
+```json
+{
+  "mcpServers": {
+    "netlicensing": {
+      "command": "uvx",
+      "args": ["netlicensing-mcp"],
+      "env": { "NETLICENSING_API_KEY": "YOUR_API_KEY" }
+    }
+  }
+}
+```
+
+**Claude Desktop**: open **Settings → Developer → Edit Config** and add the same `mcpServers` block as for Cursor to `claude_desktop_config.json`, then quit and restart Claude Desktop.
+
+**Docker** instead of `uvx` (Cursor, Claude Desktop and other clients with an `mcpServers` file):
+
+```json
+{
+  "mcpServers": {
+    "netlicensing": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "NETLICENSING_API_KEY=YOUR_API_KEY", "ghcr.io/labs64/netlicensing-mcp:latest"]
+    }
+  }
+}
+```
+
+#### No account yet? Demo mode
+
+Demo mode runs against the NetLicensing sandbox with demo credentials, so you need no key. Every result is tagged `"demo_mode": true`. Never use it in production.
+
+```bash
+claude mcp add netlicensing-demo -e NETLICENSING_ALLOW_DEMO=true -- uvx netlicensing-mcp
+```
+
+In a JSON config, use `"env": { "NETLICENSING_ALLOW_DEMO": "true" }` instead of the API key.
+
+Then ask your assistant: *"Run netlicensing_server_info and tell me if the setup is OK."* (see [First run](#first-run)). More options per client (a `.vscode/mcp.json` that asks for the key, a Cursor install link, JetBrains, remote HTTP servers) are in [Client setup](#client-setup). For what to ask next, see the example sessions in [docs/EXAMPLES.md](docs/EXAMPLES.md).
 
 ---
 
@@ -47,6 +106,8 @@ It works with Claude Desktop, Claude Code, GitHub Copilot (Agent mode), VS Code,
 - *"Move all licenses from L001 to L002."*
 - *"Create a read-only API key for licensee L001."*
 - *"Show me last month's transactions."*
+
+[docs/EXAMPLES.md](docs/EXAMPLES.md) walks through six vendor scenarios with the tool calls behind them.
 
 NetLicensing supports several licensing models, such as Try & Buy, Subscription, Rental, Floating, Multi-Feature, Pay-per-Use and Quota. Use `netlicensing_list_licensing_models` to see what your account offers, or read about them in the [NetLicensing documentation](https://netlicensing.io/wiki/licensing-models).
 
@@ -263,6 +324,7 @@ docker run -i --rm \
 #### HTTP mode — for remote/shared deployments
 ```bash
 docker run -d -p 8000:8000 \
+  -e MCP_HOST=0.0.0.0 \
   -e NETLICENSING_API_KEY=your_key \
   ghcr.io/labs64/netlicensing-mcp:latest http
 ```
@@ -293,6 +355,182 @@ docker run -i --rm \
 > sandbox with demo credentials — no account required.
 > The server will tag every response with `"demo_mode": true` and emit a periodic warning
 > so it is always clear you are not using a real account.
+
+---
+
+## Client setup
+
+Each client below starts the server locally over stdio with `uvx netlicensing-mcp`. To use Docker instead, use `docker` as the command with the arguments shown under [Claude Desktop](#claude-desktop). The remote examples assume you run the server in HTTP mode yourself (see [HTTP mode](#http-mode-for-remote--shared-deployments) and [Cloud Deployment (AWS)](#cloud-deployment-aws)); `https://mcp.example.com/mcp` stands for your deployment's URL. A remote server takes the API key from the `X-NetLicensing-API-Key` header or `Authorization: Bearer`.
+
+### Claude Code
+
+```bash
+claude mcp add netlicensing -e NETLICENSING_API_KEY=YOUR_API_KEY -- uvx netlicensing-mcp
+```
+
+The default scope `local` loads the server in the current project only, for you only. Add `--scope user` to load it in all your projects, or `--scope project` to store it in the project's `.mcp.json` and share it through version control (then don't put a real key on the command line; it would end up in that file).
+
+Remote server in HTTP mode:
+
+```bash
+claude mcp add --transport http netlicensing https://mcp.example.com/mcp --header "X-NetLicensing-API-Key: YOUR_API_KEY"
+```
+
+### VS Code / GitHub Copilot
+
+`code --add-mcp` (see [Connect in 30 seconds](#connect-in-30-seconds)) adds the server in one line. To keep the key out of the configuration file, create `.vscode/mcp.json` in your workspace instead. VS Code then asks for the key in an input box (`password: true` hides what you type):
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "netlicensing-api-key",
+      "description": "NetLicensing API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "netlicensing": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["netlicensing-mcp"],
+      "env": { "NETLICENSING_API_KEY": "${input:netlicensing-api-key}" }
+    }
+  }
+}
+```
+
+Remote server in HTTP mode (same `inputs` block):
+
+```json
+{
+  "servers": {
+    "netlicensing": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "X-NetLicensing-API-Key": "${input:netlicensing-api-key}" }
+    }
+  }
+}
+```
+
+### Cursor
+
+Use the `mcpServers` block from [Connect in 30 seconds](#connect-in-30-seconds) in `~/.cursor/mcp.json` or `.cursor/mcp.json`. To keep the key out of the file, write `"NETLICENSING_API_KEY": "${env:NETLICENSING_API_KEY}"` and set the variable in the environment Cursor starts from.
+
+Or paste this install link into your browser's address bar; Cursor asks before it installs the server. Afterwards replace `YOUR_API_KEY` with your key in the installed server's configuration:
+
+```text
+cursor://anysphere.cursor-deeplink/mcp/install?name=netlicensing&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJuZXRsaWNlbnNpbmctbWNwIl0sImVudiI6eyJORVRMSUNFTlNJTkdfQVBJX0tFWSI6IllPVVJfQVBJX0tFWSJ9fQ==
+```
+
+The `config` value is the Base64-encoded JSON `{"command":"uvx","args":["netlicensing-mcp"],"env":{"NETLICENSING_API_KEY":"YOUR_API_KEY"}}`.
+
+Remote server in HTTP mode:
+
+```json
+{
+  "mcpServers": {
+    "netlicensing": {
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" }
+    }
+  }
+}
+```
+
+### Claude Desktop
+
+In Claude Desktop open **Settings → Developer → Edit Config**. This opens (and creates, if needed) `claude_desktop_config.json`:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "netlicensing": {
+      "command": "uvx",
+      "args": ["netlicensing-mcp"],
+      "env": {
+        "NETLICENSING_API_KEY": "your_key_here"
+      }
+    }
+  }
+}
+```
+
+Or use the official Docker image (stdio):
+
+```json
+{
+  "mcpServers": {
+    "netlicensing": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "NETLICENSING_API_KEY=your_key_here",
+        "ghcr.io/labs64/netlicensing-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+Quit and restart Claude Desktop after saving the file.
+
+Claude Desktop adds remote servers as custom connectors (**Settings → Connectors → Add custom connector**): you enter the server URL and then authenticate with the server, for example with OAuth. Sending a custom request header is not part of that documented flow, and a shared deployment of this server expects each client to send its own API key in a header, so use the local setup above with Claude Desktop.
+
+### JetBrains IDEs (GitHub Copilot)
+
+Click the Copilot icon in the lower right corner, choose **Open Chat**, switch to **Agent** mode, click the tools icon (**Configure your MCP server**) and then **Add MCP Tools**. In the `mcp.json` that opens, add the server under `servers`:
+
+```json
+{
+  "servers": {
+    "netlicensing": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "NETLICENSING_API_KEY=YOUR_API_KEY", "ghcr.io/labs64/netlicensing-mcp:latest"]
+    }
+  }
+}
+```
+
+### Other MCP clients
+
+Any client that can start a stdio server works: command `uvx`, arguments `netlicensing-mcp`, and the environment variable `NETLICENSING_API_KEY` (or `NETLICENSING_ALLOW_DEMO=true`). Clients that connect to remote servers with custom headers can use an HTTP deployment with the `X-NetLicensing-API-Key` header.
+
+### First run
+
+Once the server is configured, ask your assistant to **run `netlicensing_server_info`** (for example: "Run netlicensing_server_info and tell me if the setup is OK"). It checks the setup and makes one small read-only API call (it lists one product) to confirm that the NetLicensing API is reachable and accepts your key. The result never contains the key:
+
+```json
+{
+  "version": "<installed version>",
+  "base_url": "go.netlicensing.io",
+  "demo_mode": false,
+  "status": "ok",
+  "transport": "stdio",
+  "auth": {"configured": true, "source": "env", "valid": true},
+  "checks": [
+    {"name": "credentials", "ok": true, "detail": "API key from the NETLICENSING_API_KEY environment variable (or .env file)."},
+    {"name": "reachable", "ok": true, "detail": "The NetLicensing API at go.netlicensing.io answered."},
+    {"name": "authentication", "ok": true, "detail": "The credentials were accepted (test read: list products, 1 item)."}
+  ],
+  "warnings": [],
+  "next_steps": [],
+  "toolsets": ["all"],
+  "read_only": false,
+  "tool_count": 61
+}
+```
+
+- `status` is `ok`, `warning` (demo mode; a valid key whose role does not allow listing products, `403`; or the API answered with an error that says nothing about the key) or `error` (no key, key rejected with `401`, API not reachable). With `check_connection=false`, `ok` only means that a key is configured: it has not been checked.
+- `auth.source` says where the credentials come from: `env` (`NETLICENSING_API_KEY`), `header` (HTTP mode: `X-NetLicensing-API-Key` or `Authorization: Bearer`), `demo` (`NETLICENSING_ALLOW_DEMO=true`) or `none`. `auth.valid` is `true` when NetLicensing accepted the key (the test call succeeded, or it answered `403`: authenticated, but the key's role does not allow listing products; the `permission` check then fails and a warning explains it), `false` when NetLicensing rejected the key (`401`), and `null` when it could not be checked.
+- `next_steps` says in plain language what to fix, e.g. how to set the key.
+- Pass `check_connection=false` to skip the API call.
 
 ---
 
@@ -335,114 +573,6 @@ MCP_TOOLSETS=licensees,licenses MCP_READ_ONLY=true NETLICENSING_API_KEY=your_key
 ```
 
 All prompts are always available. Some of their steps call tools that may not be registered (for example `audit_expiry` calls `netlicensing_create_shop_token`, which is not available in read-only mode or without the `tokens` toolset, and the setup prompts create entities, which read-only mode does not allow); the assistant then cannot run those steps.
-
----
-
-### Claude Desktop
-
-Open `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
-or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "netlicensing": {
-      "command": "uvx",
-      "args": ["netlicensing-mcp"],
-      "env": {
-        "NETLICENSING_API_KEY": "your_key_here"
-      }
-    }
-  }
-}
-```
-
-Or use the official Docker image:
-
-#### stdio (default) — for Claude Desktop / VS Code
-```json
-{
-  "mcpServers": {
-    "netlicensing": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "NETLICENSING_API_KEY=your_key_here",
-        "ghcr.io/labs64/netlicensing-mcp:latest"
-      ]
-    }
-  }
-}
-```
-
-#### HTTP mode — for remote/shared deployments
-```json
-{
-  "mcpServers": {
-    "netlicensing": {
-      "command": "docker",
-      "args": [
-        "run", "-d",
-        "-p", "8000:8000",
-        "-e", "NETLICENSING_API_KEY=your_key_here",
-        "ghcr.io/labs64/netlicensing-mcp:latest",
-        "http"
-      ]
-    }
-  }
-}
-```
-
-### Claude Code
-
-```bash
-claude mcp add netlicensing --env NETLICENSING_API_KEY=your_key_here -- uvx netlicensing-mcp
-```
-
-### Cursor and other MCP clients
-
-Any client that can start a stdio server works. Use the same `command`, `args` and `env` values as in the Claude Desktop example above.
-
-### VS Code / GitHub Copilot
-
-The repo ships a `.vscode/mcp.json` that auto-configures Copilot Agent mode.
-Set `NETLICENSING_API_KEY` in your shell environment or a `.env` file, then click
-**Start** in the editor banner that appears above `mcp.json`.
-
-### JetBrains / IntelliJ IDEA
-
-In Copilot Chat → Agent mode → Tools icon → **Add More Tools…** — paste the
-same JSON block shown in the Claude Desktop section above.
-
-### First run
-
-Once the server is configured, ask your assistant to **run `netlicensing_server_info`** (for example: "Run netlicensing_server_info and tell me if the setup is OK"). It checks the setup and makes one small read-only API call (it lists one product) to confirm that the NetLicensing API is reachable and accepts your key. The result never contains the key:
-
-```json
-{
-  "version": "<installed version>",
-  "base_url": "go.netlicensing.io",
-  "demo_mode": false,
-  "status": "ok",
-  "transport": "stdio",
-  "auth": {"configured": true, "source": "env", "valid": true},
-  "checks": [
-    {"name": "credentials", "ok": true, "detail": "API key from the NETLICENSING_API_KEY environment variable (or .env file)."},
-    {"name": "reachable", "ok": true, "detail": "The NetLicensing API at go.netlicensing.io answered."},
-    {"name": "authentication", "ok": true, "detail": "The credentials were accepted (test read: list products, 1 item)."}
-  ],
-  "warnings": [],
-  "next_steps": [],
-  "toolsets": ["all"],
-  "read_only": false,
-  "tool_count": 61
-}
-```
-
-- `status` is `ok`, `warning` (demo mode; a valid key whose role does not allow listing products, `403`; or the API answered with an error that says nothing about the key) or `error` (no key, key rejected with `401`, API not reachable). With `check_connection=false`, `ok` only means that a key is configured: it has not been checked.
-- `auth.source` says where the credentials come from: `env` (`NETLICENSING_API_KEY`), `header` (HTTP mode: `X-NetLicensing-API-Key` or `Authorization: Bearer`), `demo` (`NETLICENSING_ALLOW_DEMO=true`) or `none`. `auth.valid` is `true` when NetLicensing accepted the key (the test call succeeded, or it answered `403`: authenticated, but the key's role does not allow listing products; the `permission` check then fails and a warning explains it), `false` when NetLicensing rejected the key (`401`), and `null` when it could not be checked.
-- `next_steps` says in plain language what to fix, e.g. how to set the key.
-- Pass `check_connection=false` to skip the API call.
 
 ---
 
@@ -634,7 +764,7 @@ HTTPS only works for a hostname covered by your certificate, so point a DNS CNAM
 
 To use a shared, remote deployment, do not bake the `NETLICENSING_API_KEY` into the remote server settings. Instead, pass the API key from the client side in an HTTP header.
 
-For example, in your MCP client configuration:
+For example, in Cursor's `mcp.json` (the commands for Claude Code and VS Code are under [Client setup](#client-setup); Claude Desktop's custom connectors can't send this header):
 
 ```json
 {
