@@ -128,6 +128,18 @@ def _classify_module(
         if bound:
             row["node_matched"] = bound.lower() == "true"
 
+    # A Floating module validates only for a given session. Without session data in the
+    # reply, valid=false cannot tell "no free seat" from "no session was requested",
+    # so the module is reported as unknown instead of invalid.
+    if (
+        "floating" in model_lower
+        and row.get("valid") is False
+        and row.get("max_sessions") is None
+        and row.get("active_sessions") is None
+    ):
+        row["valid"] = None
+        row["session_required"] = True
+
     return row
 
 
@@ -198,6 +210,11 @@ def _explanation_for(row: dict[str, Any]) -> str:
         return "Quota module is active." if valid else _unknown_text("Quota module")
 
     if "floating" in model_lower:
+        if row.get("session_required"):
+            return (
+                "Floating module: validity unknown. It validates only for a session, and no "
+                "session id was supplied, so this does not mean no seat is free."
+            )
         max_s = row.get("max_sessions")
         active_s = row.get("active_sessions")
         if max_s is not None and active_s is not None:
@@ -290,7 +307,13 @@ def _actions_for(row: dict[str, Any], licensee_number: str) -> list[str]:
                 "Pay-per-Use transaction."
             )
 
-    if "floating" in model_lower:
+    if "floating" in model_lower and row.get("session_required"):
+        actions.append(
+            f"Validate module {mno} for a session: netlicensing_validate_licensee("
+            f'licensee_number="{licensee_number}", product_module_number="{mno}", '
+            'session_id="<session>", action="checkOut", dry_run=true).'
+        )
+    elif "floating" in model_lower:
         max_s = row.get("max_sessions")
         active_s = row.get("active_sessions")
         if (max_s is not None and active_s is not None and active_s >= max_s) or invalid:

@@ -17,6 +17,8 @@ import string
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from contextvars import ContextVar
+
 from netlicensing_mcp.client import api_key_ctx
 from netlicensing_mcp.redaction import mask_token_number
 
@@ -32,6 +34,10 @@ _store: dict[str, tuple[str, str, datetime, str, bool, tuple[tuple[str, str], ..
 # Random per-process salt for the owner label. The label is only compared inside
 # this process and dies with it.
 _OWNER_SALT = secrets.token_bytes(16)
+
+# The token consumed by the tool call running in this context, kept so that it can
+# be given back when the upstream call then fails (see restore_consumed).
+_consumed: ContextVar[tuple[str, tuple] | None] = ContextVar("_consumed", default=None)
 
 
 #: Operations whose target is a credential: for a token delete the target is the
@@ -178,6 +184,27 @@ def validate_and_consume(
         )
 
     del _store[token]
+    _consumed.set((token, entry))
+
+
+def reset_consumed() -> None:
+    """Forget the token consumed in this context (called at the start and end of a tool call)."""
+    _consumed.set(None)
+
+
+def restore_consumed() -> None:
+    """Give back the token consumed in this context, if it has not expired.
+
+    A failed upstream call changed nothing, so the user's approval still stands
+    and a retry can reuse the same token (it stays single-use after a success).
+    """
+    held = _consumed.get()
+    _consumed.set(None)
+    if held is None:
+        return
+    token, entry = held
+    if datetime.now(timezone.utc) <= entry[2]:
+        _store[token] = entry
 
 
 def _describe(changes: tuple[tuple[str, str], ...]) -> str:

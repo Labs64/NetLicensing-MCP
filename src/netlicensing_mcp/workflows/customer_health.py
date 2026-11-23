@@ -170,6 +170,18 @@ def _module_row(
                     pass
                 break
 
+    # A Floating module validates only for a given session. Without session data in the
+    # reply, valid=false cannot tell "no free seat" from "no session was requested",
+    # so the module is reported as unknown instead of invalid.
+    if (
+        "floating" in model_lower
+        and row.get("valid") is False
+        and row.get("max_sessions") is None
+        and row.get("active_sessions") is None
+    ):
+        row["valid"] = None
+        row["session_required"] = True
+
     return row
 
 
@@ -238,6 +250,11 @@ def _build_warnings(modules: list[dict], infos: list[str] | None = None) -> list
         mno = m.get("module_number", "")
         if m.get("valid") is False:
             msgs.append(f"Module {mno}: validation result is invalid.")
+        if m.get("session_required"):
+            msgs.append(
+                f"Module {mno}: Floating modules validate only for a session; "
+                "no session id was supplied, so its validity is unknown."
+            )
         days = m.get("expires_in_days")
         if days is not None and days <= WARN_DAYS:
             if days < 0:

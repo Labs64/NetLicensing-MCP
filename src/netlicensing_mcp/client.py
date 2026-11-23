@@ -377,11 +377,32 @@ def _apply_client_filter(body: dict[str, Any], filter_str: str) -> dict[str, Any
         return True
 
     kept = [i for i in items_obj["item"] if keep(i)]
-    if len(kept) == len(items_obj["item"]):
+    dropped = len(kept) != len(items_obj["item"])
+    # Core ignores ``status`` on transactions, so its totals always describe the
+    # unfiltered list even when this page happened to lose nothing.
+    totals_wrong = dropped or "status" in wanted
+    if not totals_wrong:
         return body
     new_items = {k: v for k, v in items_obj.items() if k not in ("totalitems", "totalpages")}
     new_items["item"] = kept
-    return {**body, "items": new_items}
+    result = {**body, "items": new_items}
+    if str(new_items.get("hasnext")).lower() == "true" or dropped:
+        # Later pages may hold more matches, so an empty or short page is not the end.
+        infos = dict(result.get("infos") or {})
+        info = list(infos.get("info") or [])
+        info.append(
+            {
+                "id": "ClientSideFilter",
+                "type": "WARNING",
+                "value": (
+                    "The filter was applied to this page only (NetLicensing ignores it for this "
+                    "list), so a short or empty page does not mean there are no more matches; "
+                    "keep reading while has_more is true. Totals are not available."
+                ),
+            }
+        )
+        result["infos"] = {**infos, "info": info}
+    return result
 
 
 # ── Public helpers ───────────────────────────────────────────────────────────

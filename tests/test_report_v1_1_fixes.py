@@ -245,7 +245,7 @@ def test_n3_invalid_green_module_is_critical():
         _item(
             "ProductModuleValidation",
             productModuleNumber="WAFT1113-M2",
-            licensingModel="Floating",
+            licensingModel="Subscription",
             valid="false",
             warningLevel="GREEN",
         )
@@ -315,7 +315,7 @@ def test_n3_explain_invalid_is_critical_with_warning():
         _item(
             "ProductModuleValidation",
             productModuleNumber="WAFT1113-M2",
-            licensingModel="Floating",
+            licensingModel="Subscription",
             valid="false",
             warningLevel="GREEN",
         ),

@@ -29,7 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from netlicensing_mcp import __version__
+from netlicensing_mcp import __version__, safety
 from netlicensing_mcp.client import ClientValidationError, NetLicensingError, is_demo_mode
 from netlicensing_mcp.errors import confirmation_hint, error_hint
 from netlicensing_mcp.redaction import mask_token_number, redact, redact_token_read
@@ -499,6 +499,9 @@ def _error(exc: NetLicensingError, tool_name: str | None = None) -> str:
     mode the blob is tagged ``"demo_mode": true`` like every other JSON object
     response.
     """
+    # The call failed upstream, so nothing changed: the confirmation token it consumed
+    # stays usable for a retry.
+    safety.restore_consumed()
     blob: dict[str, Any] = {"error": True, "status": exc.status_code, "detail": exc.detail}
     blob.update(error_hint(exc, tool_name, available=_registered_tool_names()))
     if is_demo_mode():
@@ -766,7 +769,11 @@ def _structured(
             stop = await _elicitation_gate(fn.__name__, annotations, bound)
             if stop is not None:
                 return to_call_tool_result(stop)
-        return to_call_tool_result(await fn(*args, **kwargs))
+        safety.reset_consumed()
+        try:
+            return to_call_tool_result(await fn(*args, **kwargs))
+        finally:
+            safety.reset_consumed()
 
     wrapper.__signature__ = signature  # type: ignore[attr-defined]
     wrapper.__annotations__ = {
