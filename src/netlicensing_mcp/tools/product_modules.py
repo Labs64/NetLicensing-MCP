@@ -57,7 +57,7 @@ async def create_product_module(
 
     licensing_model values:
       TryAndBuy, Subscription, Rental, Floating, MultiFeature,
-      PayPerUse, PricingTable, Quota, NodeLocked
+      PayPerUse, PricingTable, Quota, NodeLocked, Discount
 
     Model-specific parameters:
       max_checkout_validity: Maximum checkout validity in days (Floating).

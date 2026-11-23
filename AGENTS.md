@@ -140,6 +140,8 @@ Registered from `server.py` after all tools (prompt modules must not import `ser
 | `MCP_HOST` / `MCP_PORT` | HTTP bind, default `127.0.0.1:8000`. |
 | `MCP_VERBOSE` | `true\|1\|yes` or `-v`: debug-log API traffic (redacted) via `app.enable_verbose_logging()`, which keeps `httpx`/`httpcore`/`sse_starlette` at WARNING (they log full URLs, i.e. token numbers and new keys). MCP SDK DEBUG output is not redacted: local debugging only. |
 | `MCP_REDACT_FIELDS` | Extra comma-separated field names to redact. |
+| `NETLICENSING_MCP_REDACT_SECRETS` | `true\|1\|yes` masks the credential in the token create results (`hide_created_secret`); `secret_masked: true` replaces `shown_once`. |
+| `NETLICENSING_MCP_REQUIRE_ELICITATION` | `true\|1\|yes`: delete tools with a `confirm_token` fail unless the client approves through MCP elicitation (`app._elicitation_gate`, in the `_structured` wrapper; direct function calls skip it). With it unset, supporting clients are still asked and others proceed. |
 | `MCP_CONSOLE_BASE_URL` | Base for `console_url`; default `https://ui.netlicensing.io/#`. |
 | `MCP_TOOLSETS` | Comma-separated: `products`, `bundles`, `modules`, `templates`, `licensees`, `licenses`, `tokens`, `transactions`, `payments`, `system`, `workflows`, or `all` (default). Unknown names warn and are ignored (also next to `all`); none valid = all. |
 | `MCP_READ_ONLY` | `true\|1\|yes` registers only `readOnlyHint=True` tools. Other values except `false\|0\|no` warn and leave it off. Applied after `MCP_TOOLSETS`. |

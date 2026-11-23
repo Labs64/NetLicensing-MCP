@@ -139,6 +139,24 @@ def _merge_nested_lists(target: dict[str, Any], item: dict) -> None:
 DEFAULT_WARN_INFO_TYPES: tuple[str, ...] = ("ERROR", "WARNING")
 
 
+def _dedupe_infos(meta: dict[str, Any]) -> dict[str, Any]:
+    """Return *meta* with identical ``(id, value, type)`` ``infos`` entries kept once."""
+    infos = meta.get("infos")
+    info_list = infos.get("info") if isinstance(infos, dict) else None
+    if not isinstance(info_list, list):
+        return meta
+    seen: set[tuple[str, str, str]] = set()
+    kept: list[Any] = []
+    for info in info_list:
+        if isinstance(info, dict):
+            key = (str(info.get("id", "")), str(info.get("value", "")), str(info.get("type", "")))
+            if key in seen:
+                continue
+            seen.add(key)
+        kept.append(info)
+    return {**meta, "infos": {**(infos or {}), "info": kept}}
+
+
 def _info_warnings(
     meta: dict[str, Any], types: tuple[str, ...] = DEFAULT_WARN_INFO_TYPES
 ) -> list[str]:
@@ -281,7 +299,9 @@ def next_page_filter(user_filter: str, page: int, page_size: int) -> str:
     return ";".join(parts)
 
 
-def _paging_fields(items_obj: dict, paging_filter: str | None) -> dict[str, Any]:
+def _paging_fields(
+    items_obj: dict, paging_filter: str | None, count: int | None = None
+) -> dict[str, Any]:
     """Map the upstream ``items`` paging attributes to list-envelope fields.
 
     NetLicensing (XSD ``netlicensing-context-2.1.xsd``) sends ``pagenumber``
@@ -307,7 +327,16 @@ def _paging_fields(items_obj: dict, paging_filter: str | None) -> dict[str, Any]
         if value is not None:
             fields[key] = value
     has_more = _bool_attr(items_obj, "hasnext")
+    if "page" not in fields and paging_filter:
+        # Upstream sent no paging attributes: fall back to the page asked for.
+        for part in paging_filter.split(";"):
+            name, _, raw_value = part.partition("=")
+            if name.strip().lower() == "page" and raw_value.strip().isdigit():
+                fields["page"] = int(raw_value.strip())
     if has_more is None:
+        if "total" not in fields and fields.get("page") == 0 and count is not None:
+            # A first page with no "more" marker is the whole list.
+            fields.update(total=count, total_pages=1, has_more=False)
         return fields
     fields["has_more"] = has_more
     if not has_more:
@@ -318,10 +347,9 @@ def _paging_fields(items_obj: dict, paging_filter: str | None) -> dict[str, Any]
     fields["page_size"] = page_size
     page = fields.get("page")
     if paging_filter is not None and page is not None:
-        nxt = next_page_filter(paging_filter, page + 1, page_size)
         fields["next_page_hint"] = (
-            f"More items available: call this tool again with the same other "
-            f"arguments and filter={json.dumps(nxt, ensure_ascii=False)} (page is 0-based)."
+            f"More items available: call this tool again with page={page + 1} "
+            f"(page_size={page_size}), keeping the same other arguments and filter."
         )
     return fields
 
@@ -402,6 +430,7 @@ def wrap(
     # that callers don't need ``include_raw=True`` just to read non-entity
     # fields. ``items`` itself is consumed below.
     meta: dict[str, Any] = {k: v for k, v in entity.items() if k != "items"}
+    meta = _dedupe_infos(meta)
 
     # Determine effective kind from first item when not explicitly supplied.
     effective_kind = kind
@@ -428,7 +457,11 @@ def wrap(
             "type": "list",
             "kind": effective_kind or "",
             "count": len(wrapped_items),
-            **(_paging_fields(items_obj, paging_filter) if isinstance(items_obj, dict) else {}),
+            **(
+                _paging_fields(items_obj, paging_filter, len(wrapped_items))
+                if isinstance(items_obj, dict)
+                else {}
+            ),
             "items": wrapped_items,
             "warnings": [],
             "suggested_actions": suggested_actions or [],

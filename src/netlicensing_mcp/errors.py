@@ -32,7 +32,7 @@ from collections.abc import Container
 from typing import Any
 
 from netlicensing_mcp import client
-from netlicensing_mcp.client import NetLicensingError
+from netlicensing_mcp.client import ClientValidationError, NetLicensingError
 from netlicensing_mcp.toolsets import TOOLSETS, toolset_of
 
 _KNOWN_TOOLS = frozenset(name for names in TOOLSETS.values() for name in names)
@@ -249,6 +249,12 @@ def error_hint(
         return _result(
             f"No API key reached this server: set {_KEY_SETTINGS}. "
             "For the sandbox only, set NETLICENSING_ALLOW_DEMO=true.",
+            [],
+        )
+    if isinstance(exc, ClientValidationError):
+        return _result(
+            "This server rejected the arguments before sending anything to NetLicensing "
+            "(nothing was changed): fix the argument named in `detail` and call the tool again.",
             [],
         )
     if status == 401:

@@ -32,14 +32,14 @@ async def netlicensing_list_bundles(
     """List all bundles in the NetLicensing account.
 
     Args:
-        filter: Optional server-side filter expression (e.g. 'active=true')
+        ; supported keys: active (others are ignored with a warning; malformed expressions are rejected)
         page: Page to return, 0-based (default 0; overrides 'page' in filter)
         page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
         compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        filter = _list_filter(filter, page, page_size)
+        filter = _list_filter(filter, page, page_size, supported=("active",))
         return _wrap_json(
             await bundles.list_bundles(filter_str=filter or None),
             "Bundle",
@@ -196,7 +196,7 @@ async def netlicensing_delete_bundle(
     Args:
         bundle_number: Bundle to delete
         force_cascade: Force deletion even if dependencies exist
-        confirm_token: Confirmation token from a previous preview call
+        confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)
     """
     try:
         if confirm_token:
@@ -234,6 +234,11 @@ async def netlicensing_obtain_bundle(
 ) -> str:
     """Obtain a bundle for a customer — creates licenses from all license
     templates included in the bundle for the specified licensee.
+
+    Pricing: the created licenses carry the price of their license templates. In
+    testing, a bundle priced 5.00 EUR produced a license at its template price
+    (1.00 EUR); the bundle price is what the Shop charges. Check the created
+    licenses' prices if they matter.
 
     Args:
         bundle_number: Bundle to obtain

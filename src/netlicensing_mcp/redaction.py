@@ -200,6 +200,36 @@ def redact_payment_method(response: Any) -> Any:
 # ── One-time-display tagging (create_api_token / create_shop_token) ──────────
 
 
+REDACT_SECRETS_ENV = "NETLICENSING_MCP_REDACT_SECRETS"
+
+_SECRET_HIDDEN_NOTE: str = (
+    "The credential was masked because NETLICENSING_MCP_REDACT_SECRETS is set, so it is not "
+    "in this response or the model context. It cannot be read back through this server; "
+    "create a replacement in the NetLicensing management console (console_url of the "
+    "licensee or tokens page) if you need the full value."
+)
+
+
+def redact_secrets_enabled() -> bool:
+    """True when ``NETLICENSING_MCP_REDACT_SECRETS`` is ``true``/``1``/``yes``.
+
+    Read at call time. Off by default: token create tools then return the credential
+    once, as before.
+    """
+    return os.environ.get(REDACT_SECRETS_ENV, "").strip().lower() in ("true", "1", "yes")
+
+
+def hide_created_secret(raw: Any) -> Any:
+    """Mask the credential of a token *create* response when secret redaction is on.
+
+    Applies the token read-path masking (``number`` of APIKEY and SHOP tokens,
+    ``shopURL``) to the upstream payload before it is wrapped, so every derived
+    field and ``raw`` carry the masked form. Returns *raw* unchanged when the
+    setting is off.
+    """
+    return redact_token_read(raw) if redact_secrets_enabled() else raw
+
+
 def tag_one_time_display(response: Any) -> Any:
     """Tag a *create* token response as one-time-display.
 
@@ -222,6 +252,8 @@ def tag_one_time_display(response: Any) -> Any:
     """
     if not isinstance(response, dict):
         return response
+    if redact_secrets_enabled():
+        return {**response, "secret_masked": True, "_warning": _SECRET_HIDDEN_NOTE}
     return {
         **response,
         "shown_once": True,

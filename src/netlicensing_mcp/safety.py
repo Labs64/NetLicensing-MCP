@@ -156,11 +156,8 @@ def validate_and_consume(
         raise ValueError(f"Confirmation token {_shown_token(token)!r} has expired")
 
     if stored_op != operation or stored_target != target:
-        # The comparison above uses the real targets; only the message masks them.
-        raise ValueError(
-            f"Token {token!r} is for {stored_op!r}/{_shown(stored_op, stored_target)!r}, "
-            f"not {operation!r}/{_shown(operation, target)!r}"
-        )
+        # Deliberately generic: the message must not reveal what the token is bound to.
+        raise ValueError(f"Confirmation token {token!r} does not match this operation or target")
 
     if stored_cascade != force_cascade:
         # Not consumed: the token stays usable with the matching force_cascade value.

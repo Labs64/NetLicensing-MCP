@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from netlicensing_mcp import safety
 from netlicensing_mcp.app import (
     _DELETE,
@@ -13,13 +15,16 @@ from netlicensing_mcp.app import (
     _extract_props,
     _json,
     _list_filter,
-    _sample_numbers,
     _total_items,
     _wrap_json,
     tool,
 )
 from netlicensing_mcp.client import NetLicensingError
+from netlicensing_mcp.tools.helpers import VAT_MODES, require_one_of
 from netlicensing_mcp.tools import (
+    bundles,
+    license_templates,
+    licenses,
     licensees,
     product_modules,
     products,
@@ -37,14 +42,14 @@ async def netlicensing_list_products(
     """List all products in the NetLicensing account.
 
     Args:
-        filter: Optional server-side filter expression (e.g. 'active=true')
+        ; supported keys: active (others are ignored with a warning; malformed expressions are rejected)
         page: Page to return, 0-based (default 0; overrides 'page' in filter)
         page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
         compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        filter = _list_filter(filter, page, page_size)
+        filter = _list_filter(filter, page, page_size, supported=("active",))
         return _wrap_json(
             await products.list_products(filter_str=filter or None),
             "Product",
@@ -137,6 +142,8 @@ async def netlicensing_preview_update_product(
         vat_mode: Proposed new VAT mode — GROSS or NET (leave empty to skip)
     """
     try:
+        # Same checks as the update tool, before a token is issued.
+        require_one_of("vat_mode", vat_mode, VAT_MODES)
         current_resp = await products.get_product(product_number)
         current = _extract_props(current_resp)
         diff: list[dict] = []
@@ -253,24 +260,125 @@ async def netlicensing_update_product(
         return _error(exc, "netlicensing_update_product")
 
 
+#: Upper bounds of the lookups a product delete preview makes; beyond them a count
+#: is reported as "unknown" instead of issuing hundreds of requests.
+_PREVIEW_MAX_MODULES = 50
+_PREVIEW_MAX_LICENSEES = 50
+_PREVIEW_MAX_BUNDLE_PAGES = 5
+
+
+def _item_numbers(response: dict) -> list[str]:
+    items = response.get("items", {}).get("item", [])
+    out: list[str] = []
+    for item in items if isinstance(items, list) else []:
+        for prop in item.get("property", []) if isinstance(item, dict) else []:
+            if isinstance(prop, dict) and prop.get("name") == "number":
+                out.append(str(prop.get("value", "")))
+                break
+    return out
+
+
+async def _count_templates(module_numbers: list[str]) -> tuple[int, list[str]]:
+    """Total license templates of *module_numbers* and (a page of) their numbers."""
+    resps = await asyncio.gather(
+        *(
+            license_templates.list_license_templates(m, page=0, items_per_page=100)
+            for m in module_numbers
+        )
+    )
+    return sum(_total_items(r) for r in resps), [n for r in resps for n in _item_numbers(r)]
+
+
+async def _count_licenses(licensee_numbers: list[str]) -> int:
+    resps = await asyncio.gather(
+        *(licenses.list_licenses(n, page=0, items_per_page=1) for n in licensee_numbers)
+    )
+    return sum(_total_items(r) for r in resps)
+
+
+async def _bundles_using(template_numbers: set[str]) -> list[str]:
+    """Numbers of the bundles that contain any of *template_numbers*."""
+    found: list[str] = []
+    for page in range(_PREVIEW_MAX_BUNDLE_PAGES):
+        resp = await bundles.list_bundles(f"page={page};items=100")
+        items = resp.get("items", {})
+        for item in items.get("item", []) if isinstance(items, dict) else []:
+            props = {
+                p.get("name"): p.get("value")
+                for p in item.get("property", [])
+                if isinstance(p, dict)
+            }
+            used = {t.strip() for t in str(props.get("licenseTemplateNumbers") or "").split(",")}
+            if used & template_numbers:
+                found.append(str(props.get("number", "")))
+        if not (isinstance(items, dict) and str(items.get("hasnext", "")).lower() == "true"):
+            return found
+    return found
+
+
 async def _product_delete_preview(product_number: str, force_cascade: bool) -> str:
     await products.get_product(product_number)  # raises if it does not exist
     modules_resp = await product_modules.list_product_modules(
-        product_number, page=0, items_per_page=1
+        product_number, page=0, items_per_page=100
     )
     licensees_resp = await licensees.list_licensees(product_number, page=0, items_per_page=100)
     modules_n = _total_items(modules_resp)
     licensees_n = _total_items(licensees_resp)
-    return _json(
-        safety.make_delete_preview(
-            "delete_product",
-            product_number,
-            affected={"product_modules": modules_n, "licensees": licensees_n},
-            samples={"licensees": _sample_numbers(licensees_resp)},
-            force_cascade=force_cascade,
-            blocking={"product_modules": modules_n, "licensees": licensees_n},
-        )
+    module_numbers = _item_numbers(modules_resp)
+    licensee_numbers = _item_numbers(licensees_resp)
+
+    templates_n: int | str = "unknown"
+    template_numbers: list[str] = []
+    bundles_n: int | str = "unknown"
+    bundle_numbers: list[str] = []
+    licenses_n: int | str = "unknown"
+    # A failed secondary lookup (a role that cannot read it, a timeout) leaves that
+    # count "unknown" instead of failing the whole preview.
+    if modules_n <= _PREVIEW_MAX_MODULES and len(module_numbers) == modules_n:
+        try:
+            templates_n, template_numbers = await _count_templates(module_numbers)
+        except NetLicensingError:
+            templates_n = "unknown"
+        if isinstance(templates_n, int) and templates_n == len(template_numbers):
+            try:
+                bundle_numbers = await _bundles_using(set(template_numbers))
+                bundles_n = len(bundle_numbers)
+            except NetLicensingError:
+                bundles_n = "unknown"
+    if licensees_n <= _PREVIEW_MAX_LICENSEES and len(licensee_numbers) == licensees_n:
+        try:
+            licenses_n = await _count_licenses(licensee_numbers)
+        except NetLicensingError:
+            licenses_n = "unknown"
+
+    affected: dict[str, int | str] = {
+        "product_modules": modules_n,
+        "license_templates": templates_n,
+        "licensees": licensees_n,
+        "licenses": licenses_n,
+        "bundles": bundles_n,
+    }
+    blocking = {k: v for k, v in affected.items() if isinstance(v, int) and v}
+    preview = safety.make_delete_preview(
+        "delete_product",
+        product_number,
+        affected=affected,
+        samples={
+            "product_modules": module_numbers[:3],
+            "license_templates": template_numbers[:3],
+            "licensees": licensee_numbers[:3],
+            "bundles": bundle_numbers[:3],
+        },
+        force_cascade=force_cascade,
+        blocking=blocking,
     )
+    unknown = [k for k, v in affected.items() if v == "unknown"]
+    if unknown:
+        preview["warnings"] = [
+            f"{', '.join(unknown)}: count not computed (too many modules or licensees to "
+            "enumerate cheaply); treat the real impact as larger than shown."
+        ]
+    return _json(preview)
 
 
 @tool(title="Preview deletion of product", annotations=_READONLY)
@@ -279,15 +387,16 @@ async def netlicensing_preview_delete_product(
 ) -> str:
     """Preview what would be deleted when deleting a product.
 
-    Returns affected counts, sample entity identifiers, `requires_force_cascade`
-    and `blocking_dependencies` (a product with modules or licensees cannot be
-    deleted without force_cascade), and a short-lived confirmation token. The
+    Returns affected counts (modules, license templates, licensees, licenses and
+    bundles; "unknown" when too many to count cheaply), sample entity identifiers,
+    `requires_force_cascade` and `blocking_dependencies` (a product with
+    modules or licensees cannot be deleted without force_cascade), and a short-lived confirmation token. The
     token is bound to the force_cascade value used here: pass the same value,
     with the token, to netlicensing_delete_product within 5 minutes.
 
     Args:
         product_number: Product to preview deletion for
-        force_cascade: Preview a cascade delete (also removes dependent modules, templates, licensees and licenses)
+        force_cascade: Preview a cascade delete (also removes dependent modules, templates, licensees and licenses; bundles that use the product's templates are reported too)
     """
     try:
         return await _product_delete_preview(product_number, force_cascade)
@@ -314,7 +423,7 @@ async def netlicensing_delete_product(
     Args:
         product_number: Product to delete
         force_cascade: Also delete all dependent modules, templates, licensees, and licenses
-        confirm_token: Confirmation token from a previous preview call
+        confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)
     """
     try:
         if confirm_token:

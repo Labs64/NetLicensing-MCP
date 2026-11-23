@@ -10,7 +10,8 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from netlicensing_mcp.responses import console_url
+from netlicensing_mcp.responses import console_url, feature_results
+from netlicensing_mcp.workflows.validation_explain import module_state
 from netlicensing_mcp.workflows._thresholds import (
     CRITICAL_DAYS,
     WARN_DAYS,
@@ -70,6 +71,20 @@ def _validation_by_module(validation: dict | None) -> dict[str, dict[str, str]]:
     return result
 
 
+def _features_by_module(validation: dict | None) -> dict[str, list[dict[str, Any]]]:
+    """MultiFeature results per module number of a validate response."""
+    items_obj = (validation or {}).get("items", {})
+    item_list = items_obj.get("item", []) if isinstance(items_obj, dict) else []
+    out: dict[str, list[dict[str, Any]]] = {}
+    for item in item_list if isinstance(item_list, list) else []:
+        if isinstance(item, dict):
+            mod = _props(item).get("productModuleNumber", "")
+            feats = feature_results(item)
+            if mod and feats:
+                out[mod] = feats
+    return out
+
+
 def _module_row(
     module_number: str,
     license_group: list[dict],
@@ -89,9 +104,9 @@ def _module_row(
         row["licensing_model"] = licensing_model
 
     # valid from validation
+    # Always present: None means "not reported", never assumed true.
     valid_str = val_props.get("valid", "")
-    if valid_str:
-        row["valid"] = valid_str.lower() == "true"
+    row["valid"] = valid_str.lower() == "true" if valid_str else None
 
     # warning_level from validation
     wl = val_props.get("warningLevel", "")
@@ -280,9 +295,20 @@ def _summary_line(
     counts: dict[str, int],
     licensee_active: bool,
     overall_status: str,
+    validation_run: bool = False,
 ) -> str:
     if not licensee_active:
         return f"Licensee is inactive — {counts['total_licenses']} licenses on record."
+    if (
+        overall_status == "unknown"
+        and any(m.get("valid") is None and "state" in m for m in modules)
+        and validation_run
+    ):
+        missing = [m.get("module_number", "") for m in modules if m.get("valid") is None]
+        return (
+            f"Health unknown: {len(missing)} module(s) returned no validity result "
+            f"({', '.join(missing)})."
+        )
     if overall_status == "unknown":
         return (
             "Health unknown: live validation was not run, and license counts alone do not "
@@ -291,9 +317,16 @@ def _summary_line(
             "Call again with refresh_warning_level=true."
         )
     invalid = _invalid_modules(modules)
-    if overall_status == "ok" and not invalid:
+    if (
+        overall_status == "ok"
+        and not invalid
+        and not any(m.get("state") == "degraded" for m in modules)
+    ):
         return f"All {counts['modules']} modules are healthy."
     parts = []
+    degraded = [m.get("module_number", "") for m in modules if m.get("state") == "degraded"]
+    if degraded:
+        parts.append(f"module(s) {', '.join(degraded)} valid but no feature is valid")
     if len(invalid) == 1:
         parts.append(f"Module {invalid[0]} is invalid")
     elif invalid:
@@ -349,6 +382,7 @@ def build_health(
     # Group licenses by module.
     groups = _group_licenses_by_module(licenses)
     val_by_module = _validation_by_module(validation)
+    features_by_module = _features_by_module(validation)
 
     # All module numbers: union of licenses + validation.
     all_modules = sorted(set(groups) | set(val_by_module))
@@ -364,6 +398,11 @@ def build_health(
             val_by_module.get(mno, {}),
             now,
         )
+        feats = features_by_module.get(mno)
+        if feats:
+            row["features_total"] = len(feats)
+            row["features_valid"] = sum(1 for f in feats if f.get("valid") is True)
+        row["state"] = module_state(row["valid"], feats)
         modules.append(row)
 
     # Counts.
@@ -382,7 +421,8 @@ def build_health(
 
     # Overall status.
     has_warning_levels = any("warning_level" in m for m in modules)
-    if has_warning_levels or _invalid_modules(modules):
+    validated = validation is not None and any(m["valid"] is not None for m in modules)
+    if has_warning_levels or validated or _invalid_modules(modules):
         overall_status = _overall_status_from_validation(modules)
     else:
         overall_status = _overall_status_from_heuristics(modules, licensee_active)
@@ -390,19 +430,40 @@ def build_health(
             # Nothing was validated: counts and expiry dates never prove "healthy".
             overall_status = "unknown"
 
+    if validation is not None and overall_status in ("ok", "warning"):
+        # A module that says valid with no valid feature is not a clean pass; one with
+        # no reported validity cannot be called healthy.
+        if overall_status == "ok" and any(m["state"] == "unknown" for m in modules):
+            overall_status = "unknown"
+        elif overall_status == "ok" and any(m["state"] == "degraded" for m in modules):
+            overall_status = "warning"
+
     infos = _validation_infos(validation)
     if infos and overall_status == "ok":
         # An API ERROR/WARNING on the validation call is never "healthy".
         overall_status = "warning"
 
     warnings = _build_warnings(modules, infos)
+    if validation is not None:
+        for m in modules:
+            if m["state"] == "degraded":
+                warnings.append(
+                    f"Module {m['module_number']}: valid, but none of its "
+                    f"{m['features_total']} features is valid."
+                )
+            elif m["state"] == "unknown":
+                warnings.append(
+                    f"Module {m['module_number']}: validation reported no 'valid' flag."
+                )
     suggested_actions = _build_suggested_actions(modules, licensee_number, licensee_active)
-    if overall_status == "unknown":
+    if overall_status == "unknown" and validation is None:
         suggested_actions.append(
             f"Re-run netlicensing_get_customer_health for {licensee_number} "
             "with refresh_warning_level=true."
         )
-    summary = _summary_line(modules, counts, licensee_active, overall_status)
+    summary = _summary_line(
+        modules, counts, licensee_active, overall_status, validation is not None
+    )
 
     envelope: dict[str, Any] = {
         "type": "CustomerHealth",
@@ -411,6 +472,10 @@ def build_health(
         "overall_status": overall_status,
         "validation_run": validation is not None,
         "counts": counts,
+        "validation_counts": {
+            state: sum(1 for m in modules if m["state"] == state)
+            for state in ("valid", "degraded", "invalid", "unknown")
+        },
         "modules": modules,
         "warnings": warnings,
         "suggested_actions": suggested_actions,

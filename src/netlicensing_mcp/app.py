@@ -24,15 +24,15 @@ from typing import Annotated, Any, TypeVar
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from netlicensing_mcp import __version__
-from netlicensing_mcp.client import NetLicensingError, is_demo_mode
+from netlicensing_mcp.client import ClientValidationError, NetLicensingError, is_demo_mode
 from netlicensing_mcp.errors import confirmation_hint, error_hint
-from netlicensing_mcp.redaction import redact, redact_token_read
+from netlicensing_mcp.redaction import mask_token_number, redact, redact_token_read
 from netlicensing_mcp.responses import DEFAULT_WARN_INFO_TYPES, wrap
 from netlicensing_mcp.toolsets import ToolFilter, toolset_of
 
@@ -153,6 +153,10 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
 
 - **Never delete without confirmation.** Always show the user what will be
   affected and ask for explicit approval before calling any delete tool.
+- **Confirmation tokens are not proof of human approval.** They stop accidental
+  deletes (a preview must come first); an autonomous caller can still request a
+  preview and use the token in the same turn. Show the preview to the user and wait
+  for their go-ahead before calling the delete tool with the token.
 - Use `force_cascade=True` only when the user explicitly requests recursive
   deletion — it removes all child entities.
 - Prefer deactivating (`active=false`) over deleting when the user's intent
@@ -298,7 +302,49 @@ MAX_PAGE_SIZE = 100
 _COMPACT_KEYS = ("type", "number", "name", "status", "active")
 
 
-def _list_filter(filter: str, page: int | None, page_size: int | None) -> str:
+class _ListFilter(str):
+    """The ``filter`` string of a list call, carrying the warnings found while building it."""
+
+    warnings: list[str]
+
+
+def _check_filter(filter: str, supported: tuple[str, ...] | None) -> list[str]:
+    """Validate the caller's *filter*; return a warning per unsupported key.
+
+    Raises ``ClientValidationError`` for a malformed expression: an empty segment
+    (``;;``), a segment without ``=`` or with an empty key, or ``&`` (not a
+    separator of NetLicensing filters). ``page`` and ``items`` are always accepted.
+    """
+    if not filter.strip():
+        return []
+    if "&" in filter:
+        raise ClientValidationError(
+            "Malformed filter: '&' is not a separator; join key=value pairs with ';'"
+        )
+    warnings: list[str] = []
+    for part in filter.split(";"):
+        key, sep, value = part.partition("=")
+        key = key.strip()
+        if not part.strip():
+            raise ClientValidationError(
+                "Malformed filter: empty segment (use key=value pairs separated by a single ';')"
+            )
+        if not sep or not key or not value.strip():
+            raise ClientValidationError(
+                f"Malformed filter segment {part.strip()!r}: expected key=value"
+            )
+        if supported is not None and key.lower() not in {"page", "items"}:
+            if key not in supported:
+                warnings.append(f"filter key '{key}' is not supported and was ignored")
+    return warnings
+
+
+def _list_filter(
+    filter: str,
+    page: int | None,
+    page_size: int | None,
+    supported: tuple[str, ...] | None = None,
+) -> str:
     """Build the ``filter`` of a list call from the caller's filter, ``page`` and ``page_size``.
 
     ``page`` (0-based) and ``page_size`` override ``page`` / ``items`` in *filter*;
@@ -307,9 +353,10 @@ def _list_filter(filter: str, page: int | None, page_size: int | None) -> str:
     outside ``page >= 0`` and ``1 <= page_size <= 100``.
     """
     if page is not None and page < 0:
-        raise NetLicensingError(400, "page must be 0 or greater (the first page is 0)")
+        raise ClientValidationError("page must be 0 or greater (the first page is 0)")
     if page_size is not None and not 1 <= page_size <= MAX_PAGE_SIZE:
-        raise NetLicensingError(400, f"page_size must be between 1 and {MAX_PAGE_SIZE}")
+        raise ClientValidationError(f"page_size must be between 1 and {MAX_PAGE_SIZE}")
+    warnings = _check_filter(filter, supported)
     parts = [p.strip() for p in filter.split(";") if p.strip()]
 
     def has(key: str) -> bool:
@@ -328,7 +375,9 @@ def _list_filter(filter: str, page: int | None, page_size: int | None) -> str:
         parts.append(f"page={page}")
     elif not has("page"):
         parts.append("page=0")
-    return ";".join(parts)
+    result = _ListFilter(";".join(parts))
+    result.warnings = warnings
+    return result
 
 
 def _compact(wrapped: dict) -> dict:
@@ -339,6 +388,13 @@ def _compact(wrapped: dict) -> dict:
             for it in wrapped["items"]
         ]
     return wrapped
+
+
+def _add_filter_warnings(wrapped: dict, paging_filter: str | None) -> None:
+    """Add the warnings an :class:`_ListFilter` collected to the envelope."""
+    for msg in getattr(paging_filter, "warnings", []):
+        if msg not in wrapped.setdefault("warnings", []):
+            wrapped["warnings"].append(msg)
 
 
 def _wrap_json(
@@ -374,6 +430,7 @@ def _wrap_json(
         warn_info_types=warn_info_types,
         paging_filter=paging_filter,
     )
+    _add_filter_warnings(wrapped, paging_filter)
     return _json(_compact(wrapped) if compact else wrapped)
 
 
@@ -423,6 +480,7 @@ def _wrap_json_token_read(
         paging_filter=paging_filter,
     )
     _scrub_apikey_console_url(wrapped)
+    _add_filter_warnings(wrapped, paging_filter)
     return _json(_compact(wrapped) if compact else wrapped)
 
 
@@ -450,7 +508,7 @@ def _error(exc: NetLicensingError, tool_name: str | None = None) -> str:
 
 def _confirm_error(exc: ValueError, tool_name: str | None = None) -> str:
     """Return the error blob for a rejected ``confirm_token`` in *tool_name*."""
-    blob = {"error": True, "detail": str(exc)}
+    blob = {"error": True, "status": 400, "detail": str(exc)}
     blob.update(confirmation_hint(tool_name, available=_registered_tool_names()))
     return _json(blob)
 
@@ -619,7 +677,76 @@ def to_call_tool_result(text: str) -> CallToolResult:
 ToolFn = TypeVar("ToolFn", bound=Callable[..., Awaitable[str]])
 
 
-def _structured(fn: Callable[..., Awaitable[str]]) -> Callable[..., Awaitable[CallToolResult]]:
+REQUIRE_ELICITATION_ENV = "NETLICENSING_MCP_REQUIRE_ELICITATION"
+
+
+def _require_elicitation() -> bool:
+    return os.environ.get(REQUIRE_ELICITATION_ENV, "").strip().lower() in ("true", "1", "yes")
+
+
+class _Confirmation(BaseModel):
+    confirm: bool = Field(description="Tick to approve this operation")
+
+
+async def _elicit_confirm(message: str) -> bool | None:
+    """Ask the human behind the client to approve *message* (MCP elicitation).
+
+    Returns ``True`` (approved), ``False`` (declined or cancelled) or ``None`` when
+    the client cannot be asked (no elicitation support, or no request in progress).
+    """
+    try:
+        result = await mcp.get_context().elicit(message=message, schema=_Confirmation)
+    except Exception:  # noqa: BLE001 - any failure means "cannot ask"
+        return None
+    return result.action == "accept" and bool(getattr(result.data, "confirm", False))
+
+
+def _approval_message(name: str, arguments: dict[str, Any]) -> str:
+    shown = {
+        k: (mask_token_number(str(v)) if k == "token_number" else v)
+        for k, v in arguments.items()
+        if k != "confirm_token" and v not in ("", None, False)
+    }
+    args = ", ".join(f"{k}={v!r}" for k, v in shown.items())
+    return f"Approve {name}({args})? This changes or deletes data in NetLicensing."
+
+
+async def _elicitation_gate(
+    name: str, annotations: ToolAnnotations | None, arguments: dict[str, Any]
+) -> str | None:
+    """Ask the user before a confirmed destructive call runs; return an error blob to stop it.
+
+    A confirmation token only proves that a preview was requested, not that a human
+    approved it. When the client supports MCP elicitation the user is asked here.
+    Without support the call goes ahead, unless ``NETLICENSING_MCP_REQUIRE_ELICITATION``
+    is set, which turns that case into an error.
+    """
+    if (
+        not arguments.get("confirm_token")
+        or annotations is None
+        or annotations.readOnlyHint
+        or not annotations.destructiveHint
+    ):
+        return None
+    approved = await _elicit_confirm(_approval_message(name, arguments))
+    if approved is True:
+        return None
+    if approved is False:
+        detail = "The user did not approve this operation; nothing was changed."
+    elif _require_elicitation():
+        detail = (
+            f"{REQUIRE_ELICITATION_ENV} is set but the client does not support MCP "
+            "elicitation, so a human cannot be asked; nothing was changed."
+        )
+    else:
+        return None
+    blob: dict[str, Any] = {"error": True, "status": 403, "detail": detail, "retryable": False}
+    return json.dumps(blob, indent=2)
+
+
+def _structured(
+    fn: Callable[..., Awaitable[str]], annotations: ToolAnnotations | None = None
+) -> Callable[..., Awaitable[CallToolResult]]:
     """Wrap *fn* so that FastMCP registers it with structured output.
 
     The wrapper takes the signature of *fn*, with its annotations evaluated
@@ -634,6 +761,11 @@ def _structured(fn: Callable[..., Awaitable[str]]) -> Callable[..., Awaitable[Ca
 
     @functools.wraps(fn)
     async def wrapper(*args: Any, **kwargs: Any) -> CallToolResult:
+        if annotations is not None and annotations.destructiveHint:
+            bound = signature.bind_partial(*args, **kwargs).arguments
+            stop = await _elicitation_gate(fn.__name__, annotations, bound)
+            if stop is not None:
+                return to_call_tool_result(stop)
         return to_call_tool_result(await fn(*args, **kwargs))
 
     wrapper.__signature__ = signature  # type: ignore[attr-defined]
@@ -692,7 +824,7 @@ def tool(
         name = fn.__name__
         if toolset_of(name) is None:
             raise ValueError(f"{name} is not in any toolset; add it to toolsets.TOOLSETS")
-        spec = _ToolSpec(name, _structured(fn), title, annotations)
+        spec = _ToolSpec(name, _structured(fn, annotations), title, annotations)
         _TOOL_SPECS.append(spec)
         if _active_filter.allows(name, annotations):
             _add(mcp, spec)

@@ -34,14 +34,14 @@ async def netlicensing_list_licenses(
 
     Args:
         licensee_number: Customer whose licenses to list
-        filter: Optional server-side filter expression (e.g. 'active=true')
+        ; supported keys: active (others are ignored with a warning; malformed expressions are rejected)
         page: Page to return, 0-based (default 0; overrides 'page' in filter)
         page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
         compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        filter = _list_filter(filter, page, page_size)
+        filter = _list_filter(filter, page, page_size, supported=("active",))
         return _wrap_json(
             await licenses.list_licenses(
                 licensee_number,
@@ -235,7 +235,7 @@ async def netlicensing_delete_license(
     Args:
         license_number: License to delete
         force_cascade: Force deletion even if dependencies exist
-        confirm_token: Confirmation token from a previous preview call
+        confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)
     """
     try:
         if confirm_token:

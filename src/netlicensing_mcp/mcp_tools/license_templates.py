@@ -20,7 +20,7 @@ from netlicensing_mcp.app import (
 )
 from netlicensing_mcp.client import NetLicensingError
 from netlicensing_mcp.tools import license_templates
-from netlicensing_mcp.tools.helpers import CustomPropertyValue
+from netlicensing_mcp.tools.helpers import CustomPropertyValue, require_currency, require_price
 
 
 @tool(title="List license templates", annotations=_READONLY)
@@ -36,14 +36,14 @@ async def netlicensing_list_license_templates(
 
     Args:
         module_number: Module whose templates to list
-        filter: Optional server-side filter expression (e.g. 'active=true')
+        ; supported keys: active (others are ignored with a warning; malformed expressions are rejected)
         page: Page to return, 0-based (default 0; overrides 'page' in filter)
         page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
         compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        filter = _list_filter(filter, page, page_size)
+        filter = _list_filter(filter, page, page_size, supported=("active",))
         return _wrap_json(
             await license_templates.list_license_templates(
                 module_number,
@@ -164,6 +164,9 @@ async def netlicensing_preview_update_license_template(
         currency: Proposed new currency code (leave empty to skip)
     """
     try:
+        # Same checks as the update tool, before a token is issued.
+        require_price(price)
+        require_currency(currency)
         current_resp = await license_templates.get_license_template(template_number)
         diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
         return _json(
@@ -311,7 +314,7 @@ async def netlicensing_delete_license_template(
     Args:
         template_number: Template to delete
         force_cascade: Also delete all dependent licenses
-        confirm_token: Confirmation token from a previous preview call
+        confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)
     """
     try:
         if confirm_token:

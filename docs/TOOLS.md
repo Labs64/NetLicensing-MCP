@@ -43,7 +43,7 @@ List all products in the NetLicensing account.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
@@ -123,16 +123,17 @@ Changing licenseeAutoCreate or vatMode requires a confirmation token
 
 Preview what would be deleted when deleting a product.
 
-Returns affected counts, sample entity identifiers, `requires_force_cascade`
-and `blocking_dependencies` (a product with modules or licensees cannot be
-deleted without force_cascade), and a short-lived confirmation token. The
+Returns affected counts (modules, license templates, licensees, licenses and
+bundles; "unknown" when too many to count cheaply), sample entity identifiers,
+`requires_force_cascade` and `blocking_dependencies` (a product with
+modules or licensees cannot be deleted without force_cascade), and a short-lived confirmation token. The
 token is bound to the force_cascade value used here: pass the same value,
 with the token, to netlicensing_delete_product within 5 minutes.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `product_number` | string | yes | — | Product to preview deletion for |
-| `force_cascade` | boolean | no | `false` | Preview a cascade delete (also removes dependent modules, templates, licensees and licenses) |
+| `force_cascade` | boolean | no | `false` | Preview a cascade delete (also removes dependent modules, templates, licensees and licenses; bundles that use the product's templates are reported too) |
 
 ### `netlicensing_delete_product`
 
@@ -152,7 +153,7 @@ Always requires a two-step confirmation:
 |---|---|---|---|---|
 | `product_number` | string | yes | — | Product to delete |
 | `force_cascade` | boolean | no | `false` | Also delete all dependent modules, templates, licensees, and licenses |
-| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call |
+| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead) |
 
 ## Toolset `bundles`
 
@@ -174,7 +175,7 @@ List all bundles in the NetLicensing account.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
@@ -253,7 +254,7 @@ Always requires a two-step confirmation:
 |---|---|---|---|---|
 | `bundle_number` | string | yes | — | Bundle to delete |
 | `force_cascade` | boolean | no | `false` | Force deletion even if dependencies exist |
-| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call |
+| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead) |
 
 ### `netlicensing_obtain_bundle`
 
@@ -261,6 +262,11 @@ Always requires a two-step confirmation:
 
 Obtain a bundle for a customer — creates licenses from all license
 templates included in the bundle for the specified licensee.
+
+Pricing: the created licenses carry the price of their license templates. In
+testing, a bundle priced 5.00 EUR produced a license at its template price
+(1.00 EUR); the bundle price is what the Shop charges. Check the created
+licenses' prices if they matter.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -287,8 +293,8 @@ List all modules (feature groups) for a product.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `product_number` | string | yes | — | Product whose modules to list |
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `product_number` | string | yes | — | Product whose modules to list ; supported keys: active (others are ignored with a warning; malformed expressions are rejected) |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
@@ -316,7 +322,7 @@ Create a product module with a licensing model.
 | `product_number` | string | yes | — | Parent product |
 | `number` | string | yes | — | Unique module number (e.g. 'M01') |
 | `name` | string | yes | — | Module name |
-| `licensing_model` | string | yes | — | One of: TryAndBuy, Subscription, Rental, Floating, MultiFeature, PayPerUse, PricingTable, Quota, NodeLocked |
+| `licensing_model` | string | yes | — | One of: TryAndBuy, Subscription, Rental, Floating, MultiFeature, PayPerUse, PricingTable, Quota, NodeLocked, Discount |
 | `active` | boolean | no | `true` | Whether the module is active |
 | `max_checkout_validity` | integer \| null | no | `null` | Maximum checkout validity in days (Floating model) |
 | `yellow_threshold` | integer \| null | no | `null` | Remaining time volume for yellow warning (Rental model) |
@@ -372,7 +378,7 @@ Always requires a two-step confirmation:
 |---|---|---|---|---|
 | `module_number` | string | yes | — | Module to delete |
 | `force_cascade` | boolean | no | `false` | Also delete all dependent license templates and licenses |
-| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call |
+| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead) |
 
 ## Toolset `templates`
 
@@ -394,8 +400,8 @@ List all license templates for a product module.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `module_number` | string | yes | — | Module whose templates to list |
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `module_number` | string | yes | — | Module whose templates to list ; supported keys: active (others are ignored with a warning; malformed expressions are rejected) |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
@@ -510,7 +516,7 @@ first to obtain one.
 |---|---|---|---|---|
 | `template_number` | string | yes | — | Template to delete |
 | `force_cascade` | boolean | no | `false` | Also delete all dependent licenses |
-| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call |
+| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead) |
 
 ## Toolset `licensees`
 
@@ -533,8 +539,8 @@ List all customers (licensees) for a product.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `product_number` | string | yes | — | Product to list customers for |
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `product_number` | string | yes | — | Product to list customers for ; supported keys: active (others are ignored with a warning; malformed expressions are rejected) |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
@@ -611,7 +617,7 @@ Always requires a two-step confirmation:
 |---|---|---|---|---|
 | `licensee_number` | string | yes | — | Licensee to delete |
 | `force_cascade` | boolean | no | `false` | Also delete all dependent licenses |
-| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call |
+| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead) |
 
 ### `netlicensing_validate_licensee`
 
@@ -675,8 +681,8 @@ List all licenses for a specific customer.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `licensee_number` | string | yes | — | Customer whose licenses to list |
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `licensee_number` | string | yes | — | Customer whose licenses to list ; supported keys: active (others are ignored with a warning; malformed expressions are rejected) |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
@@ -766,7 +772,7 @@ Always requires a two-step confirmation:
 |---|---|---|---|---|
 | `license_number` | string | yes | — | License to delete |
 | `force_cascade` | boolean | no | `false` | Force deletion even if dependencies exist |
-| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call |
+| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead) |
 
 ## Toolset `tokens`
 
@@ -787,7 +793,7 @@ List all active tokens in the account.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'tokenType=SHOP') |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
@@ -860,7 +866,7 @@ Always requires a two-step confirmation:
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `token_number` | string | yes | — | Token to revoke |
-| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call |
+| `confirm_token` | string | no | `""` | Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead) |
 
 ## Toolset `transactions`
 
@@ -879,7 +885,7 @@ List all transactions in the account.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'status=CLOSED') |
+| `filter` | string | no | `""` |  |
 | `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
 | `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
 | `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |

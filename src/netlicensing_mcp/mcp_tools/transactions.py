@@ -26,14 +26,22 @@ async def netlicensing_list_transactions(
     """List all transactions in the account.
 
     Args:
-        filter: Optional server-side filter expression (e.g. 'status=CLOSED')
+        ; supported keys: status, active (others are ignored with a warning; malformed expressions are rejected)
         page: Page to return, 0-based (default 0; overrides 'page' in filter)
         page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
         compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        filter = _list_filter(filter, page, page_size)
+        filter = _list_filter(
+            filter,
+            page,
+            page_size,
+            supported=(
+                "status",
+                "active",
+            ),
+        )
         return _wrap_json(
             await transactions.list_transactions(
                 filter_str=filter or None,

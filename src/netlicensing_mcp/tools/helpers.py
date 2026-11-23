@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
+from urllib.parse import urlsplit
 
-from netlicensing_mcp.client import NetLicensingError
+from netlicensing_mcp.client import ClientValidationError
 
 # Fields that carry large binary/base64 blobs and should be stripped from all
 # tool outputs to keep MCP responses concise.  They are intentionally NOT sent
@@ -33,6 +35,7 @@ LICENSING_MODELS = (
     "NodeLocked",
     "Discount",
 )
+TRANSACTION_SOURCES = ("SHOP", "AUTO")
 VAT_MODES = ("GROSS", "NET")
 LICENSEE_SECRET_MODES = ("DISABLED", "PREDEFINED", "CLIENT")
 API_KEY_ROLES = (
@@ -53,9 +56,106 @@ def require_one_of(name: str, value: str | None, allowed: tuple[str, ...]) -> No
     if value is None or value == "":
         return
     if value not in allowed:
-        raise NetLicensingError(
-            400, f"Invalid {name} {value!r}: allowed values are {', '.join(allowed)}"
+        raise ClientValidationError(
+            f"Invalid {name} {value!r}: allowed values are {', '.join(allowed)}"
         )
+
+
+# ── Free-text, identifier, currency and URL validation ───────────────────────
+
+#: Form fields that may hold multi-line text (tab / newline allowed).
+MULTILINE_FIELDS = frozenset({"description", "licensingInfo"})
+
+#: Characters never allowed in a ``number`` (identifier) field. NetLicensing's
+#: documented rule is not published, so this is a deny list of characters that
+#: are path/query/markup syntax or whitespace; ``@``, ``.``, ``-``, ``_`` etc. stay valid.
+_NUMBER_FORBIDDEN = set("/\\?#%;,=&<>\"'`|{}[]()*!$^~:")
+
+_CURRENCY = re.compile(r"[A-Z]{3}")
+
+#: Currency codes of ISO 4217 that NetLicensing accepts are not published; only
+#: the format is checked, so any three-letter code of the right shape passes.
+
+
+def _is_control(ch: str, allow_whitespace: bool) -> bool:
+    if allow_whitespace and ch in "\t\n\r":
+        return False
+    return ord(ch) < 32 or ord(ch) == 127
+
+
+def validate_form_data(data: dict[str, str]) -> None:
+    """Reject control characters in any form value and bad ``number`` values.
+
+    Runs on every POST/PUT body before the request is sent. The error names the
+    field and the rule. Tab and newline are allowed in multi-line text fields only.
+    """
+    for key, value in data.items():
+        if not isinstance(value, str):
+            continue
+        multiline = key in MULTILINE_FIELDS
+        if any(_is_control(ch, multiline) for ch in value):
+            where = " (tab and newline are allowed)" if multiline else ""
+            raise ClientValidationError(
+                f"Invalid {key}: control characters and null bytes are not allowed{where}"
+            )
+        if key == "price":
+            try:
+                require_price(float(value))
+            except ValueError:
+                raise ClientValidationError(f"Invalid price {value!r}: must be a number") from None
+        if key == "currency":
+            require_currency(value)
+        if key == "number" and value:
+            bad = sorted({ch for ch in value if ch in _NUMBER_FORBIDDEN or ch.isspace()})
+            if bad:
+                shown = " ".join(repr(c) if not c.isspace() else "whitespace" for c in bad)
+                raise ClientValidationError(
+                    f"Invalid number {value!r}: contains {shown}. Use letters, digits and "
+                    "'-', '_', '.', '@' (no whitespace, slashes, quotes, brackets, ';' or '=')"
+                )
+
+
+def require_currency(value: str | None) -> None:
+    """Raise unless *value* is empty or an ISO 4217-shaped code (three capital letters)."""
+    if value is None or value == "":
+        return
+    if not _CURRENCY.fullmatch(value):
+        raise ClientValidationError(
+            f"Invalid currency {value!r}: expected an ISO 4217 code such as EUR"
+        )
+
+
+def require_price(value: float | None) -> None:
+    """Raise unless *value* is ``None`` or a non-negative number."""
+    if value is not None and value < 0:
+        raise ClientValidationError(f"Invalid price {value!r}: must be 0 or greater")
+
+
+def require_redirect_url(name: str, value: str | None) -> None:
+    """Raise unless *value* is empty or an ``https://`` URL (``http://`` only for localhost)."""
+    if value is None or value == "":
+        return
+    allowed = f"{name} must be an https:// URL (http:// is allowed only for localhost or 127.0.0.1)"
+    if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        raise ClientValidationError(f"Invalid {name}: whitespace and control characters. {allowed}")
+    try:
+        parts = urlsplit(value)
+        host = parts.hostname
+    except ValueError:
+        raise ClientValidationError(f"Invalid {name}: not a valid URL. {allowed}") from None
+    if not host:
+        raise ClientValidationError(f"Invalid {name} {value!r}: {allowed}")
+    if parts.scheme == "https":
+        return
+    if parts.scheme == "http" and host in ("localhost", "127.0.0.1"):
+        return
+    raise ClientValidationError(f"Invalid {name} {value!r}: {allowed}")
+
+
+def require_plain_text(name: str, value: str | None) -> None:
+    """Raise if *value* contains control characters (titles, labels)."""
+    if value and any(_is_control(ch, False) for ch in value):
+        raise ClientValidationError(f"Invalid {name}: control characters are not allowed")
 
 
 def _coerce_form_value(value: CustomPropertyValue) -> str:
@@ -80,8 +180,7 @@ def merge_custom_properties(
         return
     conflicts = sorted(set(custom_properties) & set(data))
     if conflicts:
-        raise NetLicensingError(
-            400,
+        raise ClientValidationError(
             f"custom_properties conflicts with reserved field(s): {', '.join(conflicts)}",
         )
     data.update({k: _coerce_form_value(v) for k, v in custom_properties.items()})
@@ -118,7 +217,7 @@ def scoped_filter(
     caller can never widen the scope it asked for.
     """
     if not scope_value or any(ch in scope_value for ch in ";="):
-        raise NetLicensingError(400, f"Invalid {scope_key}: must be non-empty without ';' or '='")
+        raise ClientValidationError(f"Invalid {scope_key}: must be non-empty without ';' or '='")
     parts = [f"{scope_key}={scope_value}"]
     if page is not None:
         parts.append(f"page={page}")
@@ -127,8 +226,8 @@ def scoped_filter(
     if filter_str:
         keys = {p.split("=", 1)[0].strip() for p in filter_str.split(";") if p.strip()}
         if scope_key in keys:
-            raise NetLicensingError(
-                400, f"filter must not set {scope_key}; it is taken from the tool argument"
+            raise ClientValidationError(
+                f"filter must not set {scope_key}; it is taken from the tool argument"
             )
         parts.append(filter_str)
     return {"filter": ";".join(parts)}
@@ -177,5 +276,6 @@ def delete_result(
             "message": f"{label} {shown} deleted (HTTP {status}).",
             "warnings": [],
             "suggested_actions": [],
-        }
+        },
+        indent=2,  # same serializer settings as app._json
     )

@@ -206,14 +206,11 @@ async def test_mismatch_error_names_neither_number_in_full():
     assert sc == json.loads(_text(wrong))
     assert sc["error"] is True
     detail = sc["detail"]
-    assert detail == (
-        f"Token {token!r} is for 'delete_token'/{KEY_MASKED!r}, not 'delete_token'/{OTHER_MASKED!r}"
-    )
+    assert detail == (f"Confirmation token {token!r} does not match this operation or target")
     everything = _everything(wrong)
     assert KEY not in everything
     assert OTHER not in everything
-    assert KEY_MASKED in _text(wrong)
-    assert OTHER_MASKED in _text(wrong)
+    assert sc["status"] == 400
     assert right.isError is False
     deleted.assert_awaited_once_with(f"/token/{KEY}")
 
@@ -225,8 +222,8 @@ def test_mismatch_from_another_tool_masks_the_stored_token_number():
         safety.validate_and_consume(token, "delete_product", "P001")
     message = str(info.value)
     assert KEY not in message
-    assert f"'delete_token'/{KEY_MASKED!r}" in message
-    assert "'delete_product'/'P001'" in message
+    assert "delete_token" not in message  # the bound operation is not revealed
+    assert "P001" not in message
 
 
 async def test_product_confirmation_on_delete_token_masks_the_key():
@@ -255,17 +252,14 @@ async def test_product_confirmation_on_delete_token_masks_the_key():
     sc = result.structuredContent
     assert sc is not None
     assert sc == json.loads(_text(result))
-    assert sc["detail"] == (
-        f"Token {token!r} is for 'delete_product'/'P001', not 'delete_token'/{KEY_MASKED!r}"
-    )
+    assert sc["detail"] == f"Confirmation token {token!r} does not match this operation or target"
     assert KEY not in _everything(result)
-    assert KEY_MASKED in _text(result)
 
 
 def test_mismatch_between_non_secret_operations_is_unchanged():
     token, _ = safety.issue_token("delete_product", "P001")
     with pytest.raises(ValueError) as info:
         safety.validate_and_consume(token, "delete_product", "P002")
-    assert str(info.value) == (
-        f"Token {token!r} is for 'delete_product'/'P001', not 'delete_product'/'P002'"
-    )
+    message = str(info.value)
+    assert message == f"Confirmation token {token!r} does not match this operation or target"
+    assert "P001" not in message and "P002" not in message

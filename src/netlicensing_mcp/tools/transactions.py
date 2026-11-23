@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from netlicensing_mcp.client import nl_get, nl_post
 from netlicensing_mcp.tools.helpers import (
+    TRANSACTION_SOURCES,
     TRANSACTION_STATUSES,
     first_item_property,
     require_one_of,
@@ -45,6 +46,7 @@ async def create_transaction(
     name: human-readable transaction name.
     """
     require_one_of("status", status, TRANSACTION_STATUSES)
+    require_one_of("source", source, TRANSACTION_SOURCES)
     data: dict[str, str] = {
         "active": str(active).lower(),
         "status": status,

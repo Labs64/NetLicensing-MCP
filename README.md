@@ -403,7 +403,11 @@ All variables are optional, but you need either `NETLICENSING_API_KEY` or demo m
 | `MCP_READ_ONLY` | `false` | `true`, `1` or `yes` registers read-only tools only. See below. |
 | `MCP_REDACT_FIELDS` | none | Extra field names to redact, e.g. `ssn,phone`. |
 | `MCP_VERBOSE` | `false` | `true`, `1`, `yes` or `-v`: debug-log API traffic. Local debugging only: it also enables the MCP SDK's DEBUG output, which is not redacted, so don't keep those logs. |
+| `NETLICENSING_MCP_REDACT_SECRETS` | `false` | `true`, `1` or `yes` masks the credential in `create_api_token` and `create_shop_token` results (`number`, `shopURL`), so it never enters the model context. The result says the secret was masked; it cannot be read back through this server. Default: the secret is returned once with `shown_once`. |
+| `NETLICENSING_MCP_REQUIRE_ELICITATION` | `false` | `true`, `1` or `yes`: delete tools called with a `confirm_token` ask the user through MCP elicitation, and fail if the client does not support it. Without it, clients that support elicitation are still asked, and others fall back to the token flow. |
 | `MCP_CONSOLE_BASE_URL` | `https://ui.netlicensing.io/#` | Base for the `console_url` links in results. |
+
+Confirmation tokens guard against accidents, not against an autonomous caller: the same agent can request a preview and redeem the token in one turn, so a token is not proof that a human approved the change. For delete tools the server therefore asks the user through MCP elicitation when the client supports it; set `NETLICENSING_MCP_REQUIRE_ELICITATION=true` to refuse deletes when it does not.
 
 Invalid values in `MCP_TOOLSETS` or `MCP_READ_ONLY` are ignored with a warning on stderr. Logs always go to stderr.
 

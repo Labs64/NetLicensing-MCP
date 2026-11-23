@@ -104,6 +104,18 @@ class NetLicensingError(Exception):
         super().__init__(f"HTTP {status_code}: {detail}")
 
 
+class ClientValidationError(NetLicensingError):
+    """An argument rejected by this server before any request was sent.
+
+    Same shape as :class:`NetLicensingError` (status 400, ``detail``), so every
+    ``except NetLicensingError`` keeps working; the error hint tells these apart
+    from errors the NetLicensing API returned.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(400, detail)
+
+
 def _retry_after_seconds(response: httpx.Response) -> int | None:
     """``Retry-After`` as whole seconds, or ``None`` (absent or an HTTP date)."""
     value = response.headers.get("Retry-After", "").strip()
@@ -190,21 +202,21 @@ def _validated_path(path: str) -> str:
     check, since Java containers resolve ``..;x`` as ``..``.
     """
     if not path.startswith("/"):
-        raise NetLicensingError(400, "Internal error: upstream path must start with '/'")
+        raise ClientValidationError("Internal error: upstream path must start with '/'")
     segments = path.split("/")[1:]
     for segment in segments:
         if not segment.strip():
-            raise NetLicensingError(400, "Invalid identifier: must not be empty")
+            raise ClientValidationError("Invalid identifier: must not be empty")
         decoded = _fully_unquote(segment)
         if "/" in decoded or "\\" in decoded:
-            raise NetLicensingError(400, "Invalid identifier: path separators are not allowed")
+            raise ClientValidationError("Invalid identifier: path separators are not allowed")
         if decoded.split(";", 1)[0] in {".", ".."}:
-            raise NetLicensingError(400, "Invalid identifier: path separators are not allowed")
+            raise ClientValidationError("Invalid identifier: path separators are not allowed")
         if any(ord(ch) < 32 or ord(ch) == 127 for ch in decoded):
-            raise NetLicensingError(400, "Invalid identifier: control characters are not allowed")
+            raise ClientValidationError("Invalid identifier: control characters are not allowed")
         if any(ch in segment for ch in "?#%") or any(ch.isspace() for ch in segment):
-            raise NetLicensingError(
-                400, "Invalid identifier: '?', '#', '%' and whitespace are not allowed"
+            raise ClientValidationError(
+                "Invalid identifier: '?', '#', '%' and whitespace are not allowed"
             )
     # Every identifier is now a single plain segment; encode it so nothing in it
     # can be read as URL syntax (e.g. '@' → '%40').
@@ -226,7 +238,7 @@ def _fully_unquote(segment: str) -> str:
         if decoded == current:
             return decoded
         current = decoded
-    raise NetLicensingError(400, "Invalid identifier: excessive percent-encoding")
+    raise ClientValidationError("Invalid identifier: excessive percent-encoding")
 
 
 def _log_path(path: str) -> str:
@@ -387,8 +399,17 @@ async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, A
     return body
 
 
+def _validate_form(data: dict[str, str] | None) -> None:
+    """Check a form body before sending (imported lazily: helpers imports this module)."""
+    if data:
+        from netlicensing_mcp.tools.helpers import validate_form_data
+
+        validate_form_data(data)
+
+
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:
     url = f"{BASE_URL}{_validated_path(path)}"
+    _validate_form(data)
     logger.debug("POST %s%s data_present=%s", BASE_URL, _log_path(path), bool(data))
     r = await _send(
         "post",
@@ -403,6 +424,7 @@ async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, An
 
 async def nl_put(path: str, data: dict[str, str]) -> dict[str, Any]:
     url = f"{BASE_URL}{_validated_path(path)}"
+    _validate_form(data)
     logger.debug("PUT %s%s data_present=%s", BASE_URL, _log_path(path), bool(data))
     r = await _send(
         "put",

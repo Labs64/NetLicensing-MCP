@@ -12,6 +12,7 @@ The list envelope turns them into ``total`` / ``page`` / ``total_pages`` /
 from __future__ import annotations
 
 import json
+import re
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -20,12 +21,11 @@ from netlicensing_mcp import server
 from netlicensing_mcp.responses import next_page_filter, wrap
 
 
-def _hinted_filter(hint: str) -> str:
-    """Decode the JSON-quoted ``filter=...`` value inside a ``next_page_hint``."""
-    start = hint.index("filter=") + len("filter=")
-    value, _ = json.JSONDecoder().raw_decode(hint[start:])
-    assert isinstance(value, str)
-    return value
+def _hinted_page(hint: str) -> tuple[int, int]:
+    """Return the ``(page, page_size)`` a ``next_page_hint`` asks for."""
+    m = re.search(r"page=(\d+) \(page_size=(\d+)\)", hint)
+    assert m, hint
+    return int(m.group(1)), int(m.group(2))
 
 
 PAGING_KEYS = ("total", "page", "total_pages", "page_size", "has_more", "next_page_hint")
@@ -174,8 +174,7 @@ def test_next_page_hint_only_when_tool_pages_through_filter():
 
 def test_next_page_hint_with_empty_filter():
     env = wrap(_page("Product", 2, **FIRST_OF_NINE), "Product", as_list=True, paging_filter="")
-    assert 'filter="page=1;items=2"' in env["next_page_hint"]
-    assert _hinted_filter(env["next_page_hint"]) == "page=1;items=2"
+    assert _hinted_page(env["next_page_hint"]) == (1, 2)
 
 
 def test_next_page_hint_keeps_user_filter_and_replaces_paging():
@@ -185,7 +184,7 @@ def test_next_page_hint_keeps_user_filter_and_replaces_paging():
         as_list=True,
         paging_filter=" active=true ; page=4;items=2",
     )
-    assert _hinted_filter(env["next_page_hint"]) == "active=true;page=5;items=2"
+    assert _hinted_page(env["next_page_hint"]) == (5, 2)
 
 
 def test_next_page_hint_quotes_filter_unambiguously():
@@ -195,9 +194,9 @@ def test_next_page_hint_quotes_filter_unambiguously():
         as_list=True,
         paging_filter='name=O\'Brien "Ltd"',
     )
+    # The hint no longer repeats the filter, so quoting cannot be ambiguous.
     hint = env["next_page_hint"]
-    assert 'filter="name=O\'Brien \\"Ltd\\";page=1;items=2"' in hint
-    assert _hinted_filter(hint) == 'name=O\'Brien "Ltd";page=1;items=2'
+    assert "Brien" not in hint and _hinted_page(hint) == (1, 2)
 
 
 @pytest.mark.parametrize(
@@ -248,7 +247,7 @@ async def test_filter_list_tools_emit_next_page_hint(tool, patch_target, kind, a
     assert out["count"] == 2
     assert out["total"] == 18
     assert out["has_more"] is True
-    assert _hinted_filter(out["next_page_hint"]) == "active=true;page=1;items=2"
+    assert _hinted_page(out["next_page_hint"]) == (1, 2)
 
 
 async def test_next_page_hint_keeps_non_ascii_filter_readable():
@@ -259,15 +258,13 @@ async def test_next_page_hint_keeps_non_ascii_filter_readable():
         text = await server.netlicensing_list_licensees("P1", filter="name=Müller")
     result = to_call_tool_result(text)
     hint = json.loads(text)["next_page_hint"]
-    assert 'filter="name=Müller;page=1;items=2"' in hint
+    assert _hinted_page(hint) == (1, 2)
     # _json() may escape ü once (valid JSON); a double escape means the hint
     # itself carried the literal text "ü".
     assert "\\\\u00fc" not in text
     assert result.structuredContent is not None
     assert result.structuredContent["next_page_hint"] == hint
-    assert _hinted_filter(result.structuredContent["next_page_hint"]) == (
-        "name=Müller;page=1;items=2"
-    )
+    assert _hinted_page(result.structuredContent["next_page_hint"]) == (1, 2)
 
 
 async def test_list_payment_methods_reports_metadata_without_hint():
@@ -301,16 +298,20 @@ async def test_scoped_tool_hint_round_trip_keeps_scope_and_replaces_paging():
         first = json.loads(
             await server.netlicensing_list_licensees("P1", filter="active=true;page=0;items=2")
         )
-        hinted = _hinted_filter(first["next_page_hint"])
-        second = json.loads(await server.netlicensing_list_licensees("P1", filter=hinted))
-    assert hinted == "active=true;page=1;items=2"
+        page, size = _hinted_page(first["next_page_hint"])
+        second = json.loads(
+            await server.netlicensing_list_licensees(
+                "P1", filter="active=true;page=0;items=2", page=page, page_size=size
+            )
+        )
+    assert (page, size) == (1, 2)
     assert nl_get.await_args_list[0].args == (
         "/licensee",
         {"filter": "productNumber=P1;active=true;page=0;items=2"},
     )
     assert nl_get.await_args_list[1].args == (
         "/licensee",
-        {"filter": "productNumber=P1;active=true;page=1;items=2"},
+        {"filter": "productNumber=P1;active=true;items=2;page=1"},
     )
     assert second["page"] == 1
     assert second["has_more"] is False

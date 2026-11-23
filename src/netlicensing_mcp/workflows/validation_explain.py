@@ -131,10 +131,24 @@ def _classify_module(
     return row
 
 
+def module_state(valid: bool | None, features: list[dict[str, Any]] | None = None) -> str:
+    """``valid`` / ``degraded`` / ``invalid`` / ``unknown`` for one validated module.
+
+    ``degraded``: the module says ``valid`` but it lists features and every one of
+    them is ``valid: false``, so nothing it licenses can actually be used. A module
+    where at least one feature is valid (or whose features are unknown) stays ``valid``.
+    """
+    if valid is None:
+        return "unknown"
+    if not valid:
+        return "invalid"
+    if features and all(f.get("valid") is False for f in features):
+        return "degraded"
+    return "valid"
+
+
 def _state(row: dict[str, Any]) -> str:
-    """``valid`` / ``invalid`` / ``unknown`` from the module's ``valid`` flag."""
-    v = row.get("valid")
-    return "unknown" if v is None else ("valid" if v else "invalid")
+    return module_state(row.get("valid"), row.get("features"))
 
 
 def _needs_attention(row: dict[str, Any]) -> bool:
@@ -214,6 +228,11 @@ def _explanation_for(row: dict[str, Any]) -> str:
     if "multifeature" in model_lower:
         features = row.get("features") or []
         bad = [f for f in features if f.get("valid") is not True]
+        if features and len(bad) == len(features) and state == "degraded":
+            return (
+                f"MultiFeature module is valid, but none of its {len(features)} features is "
+                "valid: nothing it licenses can be used."
+            )
         if features and bad:
             names = ", ".join(str(f.get("name") or f.get("number")) for f in bad)
             return (
@@ -319,7 +338,7 @@ def _overall_status(blocks: list[dict[str, Any]], infos: list[str] | None = None
     has_red = any(b.get("warning_level") == "RED" for b in blocks)
     has_invalid = any(_state(b) == "invalid" for b in blocks)
     has_yellow = any(b.get("warning_level") == "YELLOW" for b in blocks)
-    has_unknown = any(_state(b) == "unknown" for b in blocks)
+    has_unknown = any(_state(b) in ("unknown", "degraded") for b in blocks)
     if has_red or has_invalid:
         return "critical"
     if has_yellow or has_unknown or infos:
@@ -363,9 +382,14 @@ def _summary_line(modules: list[dict[str, Any]], overall_status: str) -> str:
         for m in modules
         if _state(m) != "invalid" and _needs_attention(m)
     ]
-    line = f"Validation passed for {n - len(attention)} of {n} module{plural}."
+    degraded = [m.get("module_number", "") for m in modules if _state(m) == "degraded"]
+    other = [o for o in other if o not in degraded]
+    clean = n - len(attention)
+    line = f"Validation passed for {clean} of {n} module{plural}."
     if invalid:
         line += f" Invalid ({len(invalid)}): {', '.join(invalid)}."
+    if degraded:
+        line += f" Valid but no valid features ({len(degraded)}): {', '.join(degraded)}."
     if other:
         line += f" Unknown or warning level ({len(other)}): {', '.join(other)}."
     return line
@@ -392,6 +416,7 @@ def explain_validation(
     for props, features in _module_blocks(payload):
         row = _classify_module(props, now, features)
         row["explanation"] = _explanation_for(row)
+        row["state"] = _state(row)
         module_actions = _actions_for(row, licensee_number="<licensee>")
         row["suggested_actions"] = module_actions
         all_actions.extend(module_actions)

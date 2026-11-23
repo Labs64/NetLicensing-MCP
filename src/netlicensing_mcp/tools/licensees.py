@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.tools.helpers import delete_result, scoped_filter
-from netlicensing_mcp.client import NetLicensingError, nl_delete, nl_get, nl_post
+from netlicensing_mcp.client import ClientValidationError, nl_delete, nl_get, nl_post
 
 
 async def list_licensees(
@@ -137,16 +137,14 @@ async def validate_licensee(
         if v
     ]
     if module_params and not product_module_number:
-        raise NetLicensingError(
-            400,
+        raise ClientValidationError(
             f"{', '.join(module_params)} requires product_module_number "
             "(the module these parameters apply to)",
         )
     if action and action not in ("checkOut", "checkIn"):
-        raise NetLicensingError(400, "action must be 'checkOut' or 'checkIn'")
+        raise ClientValidationError("action must be 'checkOut' or 'checkIn'")
     if action and not session_id:
-        raise NetLicensingError(
-            400,
+        raise ClientValidationError(
             f"action '{action}' requires session_id (the Floating session to "
             f"{'check out' if action == 'checkOut' else 'check in'})",
         )

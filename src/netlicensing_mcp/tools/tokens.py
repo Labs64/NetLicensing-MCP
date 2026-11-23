@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
-from netlicensing_mcp.tools.helpers import API_KEY_ROLES, delete_result, require_one_of
-from netlicensing_mcp.client import NetLicensingError, nl_delete, nl_get, nl_post
+from netlicensing_mcp.tools.helpers import (
+    API_KEY_ROLES,
+    delete_result,
+    require_one_of,
+    require_plain_text,
+    require_redirect_url,
+)
+from netlicensing_mcp.client import ClientValidationError, nl_delete, nl_get, nl_post
 from netlicensing_mcp.redaction import mask_token_number
 
 
@@ -45,12 +51,11 @@ async def resolve_token_number(token_number: str) -> str:
         if not items or not (isinstance(items_obj, dict) and _has_next(items_obj)):
             break
     if not matches:
-        raise NetLicensingError(
-            400, f"No token matches the masked number {token_number!r}. List tokens again."
+        raise ClientValidationError(
+            f"No token matches the masked number {token_number!r}. List tokens again."
         )
     if len(matches) > 1:
-        raise NetLicensingError(
-            400,
+        raise ClientValidationError(
             f"The masked number {token_number!r} matches {len(matches)} tokens: it is "
             "ambiguous, so nothing was done. Use the full token number.",
         )
@@ -85,13 +90,17 @@ async def create_shop_token(
     license_template_number: pre-select a specific license template.
     success_url / cancel_url: redirect URLs after checkout.
     """
+    require_redirect_url("success_url", success_url)
+    require_redirect_url("cancel_url", cancel_url)
+    require_plain_text("success_url_title", success_url_title)
+    require_plain_text("cancel_url_title", cancel_url_title)
     data: dict[str, str] = {"tokenType": "SHOP"}
     if licensee_number:
         data["licenseeNumber"] = licensee_number
     elif product_number:
         data["productNumber"] = product_number
     else:
-        raise NetLicensingError(400, "Either licensee_number or product_number is required")
+        raise ClientValidationError("Either licensee_number or product_number is required")
     if license_template_number:
         data["licenseTemplateNumber"] = license_template_number
     if success_url:

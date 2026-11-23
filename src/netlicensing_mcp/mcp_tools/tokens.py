@@ -17,7 +17,7 @@ from netlicensing_mcp.app import (
     tool,
 )
 from netlicensing_mcp.client import NetLicensingError
-from netlicensing_mcp.redaction import tag_one_time_display
+from netlicensing_mcp.redaction import hide_created_secret, tag_one_time_display
 from netlicensing_mcp.responses import wrap
 from netlicensing_mcp.tools import tokens
 
@@ -33,14 +33,14 @@ async def netlicensing_list_tokens(
     """List all active tokens in the account.
 
     Args:
-        filter: Optional server-side filter expression (e.g. 'tokenType=SHOP')
+        ; supported keys: tokenType (others are ignored with a warning; malformed expressions are rejected)
         page: Page to return, 0-based (default 0; overrides 'page' in filter)
         page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
         compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
-        filter = _list_filter(filter, page, page_size)
+        filter = _list_filter(filter, page, page_size, supported=("tokenType",))
         return _wrap_json_token_read(
             await tokens.list_tokens(filter_str=filter or None),
             include_raw=include_raw,
@@ -104,6 +104,7 @@ async def netlicensing_create_shop_token(
             success_url_title=success_url_title or None,
             cancel_url_title=cancel_url_title or None,
         )
+        raw = hide_created_secret(raw)
         wrapped = wrap(raw, "Token", raw=raw if include_raw else None)
         _scrub_apikey_console_url(wrapped)
         return _json(tag_one_time_display(wrapped))
@@ -127,11 +128,25 @@ async def netlicensing_create_api_token(
     """
     try:
         raw = await tokens.create_api_token(api_key_role, licensee_number or None)
+        raw = hide_created_secret(raw)
         wrapped = wrap(raw, "Token", raw=raw if include_raw else None)
         _scrub_apikey_console_url(wrapped)
         return _json(tag_one_time_display(wrapped))
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_create_api_token")
+
+
+def _token_affected(props: dict[str, str]) -> dict[str, str]:
+    """What a token delete removes: type, API key role and scope, each only when present."""
+    out = {"token_type": props.get("tokenType") or "UNKNOWN"}
+    for key, value in (
+        ("role", props.get("apiKeyRole") or props.get("role")),
+        ("licensee_number", props.get("licenseeNumber")),
+        ("product_number", props.get("productNumber")),
+    ):
+        if value:
+            out[key] = value
+    return out
 
 
 @tool(title="Preview deletion of token", annotations=_READONLY)
@@ -152,10 +167,7 @@ async def netlicensing_preview_delete_token(token_number: str) -> str:
             safety.make_delete_preview(
                 "delete_token",
                 token_number,
-                affected={
-                    "token_type": props.get("tokenType", "UNKNOWN"),
-                    "role": props.get("role", ""),
-                },
+                affected=_token_affected(props),
                 samples={},
             )
         )
@@ -177,7 +189,7 @@ async def netlicensing_delete_token(
 
     Args:
         token_number: Token to revoke
-        confirm_token: Confirmation token from a previous preview call
+        confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)
     """
     try:
         token_number = await tokens.resolve_token_number(token_number)
@@ -192,10 +204,7 @@ async def netlicensing_delete_token(
             safety.make_delete_preview(
                 "delete_token",
                 token_number,
-                affected={
-                    "token_type": props.get("tokenType", "UNKNOWN"),
-                    "role": props.get("role", ""),
-                },
+                affected=_token_affected(props),
                 samples={},
             )
         )
