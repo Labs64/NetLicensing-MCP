@@ -101,9 +101,9 @@ def _module_row(
     row["license_count"] = len(license_group)
 
     # Model-specific fields from validation payload.
-    model_lower = licensing_model.lower()
+    model_lower = re.sub(r"[\s_-]", "", licensing_model).lower()
 
-    if "subscription" in model_lower or "time-volume" in model_lower:
+    if "subscription" in model_lower or "timevolume" in model_lower:
         expires_str = val_props.get("expires") or val_props.get("expirationTime") or ""
         if not expires_str:
             # Fall back to the earliest expiry on the licenses themselves.
@@ -119,7 +119,7 @@ def _module_row(
             if days is not None:
                 row["expires_in_days"] = days
 
-    elif "pay-per-use" in model_lower or "pay per use" in model_lower:
+    elif "payperuse" in model_lower:
         for key, out in [("quota", "quota_total"), ("quotaTotal", "quota_total")]:
             if key in val_props:
                 try:
@@ -283,6 +283,13 @@ def _summary_line(
 ) -> str:
     if not licensee_active:
         return f"Licensee is inactive — {counts['total_licenses']} licenses on record."
+    if overall_status == "unknown":
+        return (
+            "Health unknown: live validation was not run, and license counts alone do not "
+            f"show whether a license is valid ({counts['modules']} modules, "
+            f"{counts['total_licenses']} licenses on record). "
+            "Call again with refresh_warning_level=true."
+        )
     invalid = _invalid_modules(modules)
     if overall_status == "ok" and not invalid:
         return f"All {counts['modules']} modules are healthy."
@@ -379,6 +386,9 @@ def build_health(
         overall_status = _overall_status_from_validation(modules)
     else:
         overall_status = _overall_status_from_heuristics(modules, licensee_active)
+        if overall_status == "ok":
+            # Nothing was validated: counts and expiry dates never prove "healthy".
+            overall_status = "unknown"
 
     infos = _validation_infos(validation)
     if infos and overall_status == "ok":
@@ -387,6 +397,11 @@ def build_health(
 
     warnings = _build_warnings(modules, infos)
     suggested_actions = _build_suggested_actions(modules, licensee_number, licensee_active)
+    if overall_status == "unknown":
+        suggested_actions.append(
+            f"Re-run netlicensing_get_customer_health for {licensee_number} "
+            "with refresh_warning_level=true."
+        )
     summary = _summary_line(modules, counts, licensee_active, overall_status)
 
     envelope: dict[str, Any] = {
@@ -394,6 +409,7 @@ def build_health(
         "licensee_number": licensee_number,
         "active": licensee_active,
         "overall_status": overall_status,
+        "validation_run": validation is not None,
         "counts": counts,
         "modules": modules,
         "warnings": warnings,

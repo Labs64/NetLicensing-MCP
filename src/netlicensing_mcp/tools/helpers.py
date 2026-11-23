@@ -17,6 +17,47 @@ STRIP_OUTPUT_FIELDS: frozenset[str] = frozenset({"logo"})
 CustomPropertyValue = str | int | float | bool
 
 
+# Allowed values of enumerated arguments, checked before any request is sent.
+LICENSE_TYPES = ("FEATURE", "TIMEVOLUME", "FLOATING", "QUANTITY")
+TRANSACTION_STATUSES = ("CANCELLED", "CLOSED", "PENDING")
+TIME_VOLUME_PERIODS = ("DAY", "WEEK", "MONTH", "YEAR")
+LICENSING_MODELS = (
+    "Rental",
+    "TryAndBuy",
+    "Subscription",
+    "Floating",
+    "MultiFeature",
+    "PayPerUse",
+    "PricingTable",
+    "Quota",
+    "NodeLocked",
+    "Discount",
+)
+VAT_MODES = ("GROSS", "NET")
+LICENSEE_SECRET_MODES = ("DISABLED", "PREDEFINED", "CLIENT")
+API_KEY_ROLES = (
+    "ROLE_APIKEY_LICENSEE",
+    "ROLE_APIKEY_ANALYTICS",
+    "ROLE_APIKEY_OPERATION",
+    "ROLE_APIKEY_MAINTENANCE",
+    "ROLE_APIKEY_ADMIN",
+)
+
+
+def require_one_of(name: str, value: str | None, allowed: tuple[str, ...]) -> None:
+    """Raise ``NetLicensingError(400)`` unless *value* is empty or one of *allowed*.
+
+    Empty / ``None`` mean "not given" and pass. The message lists the allowed
+    values, so the caller can correct the argument without a round trip.
+    """
+    if value is None or value == "":
+        return
+    if value not in allowed:
+        raise NetLicensingError(
+            400, f"Invalid {name} {value!r}: allowed values are {', '.join(allowed)}"
+        )
+
+
 def _coerce_form_value(value: CustomPropertyValue) -> str:
     """Stringify *value* for a form-encoded request, matching the convention
     used elsewhere in the tools layer (lowercase ``"true"``/``"false"``)."""

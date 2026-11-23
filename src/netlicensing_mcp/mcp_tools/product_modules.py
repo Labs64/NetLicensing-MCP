@@ -11,6 +11,7 @@ from netlicensing_mcp.app import (
     _confirm_error,
     _error,
     _json,
+    _list_filter,
     _sample_numbers,
     _total_items,
     _wrap_json,
@@ -26,16 +27,25 @@ from netlicensing_mcp.tools.helpers import CustomPropertyValue
 
 @tool(title="List product modules", annotations=_READONLY)
 async def netlicensing_list_product_modules(
-    product_number: str, filter: str = "", include_raw: bool = False
+    product_number: str,
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
 ) -> str:
     """List all modules (feature groups) for a product.
 
     Args:
         product_number: Product whose modules to list
         filter: Optional server-side filter expression (e.g. 'active=true')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json(
             await product_modules.list_product_modules(
                 product_number,
@@ -45,6 +55,7 @@ async def netlicensing_list_product_modules(
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_product_modules")
@@ -167,7 +178,9 @@ async def netlicensing_update_product_module(
 async def netlicensing_preview_delete_product_module(module_number: str) -> str:
     """Preview what would be deleted when deleting a product module.
 
-    Returns affected license template counts and a confirmation token.
+    Returns affected license template counts, `requires_force_cascade` and
+    `blocking_dependencies` (a module with license templates cannot be deleted
+    without force_cascade), and a confirmation token.
 
     Args:
         module_number: Module to preview deletion for
@@ -183,6 +196,7 @@ async def netlicensing_preview_delete_product_module(module_number: str) -> str:
                 module_number,
                 affected={"license_templates": _total_items(templates_resp)},
                 samples={"license_templates": _sample_numbers(templates_resp)},
+                blocking={"license_templates": _total_items(templates_resp)},
             )
         )
     except NetLicensingError as exc:
@@ -226,6 +240,7 @@ async def netlicensing_delete_product_module(
                 affected={"license_templates": _total_items(templates_resp)},
                 samples={"license_templates": _sample_numbers(templates_resp)},
                 force_cascade=force_cascade,
+                blocking={"license_templates": _total_items(templates_resp)},
             )
         )
     except ValueError as exc:

@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
-from netlicensing_mcp.tools.helpers import delete_result, strip_output_fields
+from netlicensing_mcp.tools.helpers import (
+    LICENSEE_SECRET_MODES,
+    VAT_MODES,
+    delete_result,
+    require_one_of,
+    strip_output_fields,
+)
 
 
 async def list_products(filter_str: str | None = None) -> dict:
@@ -43,6 +49,8 @@ async def create_product(
     Note: 'logo' is intentionally not passed — omitting it avoids accidentally
     clearing an existing product logo on the NetLicensing server.
     """
+    require_one_of("vat_mode", vat_mode, VAT_MODES)
+    require_one_of("licensee_secret_mode", licensee_secret_mode, LICENSEE_SECRET_MODES)
     data: dict[str, str] = {
         "number": number,
         "name": name,
@@ -80,6 +88,8 @@ async def update_product(
     Note: 'logo' is intentionally not passed — omitting it preserves the
     existing product logo on the NetLicensing server.
     """
+    require_one_of("vat_mode", vat_mode, VAT_MODES)
+    require_one_of("licensee_secret_mode", licensee_secret_mode, LICENSEE_SECRET_MODES)
     data: dict[str, str] = {}
     if name is not None:
         data["name"] = name

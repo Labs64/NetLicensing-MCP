@@ -61,10 +61,10 @@ dev = [
 
 [project.urls]
 Homepage = "https://netlicensing.io"
-Documentation = "https://netlicensing.io/wiki/"
+Documentation = "https://netlicensing.io/wiki/netlicensing-mcp"
 Repository = "https://github.com/Labs64/NetLicensing-MCP"
 Issues = "https://github.com/Labs64/NetLicensing-MCP/issues"
-Changelog = "https://github.com/Labs64/NetLicensing-MCP/blob/master/CHANGELOG.md"
+Changelog = "https://github.com/Labs64/NetLicensing-MCP/releases"
 Security = "https://github.com/Labs64/NetLicensing-MCP/blob/master/SECURITY.md"
 
 [project.scripts]

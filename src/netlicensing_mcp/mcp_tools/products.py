@@ -12,6 +12,7 @@ from netlicensing_mcp.app import (
     _error,
     _extract_props,
     _json,
+    _list_filter,
     _sample_numbers,
     _total_items,
     _wrap_json,
@@ -26,20 +27,31 @@ from netlicensing_mcp.tools import (
 
 
 @tool(title="List products", annotations=_READONLY)
-async def netlicensing_list_products(filter: str = "", include_raw: bool = False) -> str:
+async def netlicensing_list_products(
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
+) -> str:
     """List all products in the NetLicensing account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'active=true')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json(
             await products.list_products(filter_str=filter or None),
             "Product",
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_products")
@@ -138,7 +150,16 @@ async def netlicensing_preview_update_product(
             )
         if vat_mode:
             diff.append({"field": "vatMode", "from": current.get("vatMode"), "to": vat_mode})
-        return _json(safety.make_update_preview("update_product", product_number, diff))
+        return _json(
+            safety.make_update_preview(
+                "update_product",
+                product_number,
+                diff,
+                changes=safety.change_set(
+                    licenseeAutoCreate=licensee_auto_create, vatMode=vat_mode
+                ),
+            )
+        )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_preview_update_product")
 
@@ -177,10 +198,13 @@ async def netlicensing_update_product(
     """
     try:
         sensitive = licensee_auto_create is not None or bool(vat_mode)
+        changes = safety.change_set(licenseeAutoCreate=licensee_auto_create, vatMode=vat_mode)
 
         if sensitive:
             if confirm_token:
-                safety.validate_and_consume(confirm_token, "update_product", product_number)
+                safety.validate_and_consume(
+                    confirm_token, "update_product", product_number, changes=changes
+                )
             else:
                 current_resp = await products.get_product(product_number)
                 current = _extract_props(current_resp)
@@ -201,7 +225,12 @@ async def netlicensing_update_product(
                             "to": vat_mode,
                         }
                     )
-                return _json(safety.make_update_preview("update_product", product_number, diff))
+                preview = safety.make_update_preview(
+                    "update_product", product_number, diff, changes=changes
+                )
+                if not preview.get("no_change"):
+                    return _json(preview)
+                # The sensitive fields already hold the requested values: apply the rest.
 
         return _wrap_json(
             await products.update_product(

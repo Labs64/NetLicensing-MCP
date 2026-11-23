@@ -343,7 +343,7 @@ def test_n4_mask_boundaries(value, expected):
     assert _mask(value) == expected
 
 
-def test_n4_payment_method_short_values_fully_masked():
+def test_n4_payment_method_values_fully_masked():
     resp = _resp(
         _item(
             "PaymentMethod",
@@ -357,7 +357,7 @@ def test_n4_payment_method_short_values_fully_masked():
         p["name"]: p["value"] for p in redact_payment_method(resp)["items"]["item"][0]["property"]
     }
     assert props["email"] == "****"
-    assert props["secretKey"] == "pk_****W3Od"
+    assert props["secretKey"] == "****"
     assert props["number"] == "PAYPAL"
 
 

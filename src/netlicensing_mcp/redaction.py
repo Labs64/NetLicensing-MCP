@@ -174,9 +174,8 @@ def redact_payment_method(response: Any) -> Any:
     The API documents PaymentMethod items as ``number``, ``active`` *plus
     custom properties*, and in practice those custom properties hold provider
     credentials. A denylist cannot keep up with arbitrary names, so this is an
-    allowlist. Values of 16 or more characters keep their first 3 and last 4
-    characters (``sk_****1234``) so the operator can still tell which key is
-    configured; shorter values (including e-mail addresses) become ``****``.
+    allowlist. Every such value becomes the fixed ``****``: not even the last
+    characters of a provider secret are shown.
     """
     if isinstance(response, list):
         return [redact_payment_method(item) for item in response]
@@ -188,7 +187,7 @@ def redact_payment_method(response: Any) -> Any:
         # array is a payment method's; not keying on ``type`` avoids failing open.
         if k == "property" and isinstance(v, list):
             result[k] = [
-                {**p, "value": _mask(str(p.get("value", "")))}
+                {**p, "value": "****"}
                 if isinstance(p, dict) and p.get("name") not in PAYMENT_METHOD_CLEAR
                 else p
                 for p in v

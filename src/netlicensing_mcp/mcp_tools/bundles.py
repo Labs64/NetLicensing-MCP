@@ -13,6 +13,7 @@ from netlicensing_mcp.app import (
     _extract_props,
     _fmt_price,
     _json,
+    _list_filter,
     _wrap_json,
     tool,
 )
@@ -21,20 +22,31 @@ from netlicensing_mcp.tools import bundles
 
 
 @tool(title="List bundles", annotations=_READONLY)
-async def netlicensing_list_bundles(filter: str = "", include_raw: bool = False) -> str:
+async def netlicensing_list_bundles(
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
+) -> str:
     """List all bundles in the NetLicensing account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'active=true')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json(
             await bundles.list_bundles(filter_str=filter or None),
             "Bundle",
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_bundles")

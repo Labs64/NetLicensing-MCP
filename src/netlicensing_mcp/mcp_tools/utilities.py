@@ -65,18 +65,52 @@ async def netlicensing_list_license_types(include_raw: bool = False) -> str:
 
 
 @tool(title="List countries", annotations=_READONLY)
-async def netlicensing_list_countries(include_raw: bool = False) -> str:
-    """List all countries available for VAT and localization settings.
+async def netlicensing_list_countries(
+    search: str = "", eu_only: bool = False, include_raw: bool = False
+) -> str:
+    """List countries available for VAT and localization settings (249 without filters).
 
     Args:
+        search: Only countries whose name or code contains this text (case-insensitive)
+        eu_only: When true, only EU member states
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
         return _wrap_json(
-            await utilities.list_countries(), "Country", include_raw=include_raw, as_list=True
+            _filter_countries(await utilities.list_countries(), search, eu_only),
+            "Country",
+            include_raw=include_raw,
+            as_list=True,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_countries")
+
+
+def _filter_countries(response: dict, search: str, eu_only: bool) -> dict:
+    """Keep the countries matching *search* (name or code) and, if asked, only EU members."""
+    items_obj = response.get("items")
+    if not isinstance(items_obj, dict):
+        return response
+    items = items_obj.get("item")
+    needle = search.strip().lower()
+    if not isinstance(items, list) or not (needle or eu_only):
+        return response
+
+    def keep(item: Any) -> bool:
+        props = {
+            p.get("name"): str(p.get("value", ""))
+            for p in (item.get("property") or [] if isinstance(item, dict) else [])
+            if isinstance(p, dict)
+        }
+        if eu_only and props.get("isEu", "").lower() != "true":
+            return False
+        return (
+            not needle
+            or needle in props.get("name", "").lower()
+            or needle in props.get("code", "").lower()
+        )
+
+    return {**response, "items": {**items_obj, "item": [i for i in items if keep(i)]}}
 
 
 def _server_version() -> str:

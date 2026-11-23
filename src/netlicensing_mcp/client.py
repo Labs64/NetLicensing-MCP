@@ -14,7 +14,8 @@ import logging
 import os
 import time
 from typing import Any
-from urllib.parse import unquote, urlsplit
+import re
+from urllib.parse import quote, unquote, urlsplit
 
 import httpx
 from dotenv import load_dotenv
@@ -91,11 +92,15 @@ class NetLicensingError(Exception):
         *,
         info_ids: tuple[str, ...] = (),
         retry_after: int | None = None,
+        non_json: bool = False,
     ) -> None:
         self.status_code = status_code
         self.detail = detail
         self.info_ids = info_ids
         self.retry_after = retry_after
+        # True when a non-2xx reply was not a NetLicensing JSON body (a gateway or
+        # proxy page); ``detail`` is then a fixed text, never the page itself.
+        self.non_json = non_json
         super().__init__(f"HTTP {status_code}: {detail}")
 
 
@@ -105,23 +110,61 @@ def _retry_after_seconds(response: httpx.Response) -> int | None:
     return int(value) if value.isascii() and value.isdigit() else None
 
 
+_MAX_DETAIL_CHARS = 300
+
+#: A fully qualified Java class name (``com.labs64.domain.vo.TransactionStatus``).
+_JAVA_CLASS = re.compile(r"\b(?:[a-z][a-z0-9_]*\.){2,}[A-Z][\w$]*(?:\$[\w$]+)*")
+
+
+def sanitize_detail(text: str) -> str:
+    """Return a short, safe version of an upstream error message.
+
+    Cuts a Java stack trace at its first newline or ``\tat `` frame, replaces fully
+    qualified class names with ``<internal>`` and caps the length. The full text
+    only goes to the log (``_raise_on_error``).
+    """
+    cut = text
+    for marker in ("\n", "\r", "\tat "):
+        cut = cut.split(marker, 1)[0]
+    cut = _JAVA_CLASS.sub("<internal>", cut).strip()
+    if len(cut) > _MAX_DETAIL_CHARS:
+        cut = cut[: _MAX_DETAIL_CHARS - 1].rstrip() + "…"
+    return cut
+
+
 def _raise_on_error(response: httpx.Response) -> None:
     """Raise *NetLicensingError* with the API error body if available."""
     if response.is_success:
         return
     info_ids: tuple[str, ...] = ()
+    non_json = False
     try:
         body = response.json()
         infos = body.get("infos", {}).get("info", [])
-        detail = "; ".join(i.get("value", "") for i in infos) or response.text
-        info_ids = tuple(str(i["id"]) for i in infos if isinstance(i, dict) and i.get("id"))
+        # Core often repeats the same info several times.
+        values = list(dict.fromkeys(i.get("value", "") for i in infos if isinstance(i, dict)))
+        detail = "; ".join(v for v in values if v) or response.text
+        info_ids = tuple(
+            dict.fromkeys(str(i["id"]) for i in infos if isinstance(i, dict) and i.get("id"))
+        )
     except Exception:
-        detail = response.text
+        non_json = True
+        detail = (
+            f"The request was answered with HTTP {response.status_code} by a gateway or proxy "
+            "(not a NetLicensing JSON response); the page is not shown. If the input contains "
+            "special characters, the request may have been blocked."
+        )
+    if response.status_code >= 500 or non_json:
+        logger.warning("NetLicensing error %s: %s", response.status_code, response.text[:2000])
+    safe = detail if non_json else sanitize_detail(detail)
+    if response.status_code >= 500 and "<internal>" in safe:
+        safe = "NetLicensing reported an internal error (details omitted)."
     raise NetLicensingError(
         response.status_code,
-        detail,
+        safe,
         info_ids=info_ids,
         retry_after=_retry_after_seconds(response),
+        non_json=non_json,
     )
 
 
@@ -148,7 +191,10 @@ def _validated_path(path: str) -> str:
     """
     if not path.startswith("/"):
         raise NetLicensingError(400, "Internal error: upstream path must start with '/'")
-    for segment in path.split("/"):
+    segments = path.split("/")[1:]
+    for segment in segments:
+        if not segment.strip():
+            raise NetLicensingError(400, "Invalid identifier: must not be empty")
         decoded = _fully_unquote(segment)
         if "/" in decoded or "\\" in decoded:
             raise NetLicensingError(400, "Invalid identifier: path separators are not allowed")
@@ -156,7 +202,13 @@ def _validated_path(path: str) -> str:
             raise NetLicensingError(400, "Invalid identifier: path separators are not allowed")
         if any(ord(ch) < 32 or ord(ch) == 127 for ch in decoded):
             raise NetLicensingError(400, "Invalid identifier: control characters are not allowed")
-    return path
+        if any(ch in segment for ch in "?#%") or any(ch.isspace() for ch in segment):
+            raise NetLicensingError(
+                400, "Invalid identifier: '?', '#', '%' and whitespace are not allowed"
+            )
+    # Every identifier is now a single plain segment; encode it so nothing in it
+    # can be read as URL syntax (e.g. '@' → '%40').
+    return "/" + "/".join(quote(segment, safe="") for segment in segments)
 
 
 _MAX_DECODE_PASSES = 8
@@ -275,6 +327,51 @@ def _json_body(response: httpx.Response) -> dict[str, Any]:
     return body
 
 
+# ── Client-side filtering ────────────────────────────────────────────────────
+
+#: Filter fields the tool descriptions advertise. Core honours them on some list
+#: endpoints only (checked against the sandbox: ``active`` works on a bare product
+#: or module list but is ignored next to ``productNumber`` and on license
+#: templates, ``status`` is ignored on transactions), so they are re-applied here.
+CLIENT_FILTER_FIELDS = frozenset({"active", "status", "tokenType"})
+
+
+def _apply_client_filter(body: dict[str, Any], filter_str: str) -> dict[str, Any]:
+    """Drop list items that contradict an advertised ``key=value`` filter pair.
+
+    An item without the property is kept (nothing to compare). When items were
+    dropped, the upstream totals no longer describe the result, so ``totalitems``
+    and ``totalpages`` are removed (``hasnext`` stays, since further pages may hold
+    more matches).
+    """
+    wanted: dict[str, str] = {}
+    for part in filter_str.split(";"):
+        key, sep, value = part.partition("=")
+        if sep and key.strip() in CLIENT_FILTER_FIELDS:
+            wanted[key.strip()] = value.strip().lower()
+    items_obj = body.get("items")
+    if not wanted or not isinstance(items_obj, dict) or not isinstance(items_obj.get("item"), list):
+        return body
+
+    def keep(item: Any) -> bool:
+        if not isinstance(item, dict):
+            return True
+        for prop in item.get("property") or []:
+            if not isinstance(prop, dict):
+                continue
+            expected = wanted.get(str(prop.get("name")))
+            if expected is not None and str(prop.get("value")).strip().lower() != expected:
+                return False
+        return True
+
+    kept = [i for i in items_obj["item"] if keep(i)]
+    if len(kept) == len(items_obj["item"]):
+        return body
+    new_items = {k: v for k, v in items_obj.items() if k not in ("totalitems", "totalpages")}
+    new_items["item"] = kept
+    return {**body, "items": new_items}
+
+
 # ── Public helpers ───────────────────────────────────────────────────────────
 
 
@@ -284,7 +381,10 @@ async def nl_get(path: str, params: dict[str, str] | None = None) -> dict[str, A
     r = await _send("get", url, headers=_headers(), params=params or {})
     logger.debug("Response %s", r.status_code)
     _raise_on_error(r)
-    return _json_body(r)
+    body = _json_body(r)
+    if params and params.get("filter"):
+        body = _apply_client_filter(body, params["filter"])
+    return body
 
 
 async def nl_post(path: str, data: dict[str, str] | None = None) -> dict[str, Any]:

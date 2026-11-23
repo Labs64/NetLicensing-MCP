@@ -13,6 +13,7 @@ from netlicensing_mcp.app import (
     _extract_props,
     _fmt_price,
     _json,
+    _list_filter,
     _wrap_json,
     tool,
 )
@@ -22,16 +23,25 @@ from netlicensing_mcp.tools import licenses
 
 @tool(title="List licenses", annotations=_READONLY)
 async def netlicensing_list_licenses(
-    licensee_number: str, filter: str = "", include_raw: bool = False
+    licensee_number: str,
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
 ) -> str:
     """List all licenses for a specific customer.
 
     Args:
         licensee_number: Customer whose licenses to list
         filter: Optional server-side filter expression (e.g. 'active=true')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json(
             await licenses.list_licenses(
                 licensee_number,
@@ -41,6 +51,7 @@ async def netlicensing_list_licenses(
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_licenses")
@@ -89,7 +100,7 @@ async def netlicensing_create_license(
         number: Optional custom license number (auto-generated if empty)
         active: Whether the license is active immediately
         name: Display name (defaults from template if empty)
-        start_date: ISO 8601 datetime — mandatory for TIMEVOLUME type
+        start_date: ISO 8601 datetime, or "now" for an immediate start; a time in the past is rejected — mandatory for TIMEVOLUME type
         price: License price (overrides template default, omit to inherit)
         currency: ISO 4217 currency code (overrides template default)
         time_volume: Duration value — mandatory for TIMEVOLUME type
@@ -145,7 +156,7 @@ async def netlicensing_update_license(
         license_number: License to update
         active: True to activate, False to deactivate (omit to keep current)
         name: New display name (leave empty to keep current)
-        start_date: ISO 8601 datetime — TIMEVOLUME type (leave empty to keep current)
+        start_date: ISO 8601 datetime, or "now" for an immediate start; a time in the past is rejected — TIMEVOLUME type (leave empty to keep current)
         price: License price (omit to keep current)
         currency: ISO 4217 currency code (leave empty to keep current)
         time_volume: Duration value — TIMEVOLUME type (leave empty to keep current)

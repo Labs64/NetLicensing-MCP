@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from netlicensing_mcp.tools.helpers import delete_result
+from netlicensing_mcp.tools.helpers import API_KEY_ROLES, delete_result, require_one_of
 from netlicensing_mcp.client import NetLicensingError, nl_delete, nl_get, nl_post
 from netlicensing_mcp.redaction import mask_token_number
 
@@ -18,9 +18,52 @@ async def list_tokens(filter_str: str | None = None) -> dict:
     return await nl_get("/token", params or None)
 
 
+_MAX_TOKEN_PAGES = 50
+
+
+async def resolve_token_number(token_number: str) -> str:
+    """Return the real token number for *token_number*, which may be a masked one.
+
+    ``list_tokens`` shows token numbers masked (``aac****534c``). A masked value
+    (it contains ``****``) is matched against the real tokens by the same mask and
+    must identify exactly one; anything else is returned unchanged. The real number
+    is only used inside the server, never shown.
+    """
+    if "****" not in token_number:
+        return token_number
+    matches: list[str] = []
+    for page in range(_MAX_TOKEN_PAGES):
+        resp = await nl_get("/token", {"filter": f"page={page};items=100"})
+        items_obj = resp.get("items")
+        items = items_obj.get("item", []) if isinstance(items_obj, dict) else []
+        for item in items:
+            for prop in item.get("property", []) if isinstance(item, dict) else []:
+                if isinstance(prop, dict) and prop.get("name") == "number":
+                    real = str(prop.get("value", ""))
+                    if mask_token_number(real) == token_number:
+                        matches.append(real)
+        if not items or not (isinstance(items_obj, dict) and _has_next(items_obj)):
+            break
+    if not matches:
+        raise NetLicensingError(
+            400, f"No token matches the masked number {token_number!r}. List tokens again."
+        )
+    if len(matches) > 1:
+        raise NetLicensingError(
+            400,
+            f"The masked number {token_number!r} matches {len(matches)} tokens: it is "
+            "ambiguous, so nothing was done. Use the full token number.",
+        )
+    return matches[0]
+
+
+def _has_next(items_obj: dict) -> bool:
+    return str(items_obj.get("hasnext", "")).strip().lower() == "true"
+
+
 async def get_token(token_number: str) -> dict:
-    """Get details of a specific token."""
-    return await nl_get(f"/token/{token_number}")
+    """Get details of a specific token (a masked number from the token list is accepted)."""
+    return await nl_get(f"/token/{await resolve_token_number(token_number)}")
 
 
 async def create_shop_token(
@@ -76,6 +119,7 @@ async def create_api_token(
       ROLE_APIKEY_MAINTENANCE   – full CRUD except account management
       ROLE_APIKEY_ADMIN         – full admin access
     """
+    require_one_of("api_key_role", api_key_role, API_KEY_ROLES)
     data: dict[str, str] = {
         "tokenType": "APIKEY",
         "apiKeyRole": api_key_role,

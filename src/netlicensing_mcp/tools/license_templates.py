@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 from netlicensing_mcp.tools.helpers import (
+    LICENSE_TYPES,
+    TIME_VOLUME_PERIODS,
+    require_one_of,
     delete_result,
     CustomPropertyValue,
     first_item_property,
@@ -71,6 +74,8 @@ async def create_license_template(
 
     custom_properties: Optional dict of additional properties (e.g., skus for PricingTable, description).
     """
+    require_one_of("license_type", license_type, LICENSE_TYPES)
+    require_one_of("time_volume_period", time_volume_period, TIME_VOLUME_PERIODS)
     data: dict[str, str] = {
         "productModuleNumber": module_number,
         "number": number,
@@ -128,6 +133,7 @@ async def update_license_template(
     A new price without a currency keeps the template's current currency,
     because NetLicensing rejects a price on its own.
     """
+    require_one_of("time_volume_period", time_volume_period, TIME_VOLUME_PERIODS)
     data: dict[str, str] = {}
     if name is not None:
         data["name"] = name

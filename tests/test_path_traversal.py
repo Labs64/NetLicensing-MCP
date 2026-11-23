@@ -94,13 +94,46 @@ def test_excessive_percent_encoding_rejected():
 @pytest.mark.parametrize(
     "path",
     [
-        "/product/P%2D001",  # benign encoded char still allowed
-        "/product/a;b",  # ';' inside an ordinary identifier is not traversal
         "/product/..a",  # dots that are not a dot-segment
+        "/licensee/-h",
+        "/licensee/--help",
+        "/licensee/-V",
+        "/licensee/-clx625ef8e028",
+        "/licensee/DEMO-LLnCkeYl4",
     ],
 )
-def test_benign_encoded_and_dotted_identifiers_pass(path):
+def test_benign_dotted_identifiers_pass(path):
     assert _validated_path(path) == path
+
+
+def test_identifiers_are_percent_encoded():
+    assert _validated_path("/licensee/cust02@local.local") == "/licensee/cust02%40local.local"
+    assert _validated_path("/product/a;b") == "/product/a%3Bb"
+
+
+@pytest.mark.parametrize(
+    "identifier",
+    [
+        "CUST-TEST-A?foo=bar&active=false",
+        "CUST-TEST-A#frag",
+        "P%2D001",
+        "nonexistent'; DROP TABLE products;--",
+        "with space",
+        "tab\tchar",
+    ],
+)
+def test_url_control_characters_rejected(identifier):
+    with pytest.raises(NetLicensingError) as exc:
+        _validated_path(f"/licensee/{identifier}")
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.parametrize("identifier", ["", "   "])
+def test_empty_identifier_rejected(identifier):
+    with pytest.raises(NetLicensingError) as exc:
+        _validated_path(f"/product/{identifier}")
+    assert exc.value.status_code == 400
+    assert "empty" in exc.value.detail
 
 
 def test_non_rooted_path_rejected():

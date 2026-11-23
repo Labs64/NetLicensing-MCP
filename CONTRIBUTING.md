@@ -62,6 +62,5 @@ curl http://127.0.0.1:8000/health
 - Give every tool the right annotation (`_READONLY`, `_WRITE`, `_UPDATE` or `_DELETE`).
 - Delete and update operations that change data must go through the preview and confirmation flow.
 - Never log or return secrets unredacted.
-- Add or update tests for what you change, and add a line to `CHANGELOG.md`.
 
 By contributing you agree that your work is released under the [Apache 2.0 license](LICENSE).

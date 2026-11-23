@@ -147,11 +147,39 @@ def _info_warnings(
     info_list = infos.get("info", []) if isinstance(infos, dict) else []
     if not isinstance(info_list, list):
         return []
-    return [
-        str(i.get("value", ""))
-        for i in info_list
-        if isinstance(i, dict) and str(i.get("type", "")).upper() in types and i.get("value")
-    ]
+    # Core often repeats an info once per module; show each message once.
+    return list(
+        dict.fromkeys(
+            str(i.get("value", ""))
+            for i in info_list
+            if isinstance(i, dict) and str(i.get("type", "")).upper() in types and i.get("value")
+        )
+    )
+
+
+def feature_results(item: dict) -> list[dict[str, Any]]:
+    """MultiFeature results of a validation *item* as ``[{number, name, valid}]``.
+
+    Core sends one nested ``list`` group per feature, named by the feature number
+    and carrying ``valid`` and ``featureName``. ``valid`` is ``None`` when absent.
+    """
+    groups = item.get("list", [])
+    out: list[dict[str, Any]] = []
+    for g in groups if isinstance(groups, list) else []:
+        if not isinstance(g, dict):
+            continue
+        props = _props_to_dict(g)
+        if "featureName" not in props:
+            continue
+        valid = props.get("valid")
+        out.append(
+            {
+                "number": str(g.get("name", "")),
+                "name": props["featureName"],
+                "valid": None if valid is None else str(valid).strip().lower() == "true",
+            }
+        )
+    return out
 
 
 def _wrap_item(
@@ -174,9 +202,25 @@ def _wrap_item(
     envelope: dict[str, Any] = dict(props)
     # Keep nested groups (e.g. Floating session data on a validation result).
     _merge_nested_lists(envelope, item)
+    features = feature_results(item)
+    if features:
+        # Replace the dynamic per-feature keys by one normalized list.
+        for f in features:
+            envelope.pop(f["number"], None)
+        envelope["features"] = features
 
     # Overwrite/inject well-known typed fields.
     envelope["type"] = kind
+
+    # Core sends the per-level module lists as a JSON string; return the object.
+    summary_raw = envelope.get("warningLevelSummary")
+    if isinstance(summary_raw, str):
+        try:
+            parsed = json.loads(summary_raw)
+        except ValueError:
+            parsed = None
+        if isinstance(parsed, dict):
+            envelope["warningLevelSummary"] = parsed
 
     # Convert active string → bool.
     active_str = props.get("active", "")

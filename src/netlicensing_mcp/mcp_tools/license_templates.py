@@ -13,6 +13,7 @@ from netlicensing_mcp.app import (
     _extract_props,
     _fmt_price,
     _json,
+    _list_filter,
     _price_active_diff,
     _wrap_json,
     tool,
@@ -24,16 +25,25 @@ from netlicensing_mcp.tools.helpers import CustomPropertyValue
 
 @tool(title="List license templates", annotations=_READONLY)
 async def netlicensing_list_license_templates(
-    module_number: str, filter: str = "", include_raw: bool = False
+    module_number: str,
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
 ) -> str:
     """List all license templates for a product module.
 
     Args:
         module_number: Module whose templates to list
         filter: Optional server-side filter expression (e.g. 'active=true')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json(
             await license_templates.list_license_templates(
                 module_number,
@@ -43,6 +53,7 @@ async def netlicensing_list_license_templates(
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_license_templates")
@@ -155,7 +166,14 @@ async def netlicensing_preview_update_license_template(
     try:
         current_resp = await license_templates.get_license_template(template_number)
         diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
-        return _json(safety.make_update_preview("update_license_template", template_number, diff))
+        return _json(
+            safety.make_update_preview(
+                "update_license_template",
+                template_number,
+                diff,
+                changes=safety.change_set(price=price, currency=currency, active=active),
+            )
+        )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_preview_update_license_template")
 
@@ -204,18 +222,22 @@ async def netlicensing_update_license_template(
     """
     try:
         sensitive = price is not None or bool(currency) or active is not None
+        changes = safety.change_set(price=price, currency=currency, active=active)
 
         if sensitive:
             if confirm_token:
                 safety.validate_and_consume(
-                    confirm_token, "update_license_template", template_number
+                    confirm_token, "update_license_template", template_number, changes=changes
                 )
             else:
                 current_resp = await license_templates.get_license_template(template_number)
                 diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
-                return _json(
-                    safety.make_update_preview("update_license_template", template_number, diff)
+                preview = safety.make_update_preview(
+                    "update_license_template", template_number, diff, changes=changes
                 )
+                if not preview.get("no_change"):
+                    return _json(preview)
+                # The sensitive fields already hold the requested values: apply the rest.
 
         return _wrap_json(
             await license_templates.update_license_template(

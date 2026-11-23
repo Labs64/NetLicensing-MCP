@@ -202,7 +202,7 @@ async def test_m4_list_payment_methods_masks_custom_properties(include_raw):
     stripe = out["items"][0]
     assert stripe["number"] == "STRIPE_TESTING"  # allowlisted, clear
     assert stripe["active"] is True
-    assert stripe["stripe.accessToken"] == "sk_****6789"
+    assert stripe["stripe.accessToken"] == "****"
 
 
 async def test_m4_get_and_update_payment_method_mask_too():

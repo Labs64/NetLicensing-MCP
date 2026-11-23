@@ -7,6 +7,7 @@ from netlicensing_mcp.app import (
     _UPDATE,
     _WRITE,
     _error,
+    _list_filter,
     _wrap_json,
     tool,
 )
@@ -15,14 +16,24 @@ from netlicensing_mcp.tools import transactions
 
 
 @tool(title="List transactions", annotations=_READONLY)
-async def netlicensing_list_transactions(filter: str = "", include_raw: bool = False) -> str:
+async def netlicensing_list_transactions(
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
+) -> str:
     """List all transactions in the account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'status=CLOSED')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json(
             await transactions.list_transactions(
                 filter_str=filter or None,
@@ -31,6 +42,7 @@ async def netlicensing_list_transactions(filter: str = "", include_raw: bool = F
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_transactions")

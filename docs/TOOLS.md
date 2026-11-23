@@ -44,6 +44,9 @@ List all products in the NetLicensing account.
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_product`
@@ -172,6 +175,9 @@ List all bundles in the NetLicensing account.
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_bundle`
@@ -283,6 +289,9 @@ List all modules (feature groups) for a product.
 |---|---|---|---|---|
 | `product_number` | string | yes | — | Product whose modules to list |
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_product_module`
@@ -340,7 +349,9 @@ Update a product module's properties.
 
 Preview what would be deleted when deleting a product module.
 
-Returns affected license template counts and a confirmation token.
+Returns affected license template counts, `requires_force_cascade` and
+`blocking_dependencies` (a module with license templates cannot be deleted
+without force_cascade), and a confirmation token.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -385,6 +396,9 @@ List all license templates for a product module.
 |---|---|---|---|---|
 | `module_number` | string | yes | — | Module whose templates to list |
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_license_template`
@@ -521,6 +535,9 @@ List all customers (licensees) for a product.
 |---|---|---|---|---|
 | `product_number` | string | yes | — | Product to list customers for |
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_licensee`
@@ -571,7 +588,9 @@ Update a licensee's properties.
 
 Preview what would be deleted when deleting a licensee.
 
-Returns the count of licenses that would be removed and a confirmation token.
+Returns the count of licenses that would be removed, `requires_force_cascade` and
+`blocking_dependencies` (a licensee with licenses cannot be deleted without
+force_cascade), and a confirmation token.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -658,6 +677,9 @@ List all licenses for a specific customer.
 |---|---|---|---|---|
 | `licensee_number` | string | yes | — | Customer whose licenses to list |
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'active=true') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_license`
@@ -684,7 +706,7 @@ Assign a new license to a customer from a license template.
 | `number` | string | no | `""` | Optional custom license number (auto-generated if empty) |
 | `active` | boolean | no | `true` | Whether the license is active immediately |
 | `name` | string | no | `""` | Display name (defaults from template if empty) |
-| `start_date` | string | no | `""` | ISO 8601 datetime — mandatory for TIMEVOLUME type |
+| `start_date` | string | no | `""` | ISO 8601 datetime, or "now" for an immediate start; a time in the past is rejected — mandatory for TIMEVOLUME type |
 | `price` | number \| null | no | `null` | License price (overrides template default, omit to inherit) |
 | `currency` | string | no | `""` | ISO 4217 currency code (overrides template default) |
 | `time_volume` | string | no | `""` | Duration value — mandatory for TIMEVOLUME type |
@@ -705,7 +727,7 @@ Update a license's properties.
 | `license_number` | string | yes | — | License to update |
 | `active` | boolean \| null | no | `null` | True to activate, False to deactivate (omit to keep current) |
 | `name` | string | no | `""` | New display name (leave empty to keep current) |
-| `start_date` | string | no | `""` | ISO 8601 datetime — TIMEVOLUME type (leave empty to keep current) |
+| `start_date` | string | no | `""` | ISO 8601 datetime, or "now" for an immediate start; a time in the past is rejected — TIMEVOLUME type (leave empty to keep current) |
 | `price` | number \| null | no | `null` | License price (omit to keep current) |
 | `currency` | string | no | `""` | ISO 4217 currency code (leave empty to keep current) |
 | `time_volume` | string | no | `""` | Duration value — TIMEVOLUME type (leave empty to keep current) |
@@ -766,6 +788,9 @@ List all active tokens in the account.
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'tokenType=SHOP') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_token`
@@ -855,6 +880,9 @@ List all transactions in the account.
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `filter` | string | no | `""` | Optional server-side filter expression (e.g. 'status=CLOSED') |
+| `page` | integer \| null | no | `null` | Page to return, 0-based (default 0; overrides 'page' in filter) |
+| `page_size` | integer \| null | no | `null` | Items per page, 1-100 (default 25; overrides 'items' in filter) |
+| `compact` | boolean | no | `false` | When true, return only type, number, name, status and active for each item |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_get_transaction`
@@ -971,7 +999,7 @@ netlicensing_preview_update_payment_method first.
 |---|---|---|---|
 | [`netlicensing_list_licensing_models`](#netlicensing_list_licensing_models) | List licensing models | R | List all licensing models supported by the NetLicensing service. |
 | [`netlicensing_list_license_types`](#netlicensing_list_license_types) | List license types | R | List all license types supported by the NetLicensing service. |
-| [`netlicensing_list_countries`](#netlicensing_list_countries) | List countries | R | List all countries available for VAT and localization settings. |
+| [`netlicensing_list_countries`](#netlicensing_list_countries) | List countries | R | List countries available for VAT and localization settings (249 without filters). |
 | [`netlicensing_server_info`](#netlicensing_server_info) | Get server info | R | Check this MCP server's setup and its NetLicensing connection. |
 
 ### `netlicensing_list_licensing_models`
@@ -998,10 +1026,12 @@ List all license types supported by the NetLicensing service.
 
 **List countries** · R · `openWorldHint=true`, `readOnlyHint=true`
 
-List all countries available for VAT and localization settings.
+List countries available for VAT and localization settings (249 without filters).
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
+| `search` | string | no | `""` | Only countries whose name or code contains this text (case-insensitive) |
+| `eu_only` | boolean | no | `false` | When true, only EU member states |
 | `include_raw` | boolean | no | `false` | When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization) |
 
 ### `netlicensing_server_info`

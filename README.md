@@ -13,37 +13,59 @@
 [![Docker Hub](https://img.shields.io/docker/v/labs64/netlicensing-mcp?logo=docker&logoColor=white&label=Docker%20Hub&color=2496ED)](https://hub.docker.com/r/labs64/netlicensing-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-netlicensing--mcp-blue?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMSAxN3YtNkg5bDMtNCAzIDRoLTJ2NmgtMnoiLz48L3N2Zz4=&style=flat-square)](https://registry.modelcontextprotocol.io/?q=netlicensing-mcp)
 
-**The official [Labs64 NetLicensing](https://netlicensing.io) MCP server.** Connect your AI assistant to NetLicensing and manage products, customers, licenses and entitlements by simply asking.
+**The official [Labs64 NetLicensing](https://netlicensing.io) MCP server.** Connect your AI assistant to NetLicensing and manage products, customers, licenses and entitlements by asking for what you need. It works with Claude Desktop, Claude Code, Cursor, GitHub Copilot (VS Code and JetBrains) and any other MCP client.
 
-It works with Claude Desktop, Claude Code, Cursor, GitHub Copilot (Agent mode) in VS Code and JetBrains IDEs, and any other MCP-compatible client.
-
-**Who is it for?**
-
-- **Customer service and support teams** who need a quick answer to "why can't this customer use the product?" or want to renew or transfer a license without opening the console.
-- **IT and system administrators** who audit accounts, clean up unused licenses and run the server for a team.
-- **Developers and vendors** who set up products, license templates and shop checkouts, or test their licensing model while they build.
+- **Support teams:** find out why a customer can't use the product, renew or transfer a license, without opening the console.
+- **Admins:** audit an account, clean up unused licenses, run one shared server for a team.
+- **Developers and vendors:** set up products, license templates and shop checkouts, and test a licensing model while you build it.
 
 ---
 
-## Connect in 30 seconds
+## Setup
 
-You need a NetLicensing API key (create one at [ui.netlicensing.io](https://ui.netlicensing.io)) and either [uv](https://docs.astral.sh/uv/) (for `uvx`) or Docker. Replace `YOUR_API_KEY` with your key. No account yet? Use [demo mode](#no-account-yet-demo-mode).
+The server runs on your machine, started by your AI client over stdio. Three steps:
 
-**Claude Code**
+**1. Get an API key.** Sign in at [ui.netlicensing.io](https://ui.netlicensing.io), open your API keys and create one. No account yet? Use [demo mode](#demo-mode).
+
+**2. Add the server to your client.** You need [uv](https://docs.astral.sh/uv/) (for `uvx`) or Docker. Replace `YOUR_API_KEY` with your key.
+
+**3. Check it** with [First run](#first-run).
+
+### Claude Code
 
 ```bash
 claude mcp add netlicensing -e NETLICENSING_API_KEY=YOUR_API_KEY -- uvx netlicensing-mcp
 ```
 
-**VS Code (GitHub Copilot)**
+The default scope `local` loads the server in the current project, for you only. `--scope user` loads it everywhere; `--scope project` writes it to the project's `.mcp.json` for version control (then don't put a real key on the command line).
+
+### VS Code / GitHub Copilot
 
 ```bash
 code --add-mcp '{"name":"netlicensing","type":"stdio","command":"uvx","args":["netlicensing-mcp"],"env":{"NETLICENSING_API_KEY":"YOUR_API_KEY"}}'
 ```
 
-On Windows, single-quoted JSON doesn't work in `cmd.exe` or older PowerShell versions; use the [`.vscode/mcp.json`](#vs-code--github-copilot) form instead.
+On Windows `cmd.exe` and older PowerShell, single-quoted JSON doesn't work. And to keep the key out of the file in any case, create `.vscode/mcp.json` in your workspace; VS Code then asks for the key in a hidden input box:
 
-**Cursor**: add this to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
+```json
+{
+  "inputs": [
+    { "type": "promptString", "id": "netlicensing-api-key", "description": "NetLicensing API key", "password": true }
+  ],
+  "servers": {
+    "netlicensing": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["netlicensing-mcp"],
+      "env": { "NETLICENSING_API_KEY": "${input:netlicensing-api-key}" }
+    }
+  }
+}
+```
+
+### Cursor
+
+Add this to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
 
 ```json
 {
@@ -57,13 +79,25 @@ On Windows, single-quoted JSON doesn't work in `cmd.exe` or older PowerShell ver
 }
 ```
 
-**Claude Desktop**: open **Settings → Developer → Edit Config** and add the same `mcpServers` block as for Cursor to `claude_desktop_config.json`, then quit and restart Claude Desktop.
+To keep the key out of the file, write `"NETLICENSING_API_KEY": "${env:NETLICENSING_API_KEY}"` and set the variable in the environment Cursor starts from. Or paste this install link into your browser's address bar; Cursor asks before installing, and you replace `YOUR_API_KEY` afterwards:
 
-**Docker** instead of `uvx` (Cursor, Claude Desktop and other clients with an `mcpServers` file):
+```text
+cursor://anysphere.cursor-deeplink/mcp/install?name=netlicensing&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJuZXRsaWNlbnNpbmctbWNwIl0sImVudiI6eyJORVRMSUNFTlNJTkdfQVBJX0tFWSI6IllPVVJfQVBJX0tFWSJ9fQ==
+```
+
+The `config` value is the Base64-encoded JSON `{"command":"uvx","args":["netlicensing-mcp"],"env":{"NETLICENSING_API_KEY":"YOUR_API_KEY"}}`.
+
+### Claude Desktop
+
+Open **Settings → Developer → Edit Config**. This opens `claude_desktop_config.json` (macOS `~/Library/Application Support/Claude/`, Windows `%APPDATA%\Claude\`, Linux `~/.config/Claude/`). Add the same `mcpServers` block as for Cursor, save, and restart the app.
+
+### JetBrains IDEs (GitHub Copilot)
+
+Click the Copilot icon (lower right), **Open Chat**, switch to **Agent** mode, click the tools icon (**Configure your MCP server**), then **Add MCP Tools**. In the `mcp.json` that opens:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "netlicensing": {
       "command": "docker",
       "args": ["run", "-i", "--rm", "-e", "NETLICENSING_API_KEY=YOUR_API_KEY", "ghcr.io/labs64/netlicensing-mcp:latest"]
@@ -72,53 +106,71 @@ On Windows, single-quoted JSON doesn't work in `cmd.exe` or older PowerShell ver
 }
 ```
 
-### No account yet? Demo mode
+### Other clients, Docker and pip
 
-Demo mode runs against the NetLicensing sandbox with demo credentials, so you need no key. Every JSON result, error results included, is tagged `"demo_mode": true` (plain-text delete confirmations are not). Demo mode is for stdio only: in HTTP mode every request needs a key header. Never use it in production.
+Anything that can start a stdio server works: command `uvx`, argument `netlicensing-mcp`, environment `NETLICENSING_API_KEY`. To use Docker instead of `uvx`, set the command to `docker` with the arguments from the JetBrains example. With pip: `pip install netlicensing-mcp`, then run `netlicensing-mcp`.
+
+### Demo mode
+
+No key? Demo mode uses the NetLicensing sandbox with demo credentials. It is for trying things out, stdio only, and must never be used in production. Every JSON result is tagged `"demo_mode": true`, and a warning is logged every 60 seconds.
 
 ```bash
 claude mcp add netlicensing-demo -e NETLICENSING_ALLOW_DEMO=true -- uvx netlicensing-mcp
 ```
 
-In a JSON config, use `"env": { "NETLICENSING_ALLOW_DEMO": "true" }` instead of the API key.
+In a JSON config, put `"NETLICENSING_ALLOW_DEMO": "true"` in `env` instead of the key. Without a key and without this flag the server refuses to start; it never falls back to demo credentials silently.
 
-Then ask your assistant: *"Run netlicensing_server_info and tell me if the setup is OK."* (see [First run](#first-run)). More options per client (a `.vscode/mcp.json` that asks for the key, a Cursor install link, JetBrains, remote HTTP servers) are in [Client setup](#client-setup). For what to ask next, see the example sessions in [docs/EXAMPLES.md](docs/EXAMPLES.md).
+### First run
 
----
+Ask your assistant: *"Run netlicensing_server_info and tell me if the setup is OK."* It checks the setup and makes one small read-only call (it lists one product) to confirm that the API is reachable and accepts your key. The result never contains the key:
 
-## Why use it?
+```json
+{
+  "version": "<installed version>",
+  "base_url": "go.netlicensing.io",
+  "demo_mode": false,
+  "status": "ok",
+  "transport": "stdio",
+  "auth": {"configured": true, "source": "env", "valid": true},
+  "checks": [
+    {"name": "credentials", "ok": true, "detail": "API key from the NETLICENSING_API_KEY environment variable (or .env file)."},
+    {"name": "reachable", "ok": true, "detail": "The NetLicensing API at go.netlicensing.io answered."},
+    {"name": "authentication", "ok": true, "detail": "The credentials were accepted (test read: list products, 1 item)."}
+  ],
+  "warnings": [],
+  "next_steps": [],
+  "toolsets": ["all"],
+  "read_only": false,
+  "tool_count": 61
+}
+```
 
-- **Ask in plain language.** Create products, issue licenses, validate a customer and generate shop links without clicking through the console or writing API calls.
-- **The whole NetLicensing API.** <!-- count:tools -->61<!-- /count:tools --> tools cover products, modules, license templates, licensees, licenses, bundles, tokens, transactions and payment methods. See the [NetLicensing REST API](https://netlicensing.io/wiki/restful-api) for the details behind them.
-- **Answers, not just data.** Two ready-made workflows check a customer's health and explain, in plain words, why a validation passed or failed.
-- **Built-in audits and guided workflows.** <!-- count:prompts -->11<!-- /count:prompts --> prompt templates run account audits, expiry sweeps, cleanups and anomaly checks, and walk you through setting up a subscription or a trial, onboarding or migrating a customer, troubleshooting a validation and issuing an API key.
-- **Safe by default.** Deleting requires a preview and a confirmation. Secrets are masked. There is no silent fallback to demo credentials.
-- **Quick to start.** Run it with `uvx` or Docker. You don't need a local Python setup.
+- `status` is `ok`, `warning` (demo mode; a valid key whose role may not list products, `403`; or an API error that says nothing about the key) or `error` (no key, key rejected with `401`, API unreachable).
+- `auth.source` is `env`, `header` (HTTP mode), `demo` or `none`. `auth.valid` is `true` when NetLicensing accepted the key, `false` when it rejected it, `null` when that couldn't be checked.
+- `next_steps` says in plain words what to fix. Pass `check_connection=false` to skip the API call (then `ok` only means a key is configured).
+
+To share one server with a whole team instead, see [Run it as a shared server](#run-it-as-a-shared-server).
 
 ---
 
 ## What can you ask?
 
-- *"List all products in my NetLicensing account."*
+- *"List all products in my account."*
 - *"Create a licensee for `customer@example.com` under product PTEST."*
 - *"Does licensee L001 have a valid license? If not, tell me why."*
-- *"How is customer L001 doing?"*
-- *"Generate a shop URL so L001 can renew on their own."*
 - *"Which licenses expire in the next 30 days?"*
 - *"Find licensees with no active license so I can clean them up."*
+- *"Generate a shop URL so L001 can renew on their own."*
 - *"Move all licenses from L001 to L002."*
 - *"Create a read-only API key for licensee L001."*
-- *"Show me last month's transactions."*
 
-[docs/EXAMPLES.md](docs/EXAMPLES.md) walks through six vendor scenarios with the tool calls behind them.
-
-NetLicensing supports several licensing models, such as Try & Buy, Subscription, Rental, Floating, Multi-Feature, Pay-per-Use and Quota. Use `netlicensing_list_licensing_models` to see what your account offers, or read about them in the [NetLicensing documentation](https://netlicensing.io/wiki/licensing-models).
+[docs/EXAMPLES.md](docs/EXAMPLES.md) walks through six vendor scenarios with the tool calls behind them. Licensing models (Try & Buy, Subscription, Rental, Floating, Multi-Feature, Pay-per-Use, Quota, Node-Locked and more) are described in the [NetLicensing docs](https://netlicensing.io/wiki/licensing-models); `netlicensing_list_licensing_models` shows what your account offers.
 
 ---
 
-## What it can do
+## Tools
 
-Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode)). `preview_delete_*` and `preview_update_*` show what a change will affect before you confirm it. Two read-only workflows, `get_customer_health` and `explain_validation`, return answers instead of raw data. Audit, setup and troubleshooting prompts are listed under [Prompt Templates](#prompt-templates).
+<!-- count:tools -->61<!-- /count:tools --> tools cover products, modules, license templates, licensees, licenses, bundles, tokens, transactions and payment methods, grouped into toolsets (see [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode)). Two read-only workflows, `get_customer_health` and `explain_validation`, return answers instead of raw data. `preview_*` tools show what a change will affect before you confirm it.
 
 <!-- tools:start -->
 <!-- Generated by scripts/gen_tools_doc.py from the tool registry. Do not edit by hand; run `python scripts/gen_tools_doc.py`. -->
@@ -259,7 +311,7 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 |---|---|---|---|
 | [`netlicensing_list_licensing_models`](docs/TOOLS.md#netlicensing_list_licensing_models) | List licensing models | R | List all licensing models supported by the NetLicensing service. |
 | [`netlicensing_list_license_types`](docs/TOOLS.md#netlicensing_list_license_types) | List license types | R | List all license types supported by the NetLicensing service. |
-| [`netlicensing_list_countries`](docs/TOOLS.md#netlicensing_list_countries) | List countries | R | List all countries available for VAT and localization settings. |
+| [`netlicensing_list_countries`](docs/TOOLS.md#netlicensing_list_countries) | List countries | R | List countries available for VAT and localization settings (249 without filters). |
 | [`netlicensing_server_info`](docs/TOOLS.md#netlicensing_server_info) | Get server info | R | Check this MCP server's setup and its NetLicensing connection. |
 
 </details>
@@ -278,310 +330,17 @@ Tools are grouped into toolsets (see [Reduce the tool list / read-only mode](#re
 
 **Good to know**
 
-- List tools and `validate_licensee` always return `{"type": "list", "count": ..., "items": [...]}`, even for zero or one result. Get, create and update tools return a single object.
-- **Paging:** `count` is the number of items in this response. NetLicensing returns at most 100 items per page, so list results also carry what the API reports about paging: `total` (all matching items), `page` (0-based), `total_pages` and `has_more`. When `has_more` is `true` they also carry `page_size` and a `next_page_hint` with the exact `filter` value for the next page, JSON-quoted (e.g. `filter="active=true;page=1;items=100"`); pass it as `filter` with the other arguments unchanged. `netlicensing_list_bundles` takes an optional `filter` like the other list tools. Payment methods, licensing models, license types and countries are not paged by NetLicensing, so they get no paging hint.
-- Every tool accepts `include_raw=true` if you also want the original NetLicensing response.
-- **Response format:** every result is the JSON as text, plus the same object as `structuredContent` for clients that read structured output. A result that is not a JSON object (for example the message of a confirmed delete) comes as `{"result": ...}`. Failed calls are flagged with `isError`, and every tool declares an `outputSchema`.
-- Tools tell your client whether they only read data, write data, or are destructive, so clients can ask for approval at the right moments.
+- **Lists** always return `{"type": "list", "count": ..., "items": [...]}`, even for zero or one result. They take `page` (0-based), `page_size` (1-100, default 25) and `compact=true` (only type, number, name, status, active). Results also carry `total`, `page`, `total_pages` and `has_more`; when more pages exist, `next_page_hint` holds the exact `filter` value for the next one. Payment methods, licensing models, license types and countries are not paged by NetLicensing. `netlicensing_list_countries` takes `search` and `eu_only` instead.
+- **Filters:** `filter` takes NetLicensing's `key=value;key=value` syntax. NetLicensing ignores some filter fields on some endpoints, so the server re-applies `active`, `status` and `tokenType` itself.
+- **Invalid input fails early.** Identifiers with `/ \ ? # %`, whitespace or control characters, empty identifiers, and values outside a known list (license type, transaction status, time-volume period, licensing model, VAT mode, secret mode, API key role) are rejected before any request, with the allowed values in the message.
+- Get, create and update tools return one object. Every tool accepts `include_raw=true` to add the original NetLicensing response.
+- Every result is JSON text plus the same object as `structuredContent`; failed calls are flagged `isError`, and every tool declares an `outputSchema`. Tools also declare whether they read, write or delete, so clients can ask for approval at the right moments.
 
 ---
 
-## Security defaults
+## Prompt templates
 
-- **No silent demo credentials.** In stdio mode, if `NETLICENSING_API_KEY` is missing and `NETLICENSING_ALLOW_DEMO` isn't enabled, the server refuses to start. In HTTP mode, every request without an `X-NetLicensing-API-Key` or `Authorization: Bearer` header gets `401`, before any tool runs (demo mode does not apply there).
-- **Secrets are masked.** Every response, and every log line this server writes, passes through a redaction filter for `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret`. Short values become `****`. Longer ones keep the first 3 and last 4 characters (for example `pk_****W3Od`). Add your own fields with `MCP_REDACT_FIELDS`. Request logs show token paths as `/token/****`; the HTTP libraries' own request and response logging (`httpx`, `httpcore`, `sse_starlette`) is held at `WARNING`, also in verbose mode, because it would write full token numbers and new keys. Verbose mode (`-v` / `MCP_VERBOSE`) also turns on the MCP SDK's own DEBUG output, which this filter does not cover: use it for local debugging only and don't ship or keep its logs.
-- **Credentials appear once.** `create_api_token` and `create_shop_token` mark their response `"shown_once": true`. Later `get_token` and `list_tokens` calls return masked values, and deleting a token shows its number only masked (in the preview, the delete message and confirmation errors).
-- **Deletes need confirmation.** Each delete first returns a preview and a single-use token that expires after 5 minutes. Nothing is deleted until you send that token back. `force_cascade` is a separate option that also removes dependent items, and it's only used when you ask for it.
-- **One key per request in HTTP mode.** Keys come from request headers, never from URLs, so one server can serve several teams safely.
-
-More detail in [SECURITY.md](SECURITY.md).
-
----
-
-## Quick Start
-
-You need a NetLicensing API key. Sign in at [ui.netlicensing.io](https://ui.netlicensing.io), open your API keys and create one. Not ready for that yet? Try the sandbox with [demo mode](#demo--sandbox-mode-no-api-key).
-
-### Option A — uvx (no install required)
-
-```bash
-NETLICENSING_API_KEY=your_key uvx netlicensing-mcp
-```
-
-### Option B — pip
-
-```bash
-pip install netlicensing-mcp
-NETLICENSING_API_KEY=your_key netlicensing-mcp
-```
-
-### Option C — Docker
-
-#### stdio (default) — for Claude Desktop / VS Code
-```bash
-docker run -i --rm \
-  -e NETLICENSING_API_KEY=your_key \
-  ghcr.io/labs64/netlicensing-mcp:latest
-```
-
-#### HTTP mode — for remote/shared deployments
-```bash
-docker run -d -p 8000:8000 \
-  -e MCP_HOST=0.0.0.0 \
-  ghcr.io/labs64/netlicensing-mcp:latest http
-```
-HTTP mode does not use `NETLICENSING_API_KEY`: each client sends its key with every request, as `X-NetLicensing-API-Key: your_key` or `Authorization: Bearer your_key` (requests without one get `401`). See [Connect MCP clients to the public URL](#connect-mcp-clients-to-the-public-url).
-
-#### Verbose logging (any mode)
-For local debugging only: besides this server's own (redacted) request lines it turns on the MCP SDK's own DEBUG output, which is not filtered. Don't ship or keep these logs.
-```bash
-# CLI flag
-docker run -i --rm \
-  -e NETLICENSING_API_KEY=your_key \
-  ghcr.io/labs64/netlicensing-mcp:latest -v
-
-# Or via env var
-docker run -i --rm \
-  -e NETLICENSING_API_KEY=your_key \
-  -e MCP_VERBOSE=true \
-  ghcr.io/labs64/netlicensing-mcp:latest
-```
-
-#### Demo / sandbox mode (no API key)
-```bash
-docker run -i --rm \
-  -e NETLICENSING_ALLOW_DEMO=true \
-  ghcr.io/labs64/netlicensing-mcp:latest
-```
-
-> **No API key?** Set `NETLICENSING_ALLOW_DEMO=true` to run against NetLicensing's built-in
-> sandbox with demo credentials — no account required.
-> The server will tag every JSON response (error results included; plain-text delete
-> confirmations are not tagged) with `"demo_mode": true` and emit a periodic warning
-> so it is always clear you are not using a real account. Demo mode applies to stdio only.
-
----
-
-## Client setup
-
-Each client below starts the server locally over stdio with `uvx netlicensing-mcp`. To use Docker instead, use `docker` as the command with the arguments shown under [Claude Desktop](#claude-desktop). The remote examples assume you run the server in HTTP mode yourself (see [HTTP mode](#http-mode-for-remote--shared-deployments) and [Cloud Deployment (AWS)](#cloud-deployment-aws)); `https://mcp.example.com/mcp` stands for your deployment's URL. A remote server takes the API key from the `X-NetLicensing-API-Key` header or `Authorization: Bearer`.
-
-### Claude Code
-
-```bash
-claude mcp add netlicensing -e NETLICENSING_API_KEY=YOUR_API_KEY -- uvx netlicensing-mcp
-```
-
-The default scope `local` loads the server in the current project only, for you only. Add `--scope user` to load it in all your projects, or `--scope project` to store it in the project's `.mcp.json` and share it through version control (then don't put a real key on the command line; it would end up in that file).
-
-Remote server in HTTP mode:
-
-```bash
-claude mcp add --transport http netlicensing https://mcp.example.com/mcp --header "X-NetLicensing-API-Key: YOUR_API_KEY"
-```
-
-### VS Code / GitHub Copilot
-
-`code --add-mcp` (see [Connect in 30 seconds](#connect-in-30-seconds)) adds the server in one line. To keep the key out of the configuration file, create `.vscode/mcp.json` in your workspace instead. VS Code then asks for the key in an input box (`password: true` hides what you type):
-
-```json
-{
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "netlicensing-api-key",
-      "description": "NetLicensing API key",
-      "password": true
-    }
-  ],
-  "servers": {
-    "netlicensing": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["netlicensing-mcp"],
-      "env": { "NETLICENSING_API_KEY": "${input:netlicensing-api-key}" }
-    }
-  }
-}
-```
-
-Remote server in HTTP mode (same `inputs` block):
-
-```json
-{
-  "servers": {
-    "netlicensing": {
-      "type": "http",
-      "url": "https://mcp.example.com/mcp",
-      "headers": { "X-NetLicensing-API-Key": "${input:netlicensing-api-key}" }
-    }
-  }
-}
-```
-
-### Cursor
-
-Use the `mcpServers` block from [Connect in 30 seconds](#connect-in-30-seconds) in `~/.cursor/mcp.json` or `.cursor/mcp.json`. To keep the key out of the file, write `"NETLICENSING_API_KEY": "${env:NETLICENSING_API_KEY}"` and set the variable in the environment Cursor starts from.
-
-Or paste this install link into your browser's address bar; Cursor asks before it installs the server. Afterwards replace `YOUR_API_KEY` with your key in the installed server's configuration:
-
-```text
-cursor://anysphere.cursor-deeplink/mcp/install?name=netlicensing&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJuZXRsaWNlbnNpbmctbWNwIl0sImVudiI6eyJORVRMSUNFTlNJTkdfQVBJX0tFWSI6IllPVVJfQVBJX0tFWSJ9fQ==
-```
-
-The `config` value is the Base64-encoded JSON `{"command":"uvx","args":["netlicensing-mcp"],"env":{"NETLICENSING_API_KEY":"YOUR_API_KEY"}}`.
-
-Remote server in HTTP mode:
-
-```json
-{
-  "mcpServers": {
-    "netlicensing": {
-      "url": "https://mcp.example.com/mcp",
-      "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" }
-    }
-  }
-}
-```
-
-### Claude Desktop
-
-In Claude Desktop open **Settings → Developer → Edit Config**. This opens (and creates, if needed) `claude_desktop_config.json`:
-
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-- Linux: `~/.config/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "netlicensing": {
-      "command": "uvx",
-      "args": ["netlicensing-mcp"],
-      "env": {
-        "NETLICENSING_API_KEY": "YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-Or use the official Docker image (stdio):
-
-```json
-{
-  "mcpServers": {
-    "netlicensing": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "NETLICENSING_API_KEY=YOUR_API_KEY",
-        "ghcr.io/labs64/netlicensing-mcp:latest"
-      ]
-    }
-  }
-}
-```
-
-Quit and restart Claude Desktop after saving the file.
-
-Claude Desktop adds remote servers as custom connectors (**Settings → Connectors → Add custom connector**): you enter the server URL and then authenticate with the server, for example with OAuth. Sending a custom request header is not part of that documented flow, and a shared deployment of this server expects each client to send its own API key in a header, so use the local setup above with Claude Desktop.
-
-### JetBrains IDEs (GitHub Copilot)
-
-Click the Copilot icon in the lower right corner, choose **Open Chat**, switch to **Agent** mode, click the tools icon (**Configure your MCP server**) and then **Add MCP Tools**. In the `mcp.json` that opens, add the server under `servers`:
-
-```json
-{
-  "servers": {
-    "netlicensing": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "NETLICENSING_API_KEY=YOUR_API_KEY", "ghcr.io/labs64/netlicensing-mcp:latest"]
-    }
-  }
-}
-```
-
-### Other MCP clients
-
-Any client that can start a stdio server works: command `uvx`, arguments `netlicensing-mcp`, and the environment variable `NETLICENSING_API_KEY` (or `NETLICENSING_ALLOW_DEMO=true`). Clients that connect to remote servers with custom headers can use an HTTP deployment with the `X-NetLicensing-API-Key` header.
-
-### First run
-
-Once the server is configured, ask your assistant to **run `netlicensing_server_info`** (for example: "Run netlicensing_server_info and tell me if the setup is OK"). It checks the setup and makes one small read-only API call (it lists one product) to confirm that the NetLicensing API is reachable and accepts your key. The result never contains the key:
-
-```json
-{
-  "version": "<installed version>",
-  "base_url": "go.netlicensing.io",
-  "demo_mode": false,
-  "status": "ok",
-  "transport": "stdio",
-  "auth": {"configured": true, "source": "env", "valid": true},
-  "checks": [
-    {"name": "credentials", "ok": true, "detail": "API key from the NETLICENSING_API_KEY environment variable (or .env file)."},
-    {"name": "reachable", "ok": true, "detail": "The NetLicensing API at go.netlicensing.io answered."},
-    {"name": "authentication", "ok": true, "detail": "The credentials were accepted (test read: list products, 1 item)."}
-  ],
-  "warnings": [],
-  "next_steps": [],
-  "toolsets": ["all"],
-  "read_only": false,
-  "tool_count": 61
-}
-```
-
-- `status` is `ok`, `warning` (demo mode; a valid key whose role does not allow listing products, `403`; or the API answered with an error that says nothing about the key) or `error` (no key, key rejected with `401`, API not reachable). With `check_connection=false`, `ok` only means that a key is configured: it has not been checked.
-- `auth.source` says where the credentials come from: `env` (`NETLICENSING_API_KEY`), `header` (HTTP mode: `X-NetLicensing-API-Key` or `Authorization: Bearer`), `demo` (`NETLICENSING_ALLOW_DEMO=true`) or `none`. `auth.valid` is `true` when NetLicensing accepted the key (the test call succeeded, or it answered `403`: authenticated, but the key's role does not allow listing products; the `permission` check then fails and a warning explains it), `false` when NetLicensing rejected the key (`401`), and `null` when it could not be checked.
-- `next_steps` says in plain language what to fix, e.g. how to set the key.
-- Pass `check_connection=false` to skip the API call.
-
----
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NETLICENSING_API_KEY` | **Yes*** | — | NetLicensing API key. Required unless `NETLICENSING_ALLOW_DEMO=true` is set. |
-| `NETLICENSING_ALLOW_DEMO` | No | `false` | Set to `true` to explicitly opt in to sandbox demo mode when no API key is configured. Every JSON tool response, error results included, is tagged with `"demo_mode": true` (plain-text delete confirmations are not) and a warning is logged every 60 seconds. stdio only: HTTP mode always requires a key header. **Never set this in production.** |
-| `NETLICENSING_BASE_URL` | No | `https://go.netlicensing.io/core/v2/rest` | Override the NetLicensing REST API base URL (e.g. for on-prem deployments). |
-| `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` (default) or `http`. Can also be passed as a CLI argument. |
-| `MCP_HOST` | No | `127.0.0.1` | Host address to bind the HTTP server (HTTP mode only). |
-| `MCP_PORT` | No | `8000` | Port to bind the HTTP server (HTTP mode only). |
-| `MCP_VERBOSE` | No | `false` | Enable verbose debug logging (`true`, `1`, or `yes`). Logs API requests/responses **with sensitive fields automatically redacted** (token paths as `/token/****`). Also turns on the MCP SDK's own DEBUG output, which is not redacted: local debugging only. Can also be set via `-v` CLI flag. |
-| `MCP_REDACT_FIELDS` | No | — | Comma-separated list of additional field names to redact from all tool responses and log output (e.g. `MCP_REDACT_FIELDS=ssn,phone`). Extends the built-in default set: `apiKey`, `licenseeSecret`, `nodeSecret`, `password`, `secret`. |
-| `MCP_TOOLSETS` | No | `all` | Comma-separated list of toolsets to register (e.g. `licensees,licenses`). Unknown names are ignored with a warning on stderr (also when `all` is given). See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
-| `MCP_READ_ONLY` | No | `false` | Register only read-only tools (`true`, `1`, or `yes`): list, get, `preview_*`, workflows and reference data. Any other value except `false`, `0` or `no` leaves read-only mode off and logs a warning on stderr. See [Reduce the tool list / read-only mode](#reduce-the-tool-list--read-only-mode). |
-
-> **\* `NETLICENSING_API_KEY` and demo mode:** If neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set, the server will **refuse to start** (stdio mode). This prevents accidental use of demo credentials in production. HTTP mode does not read either variable for authentication: a request without a key header gets `401 Unauthorized` before any tool runs.
-
-> **Note on HTTP deployments (e.g. AWS):** In HTTP mode the server does not use `NETLICENSING_API_KEY`, so don't set it there. It takes the key per request from the `X-NetLicensing-API-Key` header or `Authorization: Bearer <key>`, and answers `401` when neither is present. Query-parameter keys are not supported, because URLs are logged by proxies and load balancers.
-
-### Reduce the tool list / read-only mode
-
-The server registers <!-- count:tools -->61<!-- /count:tools --> tools by default. Some clients handle long tool lists poorly, and some deployments should never change data. Two environment variables shrink the list when the server starts:
-
-- `MCP_TOOLSETS` registers only the listed toolsets. `all` (the default) registers everything.
-- `MCP_READ_ONLY=true` registers only tools annotated as read-only (`readOnlyHint`). Previews (`preview_*`) stay; every create, update, delete, `obtain_bundle`, `transfer_licenses` and `validate_licensee` (it can check out floating sessions or bind nodes) is left out.
-
-When both are set, the toolset filter applies first, then the read-only filter. `netlicensing_server_info` is always registered. When a restriction is active, the server instructions sent to the client say so.
-
-The <!-- count:toolsets -->11<!-- /count:toolsets --> toolsets and their tools are listed in [What it can do](#what-it-can-do) and, with parameters, in [docs/TOOLS.md](docs/TOOLS.md).
-
-```bash
-# Only customer and license tools, read-only
-MCP_TOOLSETS=licensees,licenses MCP_READ_ONLY=true NETLICENSING_API_KEY=your_key uvx netlicensing-mcp
-```
-
-All prompts are always available. Some of their steps call tools that may not be registered (for example `audit_expiry` calls `netlicensing_create_shop_token`, which is not available in read-only mode or without the `tokens` toolset, and the setup prompts create entities, which read-only mode does not allow); the assistant then cannot run those steps. The same goes for tools named in the `suggested_actions` of the two workflows and in the instructions of a preview: in read-only mode a `preview_*` result is impact analysis only, since the update or delete tool that would take its confirmation token is not registered. The `suggested_actions` of error results name only registered tools.
-
----
-
-## Prompt Templates
-
-The server ships <!-- count:prompts -->11<!-- /count:prompts --> prompt templates. Pick one in Copilot Agent or Claude Desktop, fill in its arguments, and the assistant runs the whole workflow for you with the matching tools.
+<!-- count:prompts -->11<!-- /count:prompts --> ready-made prompts run an audit or walk you through a setup. Pick one in your client, fill in its arguments, and the assistant runs the whole workflow with the matching tools. They ask for confirmation before each write and never delete anything themselves.
 
 <!-- prompts:start -->
 <!-- Generated by scripts/gen_tools_doc.py from the tool registry. Do not edit by hand; run `python scripts/gen_tools_doc.py`. -->
@@ -611,7 +370,7 @@ Argument details (formats, defaults): [docs/TOOLS.md](docs/TOOLS.md#prompts).
 
 <!-- prompts:end -->
 
-**Examples** (prompt name and argument values; how you pick a prompt and fill in its arguments depends on your client):
+**Examples** (prompt name and argument values; how you pick a prompt depends on your client):
 
 - `audit_full` product_number="P001"
 - `audit_customer` licensee_number="I001"
@@ -625,42 +384,63 @@ Argument details (formats, defaults): [docs/TOOLS.md](docs/TOOLS.md#prompts).
 - `troubleshoot_validation` licensee_number="I001" (optional: product_number, product_module_number)
 - `issue_api_key` purpose="license validation in our desktop app"
 
-The setup prompts follow the server's safety rules: they show the plan and ask for confirmation before each write, never delete anything themselves (a removal goes through the `preview_delete_*` tool and never uses `force_cascade` unless you ask for it), prefer deactivating to deleting, and do not repeat secrets such as a new API key after showing it once.
+All prompts are always available, but steps that need an unregistered tool (for instance `audit_expiry` creating shop tokens in read-only mode) can't run.
+
+---
+
+## Configuration
+
+All variables are optional, but you need either `NETLICENSING_API_KEY` or demo mode in stdio.
+
+| Variable | Default | Description |
+|---|---|---|
+| `NETLICENSING_API_KEY` | none | Your API key. Required in stdio unless demo mode is on. **Not used in HTTP mode**, where each request brings its own key. |
+| `NETLICENSING_ALLOW_DEMO` | `false` | `true` enables sandbox demo mode (stdio only). Never in production. |
+| `NETLICENSING_BASE_URL` | `https://go.netlicensing.io/core/v2/rest` | Override the REST API base URL (for example on-prem). |
+| `MCP_TRANSPORT` | `stdio` | `stdio` or `http`; also a positional CLI argument. |
+| `MCP_HOST` / `MCP_PORT` | `127.0.0.1` / `8000` | HTTP bind address (HTTP mode only). |
+| `MCP_TOOLSETS` | `all` | Toolsets to register, comma-separated. See below. |
+| `MCP_READ_ONLY` | `false` | `true`, `1` or `yes` registers read-only tools only. See below. |
+| `MCP_REDACT_FIELDS` | none | Extra field names to redact, e.g. `ssn,phone`. |
+| `MCP_VERBOSE` | `false` | `true`, `1`, `yes` or `-v`: debug-log API traffic. Local debugging only: it also enables the MCP SDK's DEBUG output, which is not redacted, so don't keep those logs. |
+| `MCP_CONSOLE_BASE_URL` | `https://ui.netlicensing.io/#` | Base for the `console_url` links in results. |
+
+Invalid values in `MCP_TOOLSETS` or `MCP_READ_ONLY` are ignored with a warning on stderr. Logs always go to stderr.
+
+### Reduce the tool list / read-only mode
+
+Some clients handle long tool lists poorly, and some deployments should never change data. Two variables shrink the list at startup:
+
+- `MCP_TOOLSETS` registers only the listed toolsets: `products`, `bundles`, `modules`, `templates`, `licensees`, `licenses`, `tokens`, `transactions`, `payments`, `system`, `workflows`, or `all`.
+- `MCP_READ_ONLY=true` keeps only read-only tools: lists, gets, `preview_*`, workflows and reference data. Everything that creates, updates or deletes is left out, and so are `obtain_bundle`, `transfer_licenses` and `validate_licensee` (it can check out floating sessions or bind nodes).
+
+The toolset filter applies first, then read-only. `netlicensing_server_info` is always there, and the server tells the client when a restriction is active. In read-only mode a `preview_*` result is impact analysis only, since the tool that would take its confirmation token isn't registered.
+
+```bash
+# Only customer and license tools, read-only
+MCP_TOOLSETS=licensees,licenses MCP_READ_ONLY=true NETLICENSING_API_KEY=your_key uvx netlicensing-mcp
+```
+
+---
+
+## Security
+
+- **Deletes need confirmation.** A delete first returns a preview (with `requires_force_cascade` and `blocking_dependencies` when other items depend on it) and a single-use token that expires after 5 minutes. Nothing is deleted until you send the token back, with the same `force_cascade` value it was issued for. `force_cascade` removes dependent items too and is only used when you ask for it.
+- **Sensitive updates need confirmation too:** product `vat_mode` and `licensee_auto_create`, license template price, currency and active state, and payment method active state. The token is bound to the exact values you previewed; different arguments are rejected. A preview that changes nothing returns `no_change` and no token.
+- **Secrets are masked** in every response and log line: `apiKey`, `licenseeSecret`, `nodeSecret`, `password` and `secret` fields (long values keep their first 3 and last 4 characters, like `pk_****W3Od`; short ones become `****`). Payment method credentials are always `****`. Add fields with `MCP_REDACT_FIELDS`. Token numbers are masked in lists; you can pass a masked number from `list_tokens` to `get_token`, `preview_delete_token` or `delete_token` when it identifies exactly one token.
+- **Credentials appear once.** `create_api_token` and `create_shop_token` mark their response `"shown_once": true`; later reads are masked.
+- **Errors are short and safe:** no stack traces, internal class names or gateway HTML reach your assistant, and error hints never contain your key.
+- **No silent demo credentials**, and in HTTP mode every request needs its own key in a header (never in the URL, since URLs get logged); a request without one gets `401` before any tool runs.
+
+More in [SECURITY.md](SECURITY.md).
 
 ---
 
 ## Troubleshooting
 
-**Run the first-run check**
+**Start with `netlicensing_server_info`.** It reports whether a key is configured, whether NetLicensing accepts it and what to do next.
 
-Ask your assistant to run `netlicensing_server_info` (see [First run](#first-run)): it reports whether a key is configured, whether NetLicensing accepts it and what to do next.
-
-**Check MCP server logs**
-
-Claude Desktop writes this server's stderr to `mcp-server-netlicensing.log` (and general MCP connection messages to `mcp.log`) in its log folder: `~/Library/Logs/Claude` (macOS), `%APPDATA%\Claude\logs` (Windows), `~/.config/Claude/logs` (Linux).
-
-```bash
-# macOS
-tail -f ~/Library/Logs/Claude/mcp-server-netlicensing.log
-
-# Linux
-tail -f ~/.config/Claude/logs/mcp-server-netlicensing.log
-```
-
-```powershell
-# Windows (PowerShell)
-Get-Content "$env:APPDATA\Claude\logs\mcp-server-netlicensing.log" -Wait
-```
-
-**Run the MCP Inspector** (browser UI at `http://localhost:5173`)
-
-```bash
-mcp dev src/netlicensing_mcp/server.py
-```
-
-**Read the error result**
-
-A failed tool call returns `{"error": true, "status": ..., "detail": ...}` (flagged `isError`), where `detail` is NetLicensing's own message. It also carries `hint` (the next step), `suggested_actions` (tools to call next) and `retryable` (whether the same call may succeed later; `retry_after_seconds` on a `429`). `retryable` means the failure is transient, not that repeating the call is safe: a create or update may already have been applied before the error, so check the current state first (for a write that failed with a server error, the hint names a tool to check with). A rejected confirmation token (`confirm_token`) gives an error without `status`: its `hint` points at the matching `preview_*` tool. For example:
+**Read the error result.** A failed call returns `{"error": true, "status": ..., "detail": ...}` (flagged `isError`), where `detail` is NetLicensing's own short message, plus `hint` (the next step), `suggested_actions` (tools to call next) and `retryable`. `retryable` means the failure is transient, not that repeating is safe: a write may already have been applied, so check the current state first.
 
 ```json
 {
@@ -675,134 +455,98 @@ A failed tool call returns `{"error": true, "status": ..., "detail": ...}` (flag
 
 | `status` | Meaning | `retryable` |
 |---|---|---|
-| `400` | Validation or business rule; NetLicensing also reports a **missing entity as `400`** (`Requested … does not exist.`), a duplicate number and a delete blocked by dependents this way | no |
-| `401` / `403` | Missing or invalid API key / key role too low for the operation | no |
-| `402` | Operation not included in your pricing plan | no |
-| `429` | Above your plan's API rate limit while NetLicensing is busy; wait `retry_after_seconds` | yes |
-| `500`, `502`, `504` | NetLicensing error, API unreachable or timed out (the hint names the API host only) | yes |
-| `503` | No API key configured (see below); any other `503` counts as a server error like `500` | no |
-
-The hints never contain your API key. A hint about a delete blocked by dependents points at the `preview_delete` tool; it mentions `force_cascade` (for an explicit user request only) and deactivating with `active=false` only when that delete or an update tool for the entity offers them, so not for tokens.
+| `400` | Validation or business rule. NetLicensing also reports a **missing entity** (`Requested … does not exist.`), a duplicate number and a delete blocked by dependents as `400`. | no |
+| `401` / `403` | Missing or invalid key / key role too low. A `403` from a gateway (not NetLicensing) is described as blocked input, not a role problem. | no |
+| `402` | Operation not in your pricing plan. | no |
+| `429` | Over your plan's rate limit; wait `retry_after_seconds`. | yes |
+| `500`, `502`, `504` | NetLicensing error, API unreachable or timed out. | yes |
+| `503` | No API key configured. | no |
 
 **Common issues**
 
-| Symptom | Likely cause | Fix |
+| Symptom | Likely cause and fix |
+|---|---|
+| `401 Unauthorized` | Invalid or expired key. Create a new one at [ui.netlicensing.io](https://ui.netlicensing.io). |
+| Server not listed in Claude | JSON syntax error in the config. Check it with `python -m json.tool claude_desktop_config.json`. |
+| `uvx: command not found` | Install uv: `pip install uv` or see [docs.astral.sh/uv](https://docs.astral.sh/uv). |
+| Server exits immediately (stdio) | Neither `NETLICENSING_API_KEY` nor `NETLICENSING_ALLOW_DEMO=true` is set. |
+| `401` on every request (HTTP mode) | The client sends no `X-NetLicensing-API-Key` or `Authorization: Bearer` header. |
+| Demo data instead of live data | The key isn't reaching the server, and demo mode is on. Export the key in the shell that starts the client, and unset `NETLICENSING_ALLOW_DEMO`. |
+| "Invalid identifier" | Identifiers can't be empty or contain `/ \ ? # %`, whitespace or control characters. |
+
+**Logs.** Claude Desktop writes the server's stderr to `mcp-server-netlicensing.log` in its log folder (`~/Library/Logs/Claude` on macOS, `%APPDATA%\Claude\logs` on Windows, `~/.config/Claude/logs` on Linux); on macOS, `tail -f ~/Library/Logs/Claude/mcp-server-netlicensing.log`. To poke at the server in a browser UI (`http://localhost:5173`), run `mcp dev src/netlicensing_mcp/server.py` from a checkout.
+
+---
+
+## Run it as a shared server
+
+HTTP mode serves many teams from one deployment, because each request brings its own key:
+
+```bash
+docker run -d -p 8000:8000 -e MCP_HOST=0.0.0.0 ghcr.io/labs64/netlicensing-mcp:latest http
+# or, without Docker: python -m netlicensing_mcp.server http
+```
+
+Labs64 does not run a public hosted endpoint: a shared server is one you run yourself, for example on AWS Fargate (below). Clients send the key as `X-NetLicensing-API-Key: your_key` or `Authorization: Bearer your_key`. Don't set `NETLICENSING_API_KEY` on the server; it isn't used.
+
+Point clients at your deployment's URL (`https://YOUR_DOMAIN/mcp`, or the load balancer's `http://ALB_DNS_NAME/mcp` for a quick test):
+
+```bash
+# Claude Code
+claude mcp add --transport http netlicensing https://YOUR_DOMAIN/mcp --header "X-NetLicensing-API-Key: YOUR_API_KEY"
+```
+
+```jsonc
+// Cursor: mcpServers.netlicensing
+{ "url": "https://YOUR_DOMAIN/mcp", "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" } }
+
+// VS Code: servers.netlicensing (use the inputs block from Setup to avoid typing the key into the file)
+{ "type": "http", "url": "https://YOUR_DOMAIN/mcp", "headers": { "X-NetLicensing-API-Key": "${input:netlicensing-api-key}" } }
+```
+
+Claude Desktop can't connect to it: its custom connectors can't send the API key header. Use the local setup there.
+
+Two unauthenticated probes come with HTTP mode:
+
+| Endpoint | Answers | Use it for |
 |---|---|---|
-| `401 Unauthorized` responses | Invalid or expired API key | Regenerate your key at [ui.netlicensing.io](https://ui.netlicensing.io) |
-| Server not listed in Claude | Config file JSON syntax error | Validate with `python -m json.tool claude_desktop_config.json` |
-| `uvx: command not found` | `uv` not installed | `pip install uv` or see [docs.astral.sh/uv](https://docs.astral.sh/uv) |
-| Server exits immediately (stdio) | `NETLICENSING_API_KEY` not set and demo mode not enabled | Set `NETLICENSING_API_KEY`, or set `NETLICENSING_ALLOW_DEMO=true` for sandbox testing |
-| `401` on every request (HTTP mode) | The client sends no `X-NetLicensing-API-Key` / `Authorization: Bearer` header | Add the header to the client's server configuration (see [Connect MCP clients to the public URL](#connect-mcp-clients-to-the-public-url)) |
-| Demo data instead of live data | `NETLICENSING_API_KEY` not set; `NETLICENSING_ALLOW_DEMO=true` active | Ensure `NETLICENSING_API_KEY` is exported in the shell that starts the client and unset `NETLICENSING_ALLOW_DEMO` |
+| `GET /health` | Always `200` `{"status":"ok","server":"netlicensing-mcp"}` while the process serves HTTP. | Load balancer and container health checks (the Docker `HEALTHCHECK` uses it). |
+| `GET /ready` | `200` `{"status":"ready",...}` when the MCP endpoint runs and the NetLicensing API answers, else `503` with `"status":"not_ready"` and a `reason`. | Monitoring and post-deploy checks. |
+
+`/ready` sends one credential-less `GET` to `NETLICENSING_BASE_URL` (3 s timeout; any HTTP answer counts as reachable) and caches the result for 15 s (5 s after a failure). It reports only the API's host name.
+
+### AWS
+
+`deploy/aws/deploy.sh` deploys to **ECS Fargate** behind an Application Load Balancer (App Runner is kept only for accounts that already use it):
+
+```bash
+cd deploy/aws
+./deploy.sh fargate                                   # quick test, plain HTTP, sandbox keys only
+./deploy.sh fargate --certificate-arn arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id   # production HTTPS
+```
+
+HTTPS needs a DNS CNAME from your domain to the load balancer. Step by step, including client setup: [deploy/aws/README.md](deploy/aws/README.md).
 
 ---
 
 ## Development
 
 ```bash
-git clone https://github.com/Labs64/NetLicensing-MCP
-cd NetLicensing-MCP
-
-# Create a virtual environment
-python -m venv .venv
-source .venv/bin/activate       # Windows: .venv\Scripts\activate
-
-# ... and install dependencies
-pip install -e ".[dev]"
-pip install hatch hatch-vcs
-
-# Add your API key to a .env file (or export it in your shell)
-cp .env.example .env
-
-# Run the MCP Inspector
-mcp dev src/netlicensing_mcp/server.py
-
-# Run tests
-pytest tests/ -v
-
-# Clean previous builds
-rm -rf dist/
-
-# Build a wheel for local testing
-hatch build --target wheel
-
-# Build the Docker image locally
+git clone https://github.com/Labs64/NetLicensing-MCP && cd NetLicensing-MCP
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[dev]" && pip install hatch hatch-vcs
+cp .env.example .env                                  # add your API key
+mcp dev src/netlicensing_mcp/server.py                # MCP Inspector
+pytest tests/ -v                                      # tests
+hatch build --target wheel                            # local wheel
 docker build -t ghcr.io/labs64/netlicensing-mcp:latest .
 ```
 
-### HTTP mode (for remote / shared deployments)
-
-```bash
-python -m netlicensing_mcp.server http
-# Server listens on MCP_HOST:MCP_PORT (default: 127.0.0.1:8000)
-```
-
-Two unauthenticated probe endpoints come with HTTP mode (no API key needed):
-
-| Endpoint | Answers | Use it for |
-|---|---|---|
-| `GET /health` | Liveness: always `200` `{"status":"ok","server":"netlicensing-mcp"}` while the process serves HTTP. | Load balancer and container health checks (the Docker image's `HEALTHCHECK` uses it). |
-| `GET /ready` | Readiness: `200` `{"status":"ready","server":...,"version":...,"checks":{"app":...,"upstream":...}}` when the MCP endpoint is running and the NetLicensing API answers, else `503` with `"status":"not_ready"` and a `reason`. | Monitoring and post-deploy checks, e.g. `curl http://127.0.0.1:8000/ready`. |
-
-`/ready` sends one unauthenticated `GET` to `NETLICENSING_BASE_URL` (3-second timeout); any HTTP answer, even `401` or `404`, counts as reachable; timeouts, connection and other transport/protocol errors, and a malformed URL count as unreachable. The result is cached for 15 seconds (a failure for 5 seconds). An API key is not checked, since in HTTP mode each request brings its own. The reply never contains a key or the upstream response, only the API's host name. If the check itself fails unexpectedly, `/ready` answers `503` with `"reason": "readiness check failed (probe_error)"` (not a statement about NetLicensing; the log names the exception type).
-
-Use `ngrok` or a reverse proxy to expose the HTTP endpoint to remote MCP clients:
-
-```bash
-ngrok http 8000
-# Then point your client at the generated HTTPS URL
-```
-
-### Cloud Deployment (AWS)
-
-Deploy the MCP server to AWS for a **public HTTPS endpoint** that remote AI agents can connect to:
-
-The recommended path is **ECS Fargate** behind an Application Load Balancer. App Runner is closed to new AWS customers, so its template is kept only for accounts that already use it.
-
-```bash
-cd deploy/aws
-
-# Quick test (plain HTTP, sandbox keys only)
-./deploy.sh fargate
-
-# Production: HTTPS with your own domain and an ACM certificate
-./deploy.sh fargate --certificate-arn arn:aws:acm:us-east-1:123456789012:certificate/your-cert-id
-```
-
-HTTPS only works for a hostname covered by your certificate, so point a DNS CNAME for your domain at the load balancer. The guide walks through certificate, DNS, verification and client setup step by step.
-
-#### Connect MCP clients to the public URL
-
-To use a shared, remote deployment, do not bake the `NETLICENSING_API_KEY` into the remote server settings. Instead, pass the API key from the client side in an HTTP header.
-
-For example, in Cursor's `mcp.json` (the commands for Claude Code and VS Code are under [Client setup](#client-setup); Claude Desktop's custom connectors can't send this header):
-
-```json
-{
-  "mcpServers": {
-    "netlicensing": {
-      "url": "https://mcp.example.com/mcp",
-      "headers": { "X-NetLicensing-API-Key": "YOUR_API_KEY" }
-    }
-  }
-}
-```
-
-You can alternatively send `Authorization: Bearer YOUR_API_KEY`.
-
-📖 Full step-by-step instructions: **[deploy/aws/README.md](deploy/aws/README.md)**
-
----
-
-## Contributing
-
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first, and open an issue before starting anything big. To report a security problem, follow [SECURITY.md](SECURITY.md). Release notes are in [CHANGELOG.md](CHANGELOG.md).
-
----
+Contributions are welcome: read [CONTRIBUTING.md](CONTRIBUTING.md) first and open an issue before anything big. Report security problems as described in [SECURITY.md](SECURITY.md). Release notes for each version are published on the [GitHub Releases page](https://github.com/Labs64/NetLicensing-MCP/releases).
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE)
+Apache 2.0, see [LICENSE](LICENSE).
 
 ---
 

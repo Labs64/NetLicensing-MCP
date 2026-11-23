@@ -85,7 +85,12 @@ async def netlicensing_preview_update_payment_method(
                 }
             )
         return _json(
-            safety.make_update_preview("update_payment_method", payment_method_number, diff)
+            safety.make_update_preview(
+                "update_payment_method",
+                payment_method_number,
+                diff,
+                changes=safety.change_set(active=active),
+            )
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_preview_update_payment_method")
@@ -112,10 +117,11 @@ async def netlicensing_update_payment_method(
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        changes = safety.change_set(active=active)
         if active is not None:
             if confirm_token:
                 safety.validate_and_consume(
-                    confirm_token, "update_payment_method", payment_method_number
+                    confirm_token, "update_payment_method", payment_method_number, changes=changes
                 )
             else:
                 current_resp = await payment_methods.get_payment_method(payment_method_number)
@@ -127,9 +133,12 @@ async def netlicensing_update_payment_method(
                         "to": str(active).lower(),
                     }
                 ]
-                return _json(
-                    safety.make_update_preview("update_payment_method", payment_method_number, diff)
+                preview = safety.make_update_preview(
+                    "update_payment_method", payment_method_number, diff, changes=changes
                 )
+                if not preview.get("no_change"):
+                    return _json(preview)
+                # Already in the requested state: apply the rest (if anything).
 
         return _wrap_json(
             await payment_methods.update_payment_method(

@@ -11,6 +11,7 @@ from netlicensing_mcp.app import (
     _error,
     _extract_props,
     _json,
+    _list_filter,
     _scrub_apikey_console_url,
     _wrap_json_token_read,
     tool,
@@ -22,19 +23,30 @@ from netlicensing_mcp.tools import tokens
 
 
 @tool(title="List tokens", annotations=_READONLY)
-async def netlicensing_list_tokens(filter: str = "", include_raw: bool = False) -> str:
+async def netlicensing_list_tokens(
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
+) -> str:
     """List all active tokens in the account.
 
     Args:
         filter: Optional server-side filter expression (e.g. 'tokenType=SHOP')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json_token_read(
             await tokens.list_tokens(filter_str=filter or None),
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_tokens")
@@ -133,6 +145,7 @@ async def netlicensing_preview_delete_token(token_number: str) -> str:
         token_number: Token to preview deletion for
     """
     try:
+        token_number = await tokens.resolve_token_number(token_number)
         token_resp = await tokens.get_token(token_number)
         props = _extract_props(token_resp)
         return _json(
@@ -167,6 +180,7 @@ async def netlicensing_delete_token(
         confirm_token: Confirmation token from a previous preview call
     """
     try:
+        token_number = await tokens.resolve_token_number(token_number)
         if confirm_token:
             safety.validate_and_consume(confirm_token, "delete_token", token_number)
             return await tokens.delete_token(token_number)

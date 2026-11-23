@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from netlicensing_mcp.client import nl_get, nl_post
+from netlicensing_mcp.tools.helpers import (
+    TRANSACTION_STATUSES,
+    first_item_property,
+    require_one_of,
+)
 
 
 async def list_transactions(filter_str: str | None = None) -> dict:
@@ -39,6 +44,7 @@ async def create_transaction(
     source: SHOP | AUTO
     name: human-readable transaction name.
     """
+    require_one_of("status", status, TRANSACTION_STATUSES)
     data: dict[str, str] = {
         "active": str(active).lower(),
         "status": status,
@@ -71,8 +77,15 @@ async def update_transaction(
 
     name: human-readable transaction name.
     """
+    require_one_of("status", status, TRANSACTION_STATUSES)
     data: dict[str, str] = {}
-    if status is not None:
+    if status is None:
+        # Core fails with a NullPointerException when a transaction is updated
+        # without a status, so send the one it already has.
+        current = first_item_property(await get_transaction(transaction_number), "status")
+        if current:
+            data["status"] = current
+    else:
         data["status"] = status
     if active is not None:
         data["active"] = str(active).lower()

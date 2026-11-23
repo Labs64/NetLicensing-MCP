@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from netlicensing_mcp.client import nl_delete, nl_get, nl_post
 from netlicensing_mcp.tools.helpers import (
+    LICENSING_MODELS,
+    require_one_of,
     delete_result,
     CustomPropertyValue,
     merge_custom_properties,
@@ -65,6 +67,7 @@ async def create_product_module(
 
     custom_properties: Optional dict of additional properties (e.g., skudef for PricingTable).
     """
+    require_one_of("licensing_model", licensing_model, LICENSING_MODELS)
     data: dict[str, str] = {
         "productNumber": product_number,
         "number": number,

@@ -11,6 +11,7 @@ from netlicensing_mcp.app import (
     _confirm_error,
     _error,
     _json,
+    _list_filter,
     _sample_numbers,
     _total_items,
     _wrap_json,
@@ -25,16 +26,25 @@ from netlicensing_mcp.tools import (
 
 @tool(title="List licensees", annotations=_READONLY)
 async def netlicensing_list_licensees(
-    product_number: str, filter: str = "", include_raw: bool = False
+    product_number: str,
+    filter: str = "",
+    page: int | None = None,
+    page_size: int | None = None,
+    compact: bool = False,
+    include_raw: bool = False,
 ) -> str:
     """List all customers (licensees) for a product.
 
     Args:
         product_number: Product to list customers for
         filter: Optional server-side filter expression (e.g. 'active=true')
+        page: Page to return, 0-based (default 0; overrides 'page' in filter)
+        page_size: Items per page, 1-100 (default 25; overrides 'items' in filter)
+        compact: When true, return only type, number, name, status and active for each item
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        filter = _list_filter(filter, page, page_size)
         return _wrap_json(
             await licensees.list_licensees(
                 product_number,
@@ -44,6 +54,7 @@ async def netlicensing_list_licensees(
             include_raw=include_raw,
             as_list=True,
             paging_filter=filter,
+            compact=compact,
         )
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_list_licensees")
@@ -144,7 +155,9 @@ async def netlicensing_update_licensee(
 async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
     """Preview what would be deleted when deleting a licensee.
 
-    Returns the count of licenses that would be removed and a confirmation token.
+    Returns the count of licenses that would be removed, `requires_force_cascade` and
+    `blocking_dependencies` (a licensee with licenses cannot be deleted without
+    force_cascade), and a confirmation token.
 
     Args:
         licensee_number: Licensee to preview deletion for
@@ -158,6 +171,7 @@ async def netlicensing_preview_delete_licensee(licensee_number: str) -> str:
                 licensee_number,
                 affected={"licenses": _total_items(licenses_resp)},
                 samples={"licenses": _sample_numbers(licenses_resp)},
+                blocking={"licenses": _total_items(licenses_resp)},
             )
         )
     except NetLicensingError as exc:
@@ -199,6 +213,7 @@ async def netlicensing_delete_licensee(
                 affected={"licenses": _total_items(licenses_resp)},
                 samples={"licenses": _sample_numbers(licenses_resp)},
                 force_cascade=force_cascade,
+                blocking={"licenses": _total_items(licenses_resp)},
             )
         )
     except ValueError as exc:

@@ -291,6 +291,56 @@ def _json_token_read(obj: object) -> str:
     return json.dumps(obj, indent=2)
 
 
+#: Page size of list tools when the caller sets neither ``page_size`` nor ``items`` in
+#: the filter: a full page of 100 verbose items can cost tens of thousands of tokens.
+DEFAULT_PAGE_SIZE = 25
+MAX_PAGE_SIZE = 100
+_COMPACT_KEYS = ("type", "number", "name", "status", "active")
+
+
+def _list_filter(filter: str, page: int | None, page_size: int | None) -> str:
+    """Build the ``filter`` of a list call from the caller's filter, ``page`` and ``page_size``.
+
+    ``page`` (0-based) and ``page_size`` override ``page`` / ``items`` in *filter*;
+    without either, the filter's own values are kept, and the page size defaults to
+    :data:`DEFAULT_PAGE_SIZE` on page 0. Raises ``NetLicensingError(400)`` for values
+    outside ``page >= 0`` and ``1 <= page_size <= 100``.
+    """
+    if page is not None and page < 0:
+        raise NetLicensingError(400, "page must be 0 or greater (the first page is 0)")
+    if page_size is not None and not 1 <= page_size <= MAX_PAGE_SIZE:
+        raise NetLicensingError(400, f"page_size must be between 1 and {MAX_PAGE_SIZE}")
+    parts = [p.strip() for p in filter.split(";") if p.strip()]
+
+    def has(key: str) -> bool:
+        return any(p.split("=", 1)[0].strip().lower() == key for p in parts)
+
+    def drop(key: str) -> None:
+        parts[:] = [p for p in parts if p.split("=", 1)[0].strip().lower() != key]
+
+    if page_size is not None:
+        drop("items")
+        parts.append(f"items={page_size}")
+    elif not has("items"):
+        parts.append(f"items={DEFAULT_PAGE_SIZE}")
+    if page is not None:
+        drop("page")
+        parts.append(f"page={page}")
+    elif not has("page"):
+        parts.append("page=0")
+    return ";".join(parts)
+
+
+def _compact(wrapped: dict) -> dict:
+    """Reduce the items of a list envelope to type, number, name, status and active."""
+    if wrapped.get("type") == "list" and isinstance(wrapped.get("items"), list):
+        wrapped["items"] = [
+            {k: it[k] for k in _COMPACT_KEYS if k in it} if isinstance(it, dict) else it
+            for it in wrapped["items"]
+        ]
+    return wrapped
+
+
 def _wrap_json(
     entity: dict,
     kind: str,
@@ -299,6 +349,7 @@ def _wrap_json(
     as_list: bool = False,
     warn_info_types: tuple[str, ...] = DEFAULT_WARN_INFO_TYPES,
     paging_filter: str | None = None,
+    compact: bool = False,
 ) -> str:
     """Normalize *entity* into the response envelope then serialize.
 
@@ -323,7 +374,7 @@ def _wrap_json(
         warn_info_types=warn_info_types,
         paging_filter=paging_filter,
     )
-    return _json(wrapped)
+    return _json(_compact(wrapped) if compact else wrapped)
 
 
 def _scrub_apikey_console_url(env: dict) -> None:
@@ -354,6 +405,7 @@ def _wrap_json_token_read(
     include_raw: bool = False,
     as_list: bool = False,
     paging_filter: str | None = None,
+    compact: bool = False,
 ) -> str:
     """Normalize a token *read* response with extra credential masking.
 
@@ -371,7 +423,7 @@ def _wrap_json_token_read(
         paging_filter=paging_filter,
     )
     _scrub_apikey_console_url(wrapped)
-    return _json(wrapped)
+    return _json(_compact(wrapped) if compact else wrapped)
 
 
 def _registered_tool_names() -> frozenset[str]:

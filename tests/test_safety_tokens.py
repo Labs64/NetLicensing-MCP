@@ -78,6 +78,7 @@ def test_validate_expired():
         datetime.now(timezone.utc) - timedelta(seconds=1),
         safety._owner(),
         False,
+        (),
     )
     with pytest.raises(ValueError, match="expired") as info:
         safety.validate_and_consume(token, "delete_product", "P001")

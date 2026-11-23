@@ -79,7 +79,7 @@ async def create_license(
 
     Type-specific parameters:
       name: display name (defaults from template).
-      start_date: ISO 8601 datetime, mandatory for TIMEVOLUME.
+      start_date: ISO 8601 datetime or "now" (past times are rejected), mandatory for TIMEVOLUME.
       price: license price (overrides template default).
       currency: ISO 4217 currency code (overrides template default).
       time_volume: duration value, mandatory for TIMEVOLUME.
@@ -135,7 +135,7 @@ async def update_license(
 
     active: True to activate, False to deactivate.
     name: display name.
-    start_date: ISO 8601 datetime (TIMEVOLUME).
+    start_date: ISO 8601 datetime or "now" (past times are rejected) (TIMEVOLUME).
     price: license price.
     currency: ISO 4217 currency code.
     time_volume / time_volume_period: duration (TIMEVOLUME).

@@ -263,6 +263,14 @@ def error_hint(
             "it cannot succeed until the plan includes it.",
             [],
         )
+    if exc.non_json and status in (400, 403):
+        return _result(
+            "The request was blocked by a gateway or proxy in front of NetLicensing (the reply "
+            "was not a NetLicensing JSON response, so this is not an API key role problem): "
+            "check the arguments for special characters such as '<', '>', quotes or ';' and "
+            "retry with plain text.",
+            [],
+        )
     if status == 403:
         return _result(
             "The API key's role does not allow this operation. Roles are cumulative, lowest "
@@ -272,6 +280,16 @@ def error_hint(
             "modules and license templates), ADMIN (everything an API key can do). Use a key "
             f"with a higher role in {_KEY_SETTINGS}.",
             [],
+        )
+    if "no active product modules" in exc.detail.lower():
+        listing = tools.ok("netlicensing_list_product_modules")
+        updating = tools.ok("netlicensing_update_product_module")
+        with_tool = f" with {listing}" if listing else ""
+        activate = f" and activate one with {updating} (active=true)" if updating else ""
+        return _result(
+            "The licensee exists, but its product has no active product module to validate "
+            f"against: list the product's modules{with_tool}{activate}.",
+            [listing, updating],
         )
     # A create cannot miss its own entity: "... does not exist" there is about a
     # referenced value (e.g. "Licensing model 'Foo' does not exist"), so without
