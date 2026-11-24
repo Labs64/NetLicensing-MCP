@@ -127,13 +127,20 @@ def redact(
     return _redact_inner(payload, effective, mode)
 
 
+def _is_sensitive(name: Any, fields: frozenset[str]) -> bool:
+    """True when *name* is a redact field, also with a module index (``nodeSecret0``)."""
+    if not isinstance(name, str):
+        return False
+    return name in fields or name.rstrip("0123456789") in fields
+
+
 def _redact_inner(payload: Any, fields: frozenset[str], mode: str) -> Any:
     if isinstance(payload, list):
         return [_redact_inner(item, fields, mode) for item in payload]
     if isinstance(payload, dict):
         result: dict[str, Any] = {}
         for k, v in payload.items():
-            if k in fields:
+            if _is_sensitive(k, fields):
                 # Sensitive plain-dict key.
                 if mode != "remove":
                     result[k] = _mask(str(v)) if isinstance(v, str) else "****"
@@ -152,7 +159,7 @@ def _redact_property(prop: Any, fields: frozenset[str], mode: str) -> Any:
     if not isinstance(prop, dict):
         return prop
     name = prop.get("name", "")
-    if name in fields:
+    if _is_sensitive(name, fields):
         if mode == "remove":
             # Drop the value key but keep name/other meta.
             return {k: v for k, v in prop.items() if k != "value"}

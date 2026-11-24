@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from netlicensing_mcp.client import nl_get, nl_post
+from netlicensing_mcp.client import ClientValidationError, nl_get, nl_post
 from netlicensing_mcp.tools.helpers import (
     TRANSACTION_SOURCES,
     TRANSACTION_STATUSES,
@@ -27,6 +27,18 @@ async def get_transaction(transaction_number: str) -> dict:
     return await nl_get(f"/transaction/{transaction_number}")
 
 
+def _reject_dates(**dates: str | None) -> None:
+    """NetLicensing sets dateCreated/dateClosed itself; a client value would only be
+    stored as a misleading custom property, so refuse it instead of accepting it silently."""
+    given = [n for n, v in dates.items() if v]
+    if given:
+        raise ClientValidationError(
+            f"{', '.join(given)} cannot be set: NetLicensing records the real creation and "
+            "close times itself (a supplied value would only be stored as a custom property). "
+            "Omit the argument."
+        )
+
+
 async def create_transaction(
     status: str,
     source: str = "SHOP",
@@ -47,6 +59,7 @@ async def create_transaction(
     """
     require_one_of("status", status, TRANSACTION_STATUSES)
     require_one_of("source", source, TRANSACTION_SOURCES)
+    _reject_dates(date_created=date_created, date_closed=date_closed)
     data: dict[str, str] = {
         "active": str(active).lower(),
         "status": status,
@@ -58,10 +71,6 @@ async def create_transaction(
         data["name"] = name
     if licensee_number:
         data["licenseeNumber"] = licensee_number
-    if date_created:
-        data["dateCreated"] = date_created
-    if date_closed:
-        data["dateClosed"] = date_closed
     if payment_method:
         data["paymentMethod"] = payment_method
     return await nl_post("/transaction", data)
@@ -80,6 +89,7 @@ async def update_transaction(
     name: human-readable transaction name.
     """
     require_one_of("status", status, TRANSACTION_STATUSES)
+    _reject_dates(date_closed=date_closed)
     data: dict[str, str] = {}
     if status is None:
         # Core fails with a NullPointerException when a transaction is updated
@@ -93,8 +103,6 @@ async def update_transaction(
         data["active"] = str(active).lower()
     if name is not None:
         data["name"] = name
-    if date_closed is not None:
-        data["dateClosed"] = date_closed
     if payment_method is not None:
         data["paymentMethod"] = payment_method
     return await nl_post(f"/transaction/{transaction_number}", data)

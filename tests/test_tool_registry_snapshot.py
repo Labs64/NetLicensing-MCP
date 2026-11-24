@@ -71,7 +71,7 @@ async def test_tool_registry_matches_snapshot():
 
 async def test_snapshot_covers_every_tool():
     data = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
-    assert len(data["tools"]) == len(data["tool_order"]) == 61
+    assert len(data["tools"]) == len(data["tool_order"]) == 62
     assert sorted(data["tool_order"]) == [t["name"] for t in data["tools"]]
     assert all(t["name"].startswith("netlicensing_") for t in data["tools"])
     assert len(data["prompts"]) == 11
@@ -79,7 +79,7 @@ async def test_snapshot_covers_every_tool():
 
 async def test_default_registry_has_61_tools():
     # Without MCP_TOOLSETS / MCP_READ_ONLY every tool is registered.
-    assert len(await mcp.list_tools()) == 61
+    assert len(await mcp.list_tools()) == 62
 
 
 async def test_tool_descriptions_have_no_source_indentation():
@@ -90,7 +90,7 @@ async def test_tool_descriptions_have_no_source_indentation():
     scripts/gen_tools_doc.py reads the parameter descriptions from them); the
     3-space continuation of a numbered list item is fine."""
     tools = await mcp.list_tools()
-    assert len(tools) == 61
+    assert len(tools) == 62
     for tool in tools:
         assert tool.description
         assert tool.description == tool.description.strip()

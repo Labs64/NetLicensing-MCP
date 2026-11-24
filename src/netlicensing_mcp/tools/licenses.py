@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from netlicensing_mcp.tools.helpers import delete_result, first_item_property, scoped_filter
-from netlicensing_mcp.client import nl_delete, nl_get, nl_post
+from netlicensing_mcp.client import ClientValidationError, nl_delete, nl_get, nl_post
 
 
 async def list_licenses(
@@ -116,6 +116,38 @@ async def create_license(
     return await nl_post("/license", data)
 
 
+def _as_count(name: str, value: str) -> int:
+    try:
+        n = int(str(value).strip())
+    except ValueError:
+        raise ClientValidationError(f"Invalid {name} {value!r}: must be a whole number") from None
+    if n < 0:
+        raise ClientValidationError(f"Invalid {name} {value!r}: must be 0 or greater")
+    return n
+
+
+async def _check_used_quantity(
+    license_number: str, quantity: str | None, used_quantity: str
+) -> None:
+    """Reject ``used_quantity`` above the license's ``quantity`` (new or current)."""
+    used = _as_count("used_quantity", used_quantity)
+    if quantity is not None:
+        limit_raw: str | None = quantity
+    else:
+        limit_raw = first_item_property(await nl_get(f"/license/{license_number}"), "quantity")
+    if not limit_raw:
+        return
+    try:
+        limit = int(float(limit_raw))
+    except ValueError:
+        return
+    if used > limit:
+        raise ClientValidationError(
+            f"used_quantity {used} exceeds quantity {limit}: raise quantity first or "
+            "use a value within the quota"
+        )
+
+
 async def update_license(
     license_number: str,
     active: bool | None = None,
@@ -145,6 +177,8 @@ async def update_license(
 
     A new price without a currency keeps the license's current currency.
     """
+    if used_quantity is not None:
+        await _check_used_quantity(license_number, quantity, used_quantity)
     data: dict[str, str] = {}
     if active is not None:
         data["active"] = str(active).lower()

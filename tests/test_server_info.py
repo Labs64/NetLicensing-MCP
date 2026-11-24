@@ -130,7 +130,7 @@ async def test_keeps_existing_fields_and_adds_the_new_ones(key_default, fake_htt
     settings = app.active_tool_settings()
     assert out["toolsets"] == settings["toolsets"]
     assert out["read_only"] is settings["read_only"]
-    assert out["tool_count"] == settings["tool_count"] == 61
+    assert out["tool_count"] == settings["tool_count"] == 62
 
 
 async def test_reports_a_restricted_tool_list(key_default, fake_http, monkeypatch):
@@ -140,7 +140,7 @@ async def test_reports_a_restricted_tool_list(key_default, fake_http, monkeypatc
     out, _ = await _info(check_connection=False)
     assert out["read_only"] is True
     assert out["toolsets"] == ["licenses"]
-    assert out["tool_count"] == app.tool_settings(restricted)["tool_count"] == 4
+    assert out["tool_count"] == app.tool_settings(restricted)["tool_count"] == 5
 
 
 def test_instructions_point_at_server_info():

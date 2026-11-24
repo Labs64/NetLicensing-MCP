@@ -242,7 +242,9 @@ def test_next_page_filter(user_filter, expected):
 async def test_filter_list_tools_emit_next_page_hint(tool, patch_target, kind, args):
     resp = _page(kind, 2, **FIRST_OF_NINE)
     with patch(f"netlicensing_mcp.server.{patch_target}", AsyncMock(return_value=resp)):
-        out = json.loads(await getattr(server, tool)(*args, filter="active=true"))
+        flt = {"netlicensing_list_tokens": "tokenType=SHOP"}.get(tool, "active=true")
+        flt = {"netlicensing_list_transactions": "status=CLOSED"}.get(tool, flt)
+        out = json.loads(await getattr(server, tool)(*args, filter=flt))
     assert out["type"] == "list"
     assert out["count"] == 2
     assert out["total"] == 18
@@ -255,7 +257,7 @@ async def test_next_page_hint_keeps_non_ascii_filter_readable():
 
     resp = _page("Licensee", 2, **FIRST_OF_NINE)
     with patch("netlicensing_mcp.server.licensees.list_licensees", AsyncMock(return_value=resp)):
-        text = await server.netlicensing_list_licensees("P1", filter="name=Müller")
+        text = await server.netlicensing_list_licensees("P1", filter="active=Müller")
     result = to_call_tool_result(text)
     hint = json.loads(text)["next_page_hint"]
     assert _hinted_page(hint) == (1, 2)

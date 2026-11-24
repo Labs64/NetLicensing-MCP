@@ -80,8 +80,9 @@ async def test_issue01_product_preview_counts_whole_cascade():
         "license_templates": 1,
         "licensees": 2,
         "licenses": 3,
-        "bundles": 1,
     }
+    # bundles are orphaned by the cascade, not blocking
+    assert any("NOT delete bundles" in w for w in preview["warnings"])
     assert no_token["affected"] == preview["affected"]
 
 
@@ -211,11 +212,12 @@ async def test_issue05_malformed_filter_is_an_error(bad, no_request):
     no_request.assert_not_called()
 
 
-async def test_issue05_unsupported_key_is_warned_supported_is_not():
+async def test_issue05_unsupported_key_is_rejected_supported_is_not(no_request):
+    out = json.loads(await server.netlicensing_list_products(filter="name=MCP-Test"))
+    assert out["error"] is True and "'name'" in out["detail"] and "active" in out["detail"]
+    no_request.assert_not_called()
     with patch("netlicensing_mcp.tools.products.nl_get", AsyncMock(return_value=_resp())):
-        warned = json.loads(await server.netlicensing_list_products(filter="name=MCP-Test"))
         clean = json.loads(await server.netlicensing_list_products(filter="active=true"))
-    assert "filter key 'name' is not supported and was ignored" in warned["warnings"]
     assert clean["warnings"] == []
 
 
@@ -232,7 +234,7 @@ async def test_issue05_each_group_supports_its_key(tool, args, key):
     target = f"netlicensing_mcp.tools.{mod.get(tool, 'bundles')}.nl_get"
     with patch(target, AsyncMock(return_value=_resp())):
         out = json.loads(await getattr(server, tool)(filter=f"{key}=x;bogus=1", **args))
-    assert out["warnings"] == ["filter key 'bogus' is not supported and was ignored"]
+    assert out["error"] is True and "'bogus'" in out["detail"] and f"{key}" in out["detail"]
 
 
 # ── ISSUE-06: elicitation ─────────────────────────────────────────────────────

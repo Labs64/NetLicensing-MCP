@@ -1397,8 +1397,6 @@ async def test_create_transaction_all_fields(transaction_response):
             number="TX001",
             name="Order #42",
             active=True,
-            date_created="2025-01-01T00:00:00Z",
-            date_closed="2025-01-02T00:00:00Z",
             payment_method="PM001",
         )
         assert result["items"]["item"][0]["type"] == "Transaction"
@@ -1409,8 +1407,7 @@ async def test_create_transaction_all_fields(transaction_response):
         assert call_data["number"] == "TX001"
         assert call_data["name"] == "Order #42"
         assert call_data["active"] == "true"
-        assert call_data["dateCreated"] == "2025-01-01T00:00:00Z"
-        assert call_data["dateClosed"] == "2025-01-02T00:00:00Z"
+        assert "dateCreated" not in call_data and "dateClosed" not in call_data
         assert call_data["paymentMethod"] == "PM001"
 
 
@@ -1437,7 +1434,6 @@ async def test_update_transaction_all_fields(transaction_response):
             status="CANCELLED",
             active=False,
             name="Cancelled Order",
-            date_closed="2025-03-01T00:00:00Z",
             payment_method="PM002",
         )
         assert result["items"]["item"][0]["type"] == "Transaction"
@@ -1445,8 +1441,21 @@ async def test_update_transaction_all_fields(transaction_response):
         assert call_data["status"] == "CANCELLED"
         assert call_data["active"] == "false"
         assert call_data["name"] == "Cancelled Order"
-        assert call_data["dateClosed"] == "2025-03-01T00:00:00Z"
+        assert "dateClosed" not in call_data
         assert call_data["paymentMethod"] == "PM002"
+
+
+@pytest.mark.asyncio
+async def test_transaction_dates_are_rejected_not_stored_as_custom_properties():
+    from netlicensing_mcp.client import ClientValidationError
+    from netlicensing_mcp.tools.transactions import create_transaction, update_transaction
+
+    with patch("netlicensing_mcp.tools.transactions.nl_post", new=AsyncMock()) as post:
+        with pytest.raises(ClientValidationError, match="date_created, date_closed"):
+            await create_transaction("PENDING", date_created="2030-01-01", date_closed="2000-01-01")
+        with pytest.raises(ClientValidationError, match="date_closed"):
+            await update_transaction("TX1", status="CLOSED", date_closed="2000-01-01")
+    post.assert_not_called()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

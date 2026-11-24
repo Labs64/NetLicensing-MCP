@@ -26,8 +26,8 @@ from netlicensing_mcp.server import (
 )
 from netlicensing_mcp.toolsets import TOOLSET_NAMES, TOOLSETS, ToolFilter, toolset_of
 
-ALL_TOOLS = 61
-READ_ONLY_TOOLS = 34
+ALL_TOOLS = 62
+READ_ONLY_TOOLS = 35
 
 
 async def _registered(env: dict[str, str]) -> list[str]:
@@ -215,7 +215,7 @@ async def test_toolsets_licenses_licensees_only():
     expected = set(TOOLSETS["licenses"]) | set(TOOLSETS["licensees"])
     expected.add("netlicensing_server_info")
     assert set(names) == expected
-    assert len(names) == 6 + 8 + 1
+    assert len(names) == 7 + 8 + 1
 
 
 async def test_toolsets_then_read_only():
@@ -223,6 +223,7 @@ async def test_toolsets_then_read_only():
     assert set(names) == {
         "netlicensing_list_licenses",
         "netlicensing_get_license",
+        "netlicensing_preview_update_license",
         "netlicensing_preview_delete_license",
         "netlicensing_server_info",
     }
@@ -323,7 +324,7 @@ def test_tool_settings_for_restricted_filter():
     assert app.tool_settings(f) == {
         "toolsets": ["licensees", "licenses"],
         "read_only": True,
-        "tool_count": 3 + 3 + 1,
+        "tool_count": 4 + 3 + 1,
     }
 
 
@@ -358,10 +359,11 @@ def test_env_is_applied_at_import_time():
     assert out["names"] == [
         "netlicensing_list_licenses",
         "netlicensing_get_license",
+        "netlicensing_preview_update_license",
         "netlicensing_preview_delete_license",
         "netlicensing_server_info",
     ]
-    assert out["settings"] == {"toolsets": ["licenses"], "read_only": True, "tool_count": 4}
+    assert out["settings"] == {"toolsets": ["licenses"], "read_only": True, "tool_count": 5}
     assert "Read-only mode" in out["note"]
     assert out["prompts"] == 11
     # The warning goes to stderr; stdout carries only the probe's JSON.

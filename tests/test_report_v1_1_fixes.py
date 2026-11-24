@@ -212,7 +212,12 @@ _LIST_TOOLS = [
 @pytest.mark.parametrize(("tool", "target", "args", "kind"), _LIST_TOOLS)
 async def test_n2_list_envelope_for_any_count(tool, target, args, kind, n):
     items = [_item(kind, number=f"X{i}", name=f"n{i}") for i in range(n)]
-    with patch(f"netlicensing_mcp.tools.{target}", new=AsyncMock(return_value=_resp(*items))):
+    with (
+        patch(f"netlicensing_mcp.tools.{target}", new=AsyncMock(return_value=_resp(*items))),
+        patch(
+            "netlicensing_mcp.tools.bundles.existing_bundle_licenses", AsyncMock(return_value=[])
+        ),
+    ):
         import netlicensing_mcp.server as server
 
         out = json.loads(await getattr(server, tool)(*args))

@@ -158,7 +158,14 @@ Both tools support `include_raw=True` to surface the sanitized upstream NetLicen
   preview and use the token in the same turn. Show the preview to the user and wait
   for their go-ahead before calling the delete tool with the token.
 - Use `force_cascade=True` only when the user explicitly requests recursive
-  deletion — it removes all child entities.
+  deletion — it removes all child entities. A product cascade does not delete
+  bundles: they are left behind and reported as `orphaned_bundles`.
+- Changing `active`, `price` or `currency` of a product, license template or
+  license needs a confirmation token from the matching `preview_update_*` tool.
+- `obtain_bundle` is not idempotent: after an unclear response, list the licensee's
+  licenses before calling it again.
+- Run one automated session per account at a time: concurrent sessions change the
+  data under each other's previews.
 - Prefer deactivating (`active=false`) over deleting when the user's intent
   is to disable rather than permanently remove.
 
@@ -308,10 +315,15 @@ class _ListFilter(str):
     warnings: list[str]
 
 
-def _check_filter(filter: str, supported: tuple[str, ...] | None) -> list[str]:
-    """Validate the caller's *filter*; return a warning per unsupported key.
+def _clip(text: str, limit: int = 60) -> str:
+    """Shorten *text* for an error message so long input is not echoed back in full."""
+    return text if len(text) <= limit else text[:limit] + f"… ({len(text)} characters)"
 
-    Raises ``ClientValidationError`` for a malformed expression: an empty segment
+
+def _check_filter(filter: str, supported: tuple[str, ...] | None) -> list[str]:
+    """Validate the caller's *filter*; return its (currently no) warnings.
+
+    Raises ``ClientValidationError`` for an unsupported key or a malformed expression: an empty segment
     (``;;``), a segment without ``=`` or with an empty key, or ``&`` (not a
     separator of NetLicensing filters). ``page`` and ``items`` are always accepted.
     """
@@ -322,6 +334,7 @@ def _check_filter(filter: str, supported: tuple[str, ...] | None) -> list[str]:
             "Malformed filter: '&' is not a separator; join key=value pairs with ';'"
         )
     warnings: list[str] = []
+    unknown: list[str] = []
     for part in filter.split(";"):
         key, sep, value = part.partition("=")
         key = key.strip()
@@ -335,7 +348,13 @@ def _check_filter(filter: str, supported: tuple[str, ...] | None) -> list[str]:
             )
         if supported is not None and key.lower() not in {"page", "items"}:
             if key not in supported:
-                warnings.append(f"filter key '{key}' is not supported and was ignored")
+                unknown.append(_clip(key))
+    if unknown:
+        # NetLicensing ignores unknown keys and would return the whole, unfiltered list.
+        raise ClientValidationError(
+            f"Unsupported filter key(s) {', '.join(repr(k) for k in unknown)}: this list "
+            f"supports only {', '.join(supported or ())} (plus page and items)"
+        )
     return warnings
 
 

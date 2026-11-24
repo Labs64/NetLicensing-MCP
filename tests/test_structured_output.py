@@ -184,7 +184,7 @@ async def test_every_tool_declares_the_shared_output_schema():
     async with create_connected_server_and_client_session(mcp) as session:
         tools = (await session.list_tools()).tools
 
-    assert len(tools) == 61
+    assert len(tools) == 62
     schemas = {json.dumps(t.outputSchema, sort_keys=True) for t in tools}
     assert len(schemas) == 1
     schema = tools[0].outputSchema

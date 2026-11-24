@@ -76,6 +76,7 @@ TOOLSETS: dict[str, tuple[str, ...]] = {
         "netlicensing_list_licenses",
         "netlicensing_get_license",
         "netlicensing_create_license",
+        "netlicensing_preview_update_license",
         "netlicensing_update_license",
         "netlicensing_preview_delete_license",
         "netlicensing_delete_license",

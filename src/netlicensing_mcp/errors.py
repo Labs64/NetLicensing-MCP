@@ -274,8 +274,10 @@ def error_hint(
             "The request was blocked by a gateway or proxy in front of NetLicensing (the reply "
             "was not a NetLicensing JSON response, so this is not an API key role problem): "
             "check the arguments for special characters such as '<', '>', quotes or ';' and "
-            "retry with plain text.",
+            "retry with plain text. Gateways also block bursts of requests for about a minute: "
+            "if the arguments are plain, wait a minute, pace bulk operations, and retry.",
             [],
+            retryable=True,
         )
     if status == 403:
         return _result(

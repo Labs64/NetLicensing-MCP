@@ -38,6 +38,7 @@
     "netlicensing_list_licenses",
     "netlicensing_get_license",
     "netlicensing_create_license",
+    "netlicensing_preview_update_license",
     "netlicensing_update_license",
     "netlicensing_preview_delete_license",
     "netlicensing_delete_license",
@@ -793,7 +794,7 @@
     {
       "name": "netlicensing_create_transaction",
       "title": "Create transaction",
-      "description": "Create a new transaction.\n\nArgs:\n    status: CANCELLED | CLOSED | PENDING\n    source: Transaction source — SHOP or AUTO (default SHOP)\n    licensee_number: Optional — associated licensee\n    number: Optional custom transaction number (auto-generated if empty)\n    name: Optional human-readable transaction name\n    active: Whether the transaction is active\n    date_created: Optional ISO 8601 creation timestamp\n    date_closed: Optional ISO 8601 close timestamp\n    payment_method: Optional payment method number\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
+      "description": "Create a new transaction.\n\nArgs:\n    status: CANCELLED | CLOSED | PENDING\n    source: Transaction source — SHOP or AUTO (default SHOP)\n    licensee_number: Optional — associated licensee\n    number: Optional custom transaction number (auto-generated if empty)\n    name: Optional human-readable transaction name\n    active: Whether the transaction is active\n    date_created: Not supported — NetLicensing sets the creation time itself; a value is rejected (leave empty)\n    date_closed: Not supported — NetLicensing sets the close time itself; a value is rejected (leave empty)\n    payment_method: Optional payment method number\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "status": {
@@ -1033,7 +1034,7 @@
     {
       "name": "netlicensing_delete_product",
       "title": "Delete product",
-      "description": "Delete a product permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_product,\n   which shows the dependencies and whether force_cascade is required) to\n   receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token and the same force_cascade value within\n   5 minutes to execute. A token issued for a non-cascade delete is rejected\n   for force_cascade=true and the reverse.\n\nArgs:\n    product_number: Product to delete\n    force_cascade: Also delete all dependent modules, templates, licensees, and licenses\n    confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)",
+      "description": "Delete a product permanently.\n\nAlways requires a two-step confirmation:\n1. Call without confirm_token (or call netlicensing_preview_delete_product,\n   which shows the dependencies and whether force_cascade is required) to\n   receive a preview and a short-lived confirmation token.\n2. Call again with the confirm_token and the same force_cascade value within\n   5 minutes to execute. A token issued for a non-cascade delete is rejected\n   for force_cascade=true and the reverse.\n\nArgs:\n    product_number: Product to delete\n    force_cascade: Also delete all dependent modules, templates, licensees, and licenses (bundles are NOT deleted: they are orphaned and reported)\n    confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)",
       "inputSchema": {
         "properties": {
           "product_number": {
@@ -1151,7 +1152,7 @@
     {
       "name": "netlicensing_explain_validation",
       "title": "Explain validation",
-      "description": "Run a dry-run validation and return a plain-language explanation.\n\nWraps validate_licensee with dryRun=true and translates the result into\nper-module status, explanations, and suggested_actions (renewal tokens,\ntop-up flows, force-checkin advice). This tool is READ-ONLY — it never\nconsumes floating sessions, quota, or node-lock slots.\n\nNote: module_parameters currently passes the first entry's fields only\n(single-module shorthand). Full multi-module indexed support is planned\nfor a future release (P0.5).\n\nArgs:\n    licensee_number:   Licensee identifier (e.g. 'CUST-ACME').\n    product_number:    Optional — scope validation to a single product.\n    module_parameters: Optional per-module overrides. Each dict may\n                       contain: product_module_number, node_secret,\n                       session_id, action.\n    include_raw:       When True, include the sanitized upstream\n                       validate_licensee API response under 'raw'.",
+      "description": "Run a dry-run validation and return a plain-language explanation.\n\nWraps validate_licensee with dryRun=true and translates the result into\nper-module status, explanations, and suggested_actions (renewal tokens,\ntop-up flows, force-checkin advice). This tool is READ-ONLY — it never\nconsumes floating sessions, quota, or node-lock slots.\n\nNote: module_parameters passes the first entry's fields only (one module per\ncall). Its session_id is honoured: a Floating module validated with one is not\ndescribed as missing a session id. The status of the other Floating modules of\nthe product stays \"unknown\" (valid=false upstream) unless you validate them too.\n\nArgs:\n    licensee_number:   Licensee identifier (e.g. 'CUST-ACME').\n    product_number:    Optional — scope validation to a single product.\n    module_parameters: Optional per-module overrides. Each dict may\n                       contain: product_module_number, node_secret,\n                       session_id, action.\n    include_raw:       When True, include the sanitized upstream\n                       validate_licensee API response under 'raw'.",
       "inputSchema": {
         "properties": {
           "licensee_number": {
@@ -2236,7 +2237,7 @@
     {
       "name": "netlicensing_obtain_bundle",
       "title": "Obtain bundle",
-      "description": "Obtain a bundle for a customer — creates licenses from all license\ntemplates included in the bundle for the specified licensee.\n\nPricing: the created licenses carry the price of their license templates. In\ntesting, a bundle priced 5.00 EUR produced a license at its template price\n(1.00 EUR); the bundle price is what the Shop charges. Check the created\nlicenses' prices if they matter.\n\nArgs:\n    bundle_number: Bundle to obtain\n    licensee_number: Customer (licensee) who receives the licenses\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
+      "description": "Obtain a bundle for a customer — creates licenses from all license\ntemplates included in the bundle for the specified licensee.\n\nPricing: the created licenses carry the price of their license templates. In\ntesting, a bundle priced 5.00 EUR produced a license at its template price\n(1.00 EUR); the bundle price is what the Shop charges. Check the created\nlicenses' prices if they matter.\n\nNOT idempotent: every call issues a new set of licenses. To make a retry safe,\nthe call is refused when the customer already holds licenses from this bundle's\ntemplates; after an unclear response, list the customer's licenses before\ncalling again, and pass allow_duplicate=true only for a deliberate second set.\n\nArgs:\n    bundle_number: Bundle to obtain\n    licensee_number: Customer (licensee) who receives the licenses\n    allow_duplicate: Obtain even if the customer already has licenses from this bundle (default false)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "bundle_number": {
@@ -2246,6 +2247,11 @@
           "licensee_number": {
             "title": "Licensee Number",
             "type": "string"
+          },
+          "allow_duplicate": {
+            "default": false,
+            "title": "Allow Duplicate",
+            "type": "boolean"
           },
           "include_raw": {
             "default": false,
@@ -2480,6 +2486,66 @@
           "token_number"
         ],
         "title": "netlicensing_preview_delete_tokenArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "description": "Same JSON as the text content; a result that is not an object is {\"result\": value}.",
+        "title": "NetLicensingToolResult",
+        "type": "object"
+      },
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "netlicensing_preview_update_license",
+      "title": "Preview update of license",
+      "description": "Preview a sensitive license update (price, currency, or active state).\n\nReturns a diff table of the proposed changes and a confirmation token. Pass\nthe token to netlicensing_update_license within 5 minutes to apply.\n\nArgs:\n    license_number: License to preview changes for\n    active: Proposed new active state (omit to skip)\n    price: Proposed new price (omit to skip)\n    currency: Proposed new currency code (leave empty to skip)",
+      "inputSchema": {
+        "properties": {
+          "license_number": {
+            "title": "License Number",
+            "type": "string"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Active"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Price"
+          },
+          "currency": {
+            "default": "",
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "license_number"
+        ],
+        "title": "netlicensing_preview_update_licenseArguments",
         "type": "object"
       },
       "outputSchema": {
@@ -2810,7 +2876,7 @@
     {
       "name": "netlicensing_update_license",
       "title": "Update license",
-      "description": "Update a license's properties.\n\nArgs:\n    license_number: License to update\n    active: True to activate, False to deactivate (omit to keep current)\n    name: New display name (leave empty to keep current)\n    start_date: ISO 8601 datetime, or \"now\" for an immediate start; a time in the past is rejected — TIMEVOLUME type (leave empty to keep current)\n    price: License price (omit to keep current)\n    currency: ISO 4217 currency code (leave empty to keep current)\n    time_volume: Duration value — TIMEVOLUME type (leave empty to keep current)\n    time_volume_period: DAY | WEEK | MONTH | YEAR (leave empty to keep current)\n    quantity: Usage quota — PayPerUse model (leave empty to keep current)\n    used_quantity: Used count — PayPerUse model (leave empty to keep current)\n    parent_feature: Parent feature — Rental model (leave empty to keep current)\n    hidden: Visibility in Shop (omit to keep current)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
+      "description": "Update a license's properties.\n\nChanging active, price or currency requires a confirmation token (revenue /\navailability impact). Call netlicensing_preview_update_license first.\nused_quantity must not exceed quantity.\n\nArgs:\n    license_number: License to update\n    active: True to activate, False to deactivate (omit to keep current)\n    name: New display name (leave empty to keep current)\n    start_date: ISO 8601 datetime, or \"now\" for an immediate start; a time in the past is rejected — TIMEVOLUME type (leave empty to keep current)\n    price: License price (omit to keep current)\n    currency: ISO 4217 currency code (leave empty to keep current)\n    time_volume: Duration value — TIMEVOLUME type (leave empty to keep current)\n    time_volume_period: DAY | WEEK | MONTH | YEAR (leave empty to keep current)\n    quantity: Usage quota — PayPerUse model (leave empty to keep current)\n    used_quantity: Used count — PayPerUse model (leave empty to keep current)\n    parent_feature: Parent feature — Rental model (leave empty to keep current)\n    hidden: Visibility in Shop (omit to keep current)\n    confirm_token: Confirmation token (required when active, price or currency change)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "license_number": {
@@ -2892,6 +2958,11 @@
             ],
             "default": null,
             "title": "Hidden"
+          },
+          "confirm_token": {
+            "default": "",
+            "title": "Confirm Token",
+            "type": "string"
           },
           "include_raw": {
             "default": false,
@@ -3459,7 +3530,7 @@
     {
       "name": "netlicensing_update_transaction",
       "title": "Update transaction",
-      "description": "Update a transaction's status or properties.\n\nArgs:\n    transaction_number: Transaction to update\n    status: CANCELLED | CLOSED | PENDING (leave empty to keep current)\n    active: Set active state (omit to keep current)\n    name: Human-readable name (leave empty to keep current)\n    date_closed: ISO 8601 close timestamp (leave empty to keep current)\n    payment_method: Payment method number (leave empty to keep current)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
+      "description": "Update a transaction's status or properties.\n\nArgs:\n    transaction_number: Transaction to update\n    status: CANCELLED | CLOSED | PENDING (leave empty to keep current)\n    active: Set active state (omit to keep current)\n    name: Human-readable name (leave empty to keep current)\n    date_closed: Not supported — NetLicensing sets the close time itself; a value is rejected (leave empty). Note: a CLOSED transaction can be set back to PENDING and keeps its old close time; there is no delete tool, so cancel unwanted transactions\n    payment_method: Payment method number (leave empty to keep current)\n    include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)",
       "inputSchema": {
         "properties": {
           "transaction_number": {

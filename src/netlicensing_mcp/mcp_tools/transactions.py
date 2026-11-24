@@ -96,8 +96,8 @@ async def netlicensing_create_transaction(
         number: Optional custom transaction number (auto-generated if empty)
         name: Optional human-readable transaction name
         active: Whether the transaction is active
-        date_created: Optional ISO 8601 creation timestamp
-        date_closed: Optional ISO 8601 close timestamp
+        date_created: Not supported — NetLicensing sets the creation time itself; a value is rejected (leave empty)
+        date_closed: Not supported — NetLicensing sets the close time itself; a value is rejected (leave empty)
         payment_method: Optional payment method number
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
@@ -138,7 +138,7 @@ async def netlicensing_update_transaction(
         status: CANCELLED | CLOSED | PENDING (leave empty to keep current)
         active: Set active state (omit to keep current)
         name: Human-readable name (leave empty to keep current)
-        date_closed: ISO 8601 close timestamp (leave empty to keep current)
+        date_closed: Not supported — NetLicensing sets the close time itself; a value is rejected (leave empty). Note: a CLOSED transaction can be set back to PENDING and keeps its old close time; there is no delete tool, so cancel unwanted transactions
         payment_method: Payment method number (leave empty to keep current)
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """

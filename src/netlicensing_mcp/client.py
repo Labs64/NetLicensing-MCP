@@ -76,6 +76,9 @@ def is_demo_mode() -> bool:
 # ── Error wrapper ────────────────────────────────────────────────────────────
 
 
+_MAX_DETAIL_CHARS = 300
+
+
 class NetLicensingError(Exception):
     """Raised when the NetLicensing API returns a non-2xx status.
 
@@ -113,6 +116,9 @@ class ClientValidationError(NetLicensingError):
     """
 
     def __init__(self, detail: str) -> None:
+        # Never echo oversized input back: keep the message readable and bounded.
+        if len(detail) > _MAX_DETAIL_CHARS:
+            detail = detail[:_MAX_DETAIL_CHARS] + "… (truncated)"
         super().__init__(400, detail)
 
 
@@ -121,8 +127,6 @@ def _retry_after_seconds(response: httpx.Response) -> int | None:
     value = response.headers.get("Retry-After", "").strip()
     return int(value) if value.isascii() and value.isdigit() else None
 
-
-_MAX_DETAIL_CHARS = 300
 
 #: A fully qualified Java class name (``com.labs64.domain.vo.TransactionStatus``).
 _JAVA_CLASS = re.compile(r"\b(?:[a-z][a-z0-9_]*\.){2,}[A-Z][\w$]*(?:\$[\w$]+)*")

@@ -14,11 +14,13 @@ from netlicensing_mcp.app import (
     _fmt_price,
     _json,
     _list_filter,
+    _price_active_diff,
     _wrap_json,
     tool,
 )
 from netlicensing_mcp.client import NetLicensingError
 from netlicensing_mcp.tools import licenses
+from netlicensing_mcp.tools.helpers import require_currency, require_price
 
 
 @tool(title="List licenses", annotations=_READONLY)
@@ -134,6 +136,41 @@ async def netlicensing_create_license(
         return _error(exc, "netlicensing_create_license")
 
 
+@tool(title="Preview update of license", annotations=_READONLY)
+async def netlicensing_preview_update_license(
+    license_number: str,
+    active: bool | None = None,
+    price: float | None = None,
+    currency: str = "",
+) -> str:
+    """Preview a sensitive license update (price, currency, or active state).
+
+    Returns a diff table of the proposed changes and a confirmation token. Pass
+    the token to netlicensing_update_license within 5 minutes to apply.
+
+    Args:
+        license_number: License to preview changes for
+        active: Proposed new active state (omit to skip)
+        price: Proposed new price (omit to skip)
+        currency: Proposed new currency code (leave empty to skip)
+    """
+    try:
+        require_price(price)
+        require_currency(currency)
+        current_resp = await licenses.get_license(license_number)
+        diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
+        return _json(
+            safety.make_update_preview(
+                "update_license",
+                license_number,
+                diff,
+                changes=safety.change_set(price=price, currency=currency, active=active),
+            )
+        )
+    except NetLicensingError as exc:
+        return _error(exc, "netlicensing_preview_update_license")
+
+
 @tool(title="Update license", annotations=_UPDATE)
 async def netlicensing_update_license(
     license_number: str,
@@ -148,9 +185,14 @@ async def netlicensing_update_license(
     used_quantity: str = "",
     parent_feature: str = "",
     hidden: bool | None = None,
+    confirm_token: str = "",
     include_raw: bool = False,
 ) -> str:
     """Update a license's properties.
+
+    Changing active, price or currency requires a confirmation token (revenue /
+    availability impact). Call netlicensing_preview_update_license first.
+    used_quantity must not exceed quantity.
 
     Args:
         license_number: License to update
@@ -165,9 +207,28 @@ async def netlicensing_update_license(
         used_quantity: Used count — PayPerUse model (leave empty to keep current)
         parent_feature: Parent feature — Rental model (leave empty to keep current)
         hidden: Visibility in Shop (omit to keep current)
+        confirm_token: Confirmation token (required when active, price or currency change)
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        sensitive = active is not None or price is not None or bool(currency)
+        if sensitive:
+            require_price(price)
+            require_currency(currency)
+            changes = safety.change_set(price=price, currency=currency, active=active)
+            if confirm_token:
+                safety.validate_and_consume(
+                    confirm_token, "update_license", license_number, changes=changes
+                )
+            else:
+                current_resp = await licenses.get_license(license_number)
+                diff = _price_active_diff(_extract_props(current_resp), price, currency, active)
+                preview = safety.make_update_preview(
+                    "update_license", license_number, diff, changes=changes
+                )
+                if not preview.get("no_change"):
+                    return _json(preview)
+                # The sensitive fields already hold the requested values: apply the rest.
         return _wrap_json(
             await licenses.update_license(
                 license_number,
@@ -186,6 +247,8 @@ async def netlicensing_update_license(
             "License",
             include_raw=include_raw,
         )
+    except ValueError as exc:
+        return _confirm_error(exc, "netlicensing_update_license")
     except NetLicensingError as exc:
         return _error(exc, "netlicensing_update_license")
 

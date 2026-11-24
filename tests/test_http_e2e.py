@@ -28,7 +28,7 @@ from netlicensing_mcp import client, readiness
 # default MCP_HOST) and then accepts only 127.0.0.1 / localhost Host headers.
 BASE = "http://127.0.0.1:8000"
 HEADERS = {"accept": "application/json, text/event-stream", "content-type": "application/json"}
-DEFAULT_TOOL_COUNT = 61
+DEFAULT_TOOL_COUNT = 62
 
 
 def _product(number: str) -> dict[str, Any]:

@@ -77,6 +77,12 @@ _CURRENCY = re.compile(r"[A-Z]{3}")
 #: the format is checked, so any three-letter code of the right shape passes.
 
 
+#: Upstream limits are not published: a 300-character name gave HTTP 500, so names are
+#: capped at 255 and any other value at 5000 characters.
+NAME_MAX_LENGTH = 255
+VALUE_MAX_LENGTH = 5000
+
+
 def _is_control(ch: str, allow_whitespace: bool) -> bool:
     if allow_whitespace and ch in "\t\n\r":
         return False
@@ -92,6 +98,12 @@ def validate_form_data(data: dict[str, str]) -> None:
     for key, value in data.items():
         if not isinstance(value, str):
             continue
+        limit = NAME_MAX_LENGTH if key == "name" else VALUE_MAX_LENGTH
+        if len(value) > limit:
+            # Core answers an over-long name with HTTP 500; refuse it here, without echoing it.
+            raise ClientValidationError(
+                f"Invalid {key}: {len(value)} characters, the maximum is {limit}"
+            )
         multiline = key in MULTILINE_FIELDS
         if any(_is_control(ch, multiline) for ch in value):
             where = " (tab and newline are allowed)" if multiline else ""

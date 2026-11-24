@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 from netlicensing_mcp import safety
 from netlicensing_mcp.app import (
@@ -358,7 +359,8 @@ async def _product_delete_preview(product_number: str, force_cascade: bool) -> s
         "licenses": licenses_n,
         "bundles": bundles_n,
     }
-    blocking = {k: v for k, v in affected.items() if isinstance(v, int) and v}
+    # Bundles are not deleted by the cascade and do not block a delete: they are orphaned.
+    blocking = {k: v for k, v in affected.items() if isinstance(v, int) and v and k != "bundles"}
     preview = safety.make_delete_preview(
         "delete_product",
         product_number,
@@ -373,12 +375,56 @@ async def _product_delete_preview(product_number: str, force_cascade: bool) -> s
         blocking=blocking,
     )
     unknown = [k for k, v in affected.items() if v == "unknown"]
+    warnings: list[str] = []
     if unknown:
-        preview["warnings"] = [
+        warnings.append(
             f"{', '.join(unknown)}: count not computed (too many modules or licensees to "
             "enumerate cheaply); treat the real impact as larger than shown."
-        ]
+        )
+    if bundle_numbers:
+        warnings.append(
+            f"{len(bundle_numbers)} bundle(s) use this product's license templates. "
+            "NetLicensing does NOT delete bundles in a cascade: they stay behind (inactive, "
+            "with dangling licenseTemplateNumbers). Delete them separately with "
+            "netlicensing_preview_delete_bundle / netlicensing_delete_bundle."
+        )
+    if warnings:
+        preview["warnings"] = warnings
     return _json(preview)
+
+
+async def _product_bundle_numbers(product_number: str) -> list[str]:
+    """Best-effort numbers of the bundles that use any template of the product."""
+    try:
+        modules_resp = await product_modules.list_product_modules(
+            product_number, page=0, items_per_page=100
+        )
+        module_numbers = _item_numbers(modules_resp)
+        if not module_numbers:
+            return []
+        _, template_numbers = await _count_templates(module_numbers)
+        return await _bundles_using(set(template_numbers)) if template_numbers else []
+    except NetLicensingError:
+        return []
+
+
+def _with_orphaned_bundles(result: str, bundle_numbers: list[str]) -> str:
+    """Add the bundles a cascade left behind to a ``delete_result`` JSON string."""
+    if not bundle_numbers:
+        return result
+    out = json.loads(result)
+    shown = ", ".join(bundle_numbers[:10]) + (" …" if len(bundle_numbers) > 10 else "")
+    out["orphaned_bundles"] = bundle_numbers
+    out["warnings"] = [
+        *out.get("warnings", []),
+        f"Bundles are not deleted by a product cascade and now reference deleted "
+        f"templates: {shown}.",
+    ]
+    out["suggested_actions"] = [
+        *out.get("suggested_actions", []),
+        *(f'netlicensing_preview_delete_bundle(bundle_number="{b}")' for b in bundle_numbers[:10]),
+    ]
+    return json.dumps(out, indent=2)
 
 
 @tool(title="Preview deletion of product", annotations=_READONLY)
@@ -422,7 +468,7 @@ async def netlicensing_delete_product(
 
     Args:
         product_number: Product to delete
-        force_cascade: Also delete all dependent modules, templates, licensees, and licenses
+        force_cascade: Also delete all dependent modules, templates, licensees, and licenses (bundles are NOT deleted: they are orphaned and reported)
         confirm_token: Confirmation token from a previous preview call (not proof of human approval: show the preview to the user and wait for their go-ahead)
     """
     try:
@@ -430,7 +476,9 @@ async def netlicensing_delete_product(
             safety.validate_and_consume(
                 confirm_token, "delete_product", product_number, force_cascade
             )
-            return await products.delete_product(product_number, force_cascade)
+            bundle_numbers = await _product_bundle_numbers(product_number) if force_cascade else []
+            result = await products.delete_product(product_number, force_cascade)
+            return _with_orphaned_bundles(result, bundle_numbers)
 
         # No token: always show the preview; deletion is never allowed without confirmation.
         return await _product_delete_preview(product_number, force_cascade)

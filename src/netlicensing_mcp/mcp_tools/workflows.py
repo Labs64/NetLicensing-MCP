@@ -70,9 +70,10 @@ async def netlicensing_explain_validation(
     top-up flows, force-checkin advice). This tool is READ-ONLY — it never
     consumes floating sessions, quota, or node-lock slots.
 
-    Note: module_parameters currently passes the first entry's fields only
-    (single-module shorthand). Full multi-module indexed support is planned
-    for a future release (P0.5).
+    Note: module_parameters passes the first entry's fields only (one module per
+    call). Its session_id is honoured: a Floating module validated with one is not
+    described as missing a session id. The status of the other Floating modules of
+    the product stays "unknown" (valid=false upstream) unless you validate them too.
 
     Args:
         licensee_number:   Licensee identifier (e.g. 'CUST-ACME').
@@ -96,7 +97,12 @@ async def netlicensing_explain_validation(
             action=first.get("action"),
             dry_run=True,
         )
-        envelope = _val_explain.explain_validation(payload)
+        sessions = frozenset(
+            str(p["product_module_number"])
+            for p in (module_parameters or [])[:1]
+            if isinstance(p, dict) and p.get("session_id") and p.get("product_module_number")
+        )
+        envelope = _val_explain.explain_validation(payload, session_modules=sessions)
         envelope["licensee_number"] = licensee_number
         if include_raw:
             envelope["raw"] = payload

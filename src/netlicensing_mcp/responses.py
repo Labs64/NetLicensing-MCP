@@ -333,6 +333,8 @@ def _paging_fields(
             name, _, raw_value = part.partition("=")
             if name.strip().lower() == "page" and raw_value.strip().isdigit():
                 fields["page"] = int(raw_value.strip())
+    if has_more is None and count == 0 and fields.get("page", 0) > 0:
+        has_more = False  # an empty page beyond the last one
     if has_more is None:
         if "total" not in fields and fields.get("page") == 0 and count is not None:
             # A first page with no "more" marker is the whole list.
@@ -470,6 +472,12 @@ def wrap(
             envelope["summary"] = summary
         for k, v in meta.items():
             envelope.setdefault(k, v)
+        page = envelope.get("page")
+        if not wrapped_items and isinstance(page, int) and page > 0:
+            envelope["warnings"].append(
+                f"page {page} is past the last page: it holds no items. "
+                "Use page=0 to start from the first page."
+            )
 
     for msg in _info_warnings(meta, warn_info_types):
         if msg not in envelope["warnings"]:

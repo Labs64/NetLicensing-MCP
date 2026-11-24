@@ -210,6 +210,13 @@ def _explanation_for(row: dict[str, Any]) -> str:
         return "Quota module is active." if valid else _unknown_text("Quota module")
 
     if "floating" in model_lower:
+        if row.get("session_required") and row.get("session_supplied"):
+            return (
+                "Floating module: validity unknown. A session id was supplied, but NetLicensing "
+                "returned no session data for it: check that the id is the one used for "
+                "the checkOut, that the session was not already checked in or expired, and "
+                "that a free seat exists (maxSessions)."
+            )
         if row.get("session_required"):
             return (
                 "Floating module: validity unknown. It validates only for a session, and no "
@@ -307,7 +314,12 @@ def _actions_for(row: dict[str, Any], licensee_number: str) -> list[str]:
                 "Pay-per-Use transaction."
             )
 
-    if "floating" in model_lower and row.get("session_required"):
+    if "floating" in model_lower and row.get("session_required") and row.get("session_supplied"):
+        actions.append(
+            f"Check the seat limit (maxSessions) of module {mno}'s templates: "
+            f'netlicensing_list_license_templates(module_number="{mno}").'
+        )
+    elif "floating" in model_lower and row.get("session_required"):
         actions.append(
             f"Validate module {mno} for a session: netlicensing_validate_licensee("
             f'licensee_number="{licensee_number}", product_module_number="{mno}", '
@@ -422,6 +434,7 @@ def explain_validation(
     payload: dict,
     *,
     now: datetime | None = None,
+    session_modules: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """Build a ValidationExplanation envelope from a raw validate response.
 
@@ -429,6 +442,8 @@ def explain_validation(
         payload: Response from POST /licensee/{n}/validate.
         now:     UTC datetime for expiry calculations; defaults to
                  datetime.now(timezone.utc). Pass a fixed value in tests.
+        session_modules: numbers of the modules the caller validated with a session id,
+                 so a Floating module is not described as "no session id supplied".
     """
     if now is None:
         now = datetime.now(timezone.utc)
@@ -438,6 +453,8 @@ def explain_validation(
 
     for props, features in _module_blocks(payload):
         row = _classify_module(props, now, features)
+        if row.get("module_number") in session_modules:
+            row["session_supplied"] = True
         row["explanation"] = _explanation_for(row)
         row["state"] = _state(row)
         module_actions = _actions_for(row, licensee_number="<licensee>")

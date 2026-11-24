@@ -102,6 +102,39 @@ async def delete_bundle(bundle_number: str, force_cascade: bool = False) -> str:
     return delete_result("delete_bundle", "Bundle", bundle_number, status, force_cascade)
 
 
+def _item_props(item: object) -> dict[str, str]:
+    if not isinstance(item, dict):
+        return {}
+    return {
+        str(p.get("name")): str(p.get("value", ""))
+        for p in item.get("property", [])
+        if isinstance(p, dict)
+    }
+
+
+async def existing_bundle_licenses(bundle_number: str, licensee_number: str) -> list[str]:
+    """Numbers of the licensee's licenses already derived from the bundle's templates.
+
+    ``obtain`` has no idempotency key: repeating it (for example after a lost
+    response) issues a second set of licenses. This lets the caller detect that.
+    """
+    from netlicensing_mcp.tools import licenses  # local: avoid an import cycle at load
+
+    bundle = await nl_get(f"/bundle/{bundle_number}")
+    raw = first_item_property(bundle, "licenseTemplateNumbers") or ""
+    templates = {t.strip() for t in raw.split(",") if t.strip()}
+    if not templates:
+        return []
+    resp = await licenses.list_all_licenses(licensee_number)
+    items = (resp.get("items") or {}).get("item") or []
+    found: list[str] = []
+    for item in items if isinstance(items, list) else [items]:
+        props = _item_props(item)
+        if props.get("licenseTemplateNumber") in templates:
+            found.append(props.get("number", ""))
+    return found
+
+
 async def obtain_bundle(
     bundle_number: str,
     licensee_number: str,

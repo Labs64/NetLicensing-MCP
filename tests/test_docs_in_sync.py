@@ -80,7 +80,7 @@ def test_check_mode_fails_on_stale_file(tmp_path, monkeypatch, capsys, registry)
 async def test_every_registered_tool_is_documented():
     text = _tools_md()
     names = [t.name for t in await server.mcp.list_tools()]
-    assert len(names) == 61
+    assert len(names) == 62
     for name in names:
         assert f"### `{name}`" in text, name
     for prompt in await server.mcp.list_prompts():
@@ -97,12 +97,12 @@ def test_every_parameter_is_documented(registry):
 
 def test_readme_counts_match_registry(registry):
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert len(registry.tools) == 61 and len(registry.prompts) == 11
+    assert len(registry.tools) == 62 and len(registry.prompts) == 11
     tools = re.findall(r"<!-- count:tools -->(\d+)<!-- /count:tools -->", readme)
     prompts = re.findall(r"<!-- count:prompts -->(\d+)<!-- /count:prompts -->", readme)
-    assert tools and set(tools) == {"61"}
+    assert tools and set(tools) == {"62"}
     assert prompts and set(prompts) == {"11"}
-    assert set(re.findall(r'"tool_count": (\d+)', readme)) == {"61"}
+    assert set(re.findall(r'"tool_count": (\d+)', readme)) == {"62"}
     for marker in ("tools", "prompts"):
         assert readme.count(f"<!-- {marker}:start -->") == 1
         assert readme.count(f"<!-- {marker}:end -->") == 1

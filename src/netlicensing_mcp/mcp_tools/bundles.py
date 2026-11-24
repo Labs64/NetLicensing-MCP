@@ -17,7 +17,7 @@ from netlicensing_mcp.app import (
     _wrap_json,
     tool,
 )
-from netlicensing_mcp.client import NetLicensingError
+from netlicensing_mcp.client import ClientValidationError, NetLicensingError
 from netlicensing_mcp.tools import bundles
 
 
@@ -230,6 +230,7 @@ async def netlicensing_delete_bundle(
 async def netlicensing_obtain_bundle(
     bundle_number: str,
     licensee_number: str,
+    allow_duplicate: bool = False,
     include_raw: bool = False,
 ) -> str:
     """Obtain a bundle for a customer — creates licenses from all license
@@ -240,12 +241,28 @@ async def netlicensing_obtain_bundle(
     (1.00 EUR); the bundle price is what the Shop charges. Check the created
     licenses' prices if they matter.
 
+    NOT idempotent: every call issues a new set of licenses. To make a retry safe,
+    the call is refused when the customer already holds licenses from this bundle's
+    templates; after an unclear response, list the customer's licenses before
+    calling again, and pass allow_duplicate=true only for a deliberate second set.
+
     Args:
         bundle_number: Bundle to obtain
         licensee_number: Customer (licensee) who receives the licenses
+        allow_duplicate: Obtain even if the customer already has licenses from this bundle (default false)
         include_raw: When true, include the sanitized NetLicensing API response under 'raw' (the upstream reply, before this tool's normalization)
     """
     try:
+        if not allow_duplicate:
+            existing = await bundles.existing_bundle_licenses(bundle_number, licensee_number)
+            if existing:
+                shown = ", ".join(existing[:5]) + (" …" if len(existing) > 5 else "")
+                raise ClientValidationError(
+                    f"{licensee_number} already holds {len(existing)} license(s) from bundle "
+                    f"{bundle_number}'s templates ({shown}); obtaining again would issue a "
+                    "second set. If this is a retry, nothing more is needed. For a deliberate "
+                    "second set, pass allow_duplicate=true."
+                )
         return _wrap_json(
             await bundles.obtain_bundle(bundle_number, licensee_number),
             "License",
